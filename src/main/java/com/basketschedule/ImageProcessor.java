@@ -144,51 +144,7 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 					System.out.println(
 							"Y: " + y);
 				}
-
-				// ⑤ 認識結果を表示
-				//                for (Block block : response.blocks()) {
-				//
-				//                    if ("LINE".equals(block.blockTypeAsString())) {
-				//
-				//                        String text = block.text();
-				//
-				//                        float x = block.geometry()
-				//                                .boundingBox()
-				//                                .left();
-				//
-				//                        float y = block.geometry()
-				//                                .boundingBox()
-				//                                .top();
-				//
-				//                        context.getLogger().log(
-				//                                "TEXT: " + text
-				//                        );
-				//
-				//                        context.getLogger().log(
-				//                                "X: " + x
-				//                        );
-				//
-				//                        context.getLogger().log(
-				//                                "Y: " + y
-				//                        );
-				//
-				//                        // 「10」を検出
-				//                        if ("10".equals(text.trim())) {
-				//
-				//                            context.getLogger().log(
-				//                                    "★ 10 DETECTED ★"
-				//                            );
-				//
-				//                            context.getLogger().log(
-				//                                    "10 X: " + x
-				//                            );
-				//
-				//                            context.getLogger().log(
-				//                                    "10 Y: " + y
-				//                            );
-				//                        }
-				//                    }
-				//                }
+				// コメント
 			});
 
 		} catch (TextractException e) {
