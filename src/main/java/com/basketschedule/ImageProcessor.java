@@ -1,161 +1,196 @@
 package com.basketschedule;
 
-import java.util.List;
+import java.util.Map;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.genai.Client;
+import com.google.genai.types.Content;
+import com.google.genai.types.GenerateContentConfig;
+import com.google.genai.types.GenerateContentResponse;
+import com.google.genai.types.Part;
+import com.google.genai.types.Schema;
 
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
-import software.amazon.awssdk.services.textract.TextractClient;
-import software.amazon.awssdk.services.textract.model.Block;
-import software.amazon.awssdk.services.textract.model.DetectDocumentTextRequest;
-import software.amazon.awssdk.services.textract.model.DetectDocumentTextResponse;
-import software.amazon.awssdk.services.textract.model.Document;
-import software.amazon.awssdk.services.textract.model.TextractException;
 
 public class ImageProcessor implements RequestHandler<S3Event, String> {
 
 	@Override
-	public String handleRequest(S3Event event, Context context) {
+	public String handleRequest(
+	        S3Event event,
+	        Context context)  {
+		
+		String apiKey = System.getenv("GEMINI_API_KEY");
+		
+	    try (
+	    		
+	            S3Client s3Client = S3Client.builder()
+	                    .region(Region.AP_NORTHEAST_1)
+	                    .build();
 
-		try (
-				S3Client s3Client = S3Client.builder()
-						.region(Region.AP_NORTHEAST_1)
-						.build();
+	    		 Client geminiClient = Client.builder()
+	    	                .apiKey(apiKey)
+	    	                .build()) {
 
-				TextractClient textractClient = TextractClient.builder()
-						.region(Region.AP_NORTHEAST_2)
-						.build()) {
+	        for (var record : event.getRecords()) {
 
-			event.getRecords().forEach(record -> {
+	            // ① S3情報
+	            String bucketName =
+	                    record.getS3().getBucket().getName();
 
-				// ① S3の情報を取得
-				String bucketName = record.getS3().getBucket().getName();
+	            String objectKey =
+	                    record.getS3().getObject().getUrlDecodedKey();
 
-				String objectKey = record.getS3().getObject().getUrlDecodedKey();
+	            context.getLogger().log(
+	                    "Bucket: " + bucketName);
 
-				context.getLogger().log(
-						"Bucket: " + bucketName);
+	            context.getLogger().log(
+	                    "Object: " + objectKey);
 
-				context.getLogger().log(
-						"Object: " + objectKey);
+	            // ② S3から画像取得
+	            GetObjectRequest request =
+	                    GetObjectRequest.builder()
+	                            .bucket(bucketName)
+	                            .key(objectKey)
+	                            .build();
 
-				// ② S3から画像を取得
-				GetObjectRequest s3Request = GetObjectRequest.builder()
-						.bucket(bucketName)
-						.key(objectKey)
-						.build();
+	            ResponseBytes<GetObjectResponse> image =
+	                    s3Client.getObjectAsBytes(request);
 
-				ResponseBytes<GetObjectResponse> image = s3Client.getObjectAsBytes(s3Request);
+	            byte[] imageData = image.asByteArray();
 
-				context.getLogger().log(
-						"Image size: "
-								+ image.asByteArray().length
-								+ " bytes");
+	            context.getLogger().log(
+	                    "Image size: "
+	                    + imageData.length
+	                    + " bytes");
+	            
+	            Content content = Content.fromParts(
+	                    Part.fromText("""
+	                            この画像は学校開放日程表です。
 
-				// ③ Textractに渡す
-				Document document = Document.builder()
-						.bytes(
-								software.amazon.awssdk.core.SdkBytes
-										.fromByteArray(
-												image.asByteArray()))
-						.build();
+	                            画像を視覚的に解析してください。
 
-				DetectDocumentTextRequest textractRequest = DetectDocumentTextRequest.builder()
-						.document(document)
-						.build();
+	                            「10」と記載されているセルをすべて探してください。
 
-				// ④ Textract実行
-				DetectDocumentTextResponse response = textractClient.detectDocumentText(
-						textractRequest);
+	                            「10」が記載されているセルについて、
+	                            以下の情報を特定してください。
 
-				List<Block> lines = response.blocks().stream()
-						.filter(block -> "LINE".equals(block.blockTypeAsString()))
-						.toList();
+	                            ・日付
+	                            ・時間帯
 
-				for (Block target : lines) {
+	                            時間帯は「午前」「午後」「夜間」のいずれかです。
 
-					if (!"10".equals(target.text().trim())) {
-						continue;
-					}
+	                            画像から確認できない情報を推測で追加しないでください。
+	                            """),
 
-					double x = target.geometry().boundingBox().left();
-					double y = target.geometry().boundingBox().top();
+	                    Part.fromBytes(imageData, "image/jpeg")
+	            );
+	            
+	            GenerateContentConfig config =
+	                    GenerateContentConfig.builder()
+	                            .responseMimeType("application/json")
+	                            .responseSchema(
+	                                    Schema.builder()
+	                                            .type("OBJECT")
+	                                            .properties(
+	                                                    Map.of(
+	                                                            "entries",
+	                                                            Schema.builder()
+	                                                                    .type("ARRAY")
+	                                                                    .items(
+	                                                                            Schema.builder()
+	                                                                                    .type("OBJECT")
+	                                                                                    .properties(
+	                                                                                            Map.of(
+	                                                                                                    "date",
+	                                                                                                    Schema.builder()
+	                                                                                                            .type("STRING")
+	                                                                                                            .build(),
 
-					// ① X座標から時間帯を判定
-					String timeZone = null;
+	                                                                                                    "timeZone",
+	                                                                                                    Schema.builder()
+	                                                                                                            .type("STRING")
+	                                                                                                            .build()
+	                                                                                            )
+	                                                                                    )
+	                                                                                    .build()
+	                                                                    )
+	                                                                    .build()
+	                                                    )
+	                                            )
+	                                            .build()
+	                            )
+	                            .build();
+	            
+	            context.getLogger().log(
+	                    "Gemini API呼び出し開始");
 
-					if (x >= 0.12 && x < 0.16) {
-						timeZone = "午前";
-					} else if (x >= 0.16 && x < 0.20) {
-						timeZone = "午後";
-					} else if (x >= 0.20 && x < 0.24) {
-						timeZone = "夜間";
-					}
+	            GenerateContentResponse response =
+	                    geminiClient.models.generateContent(
+	                            "gemini-3.6-flash",
+	                            content,
+	                            config);
 
-					// 午前～夜間以外なら無視
-					if (timeZone == null) {
-						continue;
-					}
+	            context.getLogger().log(
+	                    "Gemini API呼び出し完了");
+	            
+	            String json = response.text();
 
-					// ② 同じ行の日付を探す
-					String date = null;
+	            ObjectMapper mapper = new ObjectMapper();
 
-					double minDistance = Double.MAX_VALUE;
+	            CalendarResponse calendarResponse;
 
-					for (Block dateBlock : lines) {
+	            
+	            try {
+	                calendarResponse =
+	                        mapper.readValue(
+	                                json,
+	                                CalendarResponse.class);
+	            } catch (Exception e) {
 
-						String text = dateBlock.text().trim();
+	                context.getLogger().log(
+	                        "JSON解析エラー: " + e.getMessage());
 
-						double dateX = dateBlock.geometry().boundingBox().left();
+	                throw new RuntimeException(e);
+	            }
 
-						// 日付列
-						if (dateX < 0.10) {
+	            
+	            DynamoDbService dynamoDbService =
+	                    new DynamoDbService();
 
-							double dateY = dateBlock.geometry().boundingBox().top();
+	            for (CalendarEntry entry :
+	                    calendarResponse.getEntries()) {
 
-							double distance = Math.abs(y - dateY);
+	                CalendarEvent event2 =
+	                        CalendarConverter.convert(entry);
 
-							if (distance < minDistance) {
+	                context.getLogger().log(
+	                        "開始: " + event2.getStart()
+	                        + " / 終了: " + event2.getEnd());
 
-								minDistance = distance;
-								date = text;
-							}
-						}
-					}
+	                dynamoDbService.saveEvent(
+	                        event2,
+	                        entry.getTimeZone());
+	            }
 
-					System.out.println(
-							"★★★ 検出結果 ★★★");
+	            dynamoDbService.close();
+	            
+	        }
 
-					System.out.println(
-							"日付: " + date);
+	    } catch (Exception e) {
 
-					System.out.println(
-							"時間帯: " + timeZone);
+	        context.getLogger().log(
+	                "ERROR: " + e.getMessage());
 
-					System.out.println(
-							"X: " + x);
+	        throw e;
+	    }
 
-					System.out.println(
-							"Y: " + y);
-				}
-				// コメント
-			});
-
-		} catch (TextractException e) {
-
-			context.getLogger().log(
-					"Textract error: "
-							+ e.awsErrorDetails().errorMessage());
-
-			throw e;
-		}
-
-		return "OK";
+	    return "OK";
 	}
 }
