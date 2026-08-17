@@ -4,6 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.genai.Client;
 import com.google.genai.types.Content;
 import com.google.genai.types.GenerateContentConfig;
@@ -82,8 +83,22 @@ public class GeminiTest {
 					content,
 					config);
 
-			System.out.println("Geminiの回答:");
-			System.out.println(response.text());
+			String json = response.text();
+
+			ObjectMapper mapper = new ObjectMapper();
+
+			CalendarResponse calendarResponse =
+			        mapper.readValue(json, CalendarResponse.class);
+
+			System.out.println("解析結果:");
+
+			for (CalendarEntry entry : calendarResponse.getEntries()) {
+
+			    System.out.println(
+			            "日付: " + entry.getDate()
+			            + " / 時間帯: " + entry.getTimeZone()
+			    );
+			}
 		}
 	}
 }
