@@ -17,6 +17,8 @@ dependencies {
 	
 	implementation 'com.google.genai:google-genai:1.0.0'
 	
+	implementation 'com.fasterxml.jackson.core:jackson-databind:2.19.2'
+	
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.0'
 }
 
