@@ -24,7 +24,7 @@ public class DynamoDbService {
         Map<String, AttributeValue> item = new HashMap<>();
 
         item.put(
-                "month",
+                "scheduleMonth",
                 AttributeValue.builder()
                         .s(event.getStart().toLocalDate().toString().substring(0, 7))
                         .build()

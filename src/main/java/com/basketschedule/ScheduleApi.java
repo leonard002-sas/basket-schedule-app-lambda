@@ -1,5 +1,6 @@
 package com.basketschedule;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -28,18 +29,17 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, String> 
 
         try {
 
-            // 今回は固定で2026年9月
-            String month = "2026-09";
+            String scheduleMonth = "2026-09";
 
             QueryRequest request =
                     QueryRequest.builder()
                             .tableName("BasketSchedule")
-                            .keyConditionExpression("PK = :pk")
+                            .keyConditionExpression("scheduleMonth = :month")
                             .expressionAttributeValues(
                                     Map.of(
-                                            ":pk",
+                                            ":month",
                                             AttributeValue.builder()
-                                                    .s(month)
+                                                    .s(scheduleMonth)
                                                     .build()
                                     )
                             )
@@ -54,7 +54,29 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, String> 
             context.getLogger().log(
                     "取得件数: " + items.size());
 
-            return mapper.writeValueAsString(items);
+            // DynamoDBのAttributeValueを普通のJava Mapに変換
+            List<Map<String, String>> result = new ArrayList<>();
+
+            for (Map<String, AttributeValue> item : items) {
+
+                result.add(
+                        Map.of(
+                                "scheduleMonth",
+                                item.get("scheduleMonth").s(),
+
+                                "startDateTime",
+                                item.get("startDateTime").s(),
+
+                                "endDateTime",
+                                item.get("endDateTime").s(),
+
+                                "timeZone",
+                                item.get("timeZone").s()
+                        )
+                );
+            }
+
+            return mapper.writeValueAsString(result);
 
         } catch (Exception e) {
 

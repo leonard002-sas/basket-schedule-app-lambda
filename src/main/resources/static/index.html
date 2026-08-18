@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>バスケットボール予定表</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        #schedule {
+            margin-top: 20px;
+        }
+
+        .event {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .date {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .time {
+            margin-top: 5px;
+        }
+
+        .time-zone {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 8px;
+            background: #eee;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+
+        .loading {
+            text-align: center;
+        }
+
+        .error {
+            color: red;
+            text-align: center;
+        }
+
+        button {
+            display: block;
+            margin: 20px auto 0;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>バスケットボール予定表</h1>
+
+    <div id="schedule">
+        <p class="loading">予定を取得しています...</p>
+    </div>
+
+    <button id="calendarButton">
+        カレンダー登録
+    </button>
+
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
