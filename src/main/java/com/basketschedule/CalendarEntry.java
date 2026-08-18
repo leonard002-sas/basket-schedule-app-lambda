@@ -3,6 +3,7 @@ package com.basketschedule;
 public class CalendarEntry {
 
     private String date;
+
     private String timeZone;
 
     public String getDate() {

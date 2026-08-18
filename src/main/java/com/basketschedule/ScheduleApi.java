@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
-import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
+import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
 
 public class ScheduleApi implements RequestHandler<Map<String, Object>, String> {
 
@@ -29,24 +29,14 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, String> 
 
         try {
 
-            String scheduleMonth = "2026-09";
-
-            QueryRequest request =
-                    QueryRequest.builder()
+            // DynamoDBに登録されている予定をすべて取得
+            ScanRequest request =
+                    ScanRequest.builder()
                             .tableName("BasketSchedule")
-                            .keyConditionExpression("scheduleMonth = :month")
-                            .expressionAttributeValues(
-                                    Map.of(
-                                            ":month",
-                                            AttributeValue.builder()
-                                                    .s(scheduleMonth)
-                                                    .build()
-                                    )
-                            )
                             .build();
 
             var response =
-                    dynamoDbClient.query(request);
+                    dynamoDbClient.scan(request);
 
             List<Map<String, AttributeValue>> items =
                     response.items();
@@ -55,7 +45,8 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, String> 
                     "取得件数: " + items.size());
 
             // DynamoDBのAttributeValueを普通のJava Mapに変換
-            List<Map<String, String>> result = new ArrayList<>();
+            List<Map<String, String>> result =
+                    new ArrayList<>();
 
             for (Map<String, AttributeValue> item : items) {
 

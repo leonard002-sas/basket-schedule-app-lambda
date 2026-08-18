@@ -28,25 +28,25 @@ public class GeminiTest {
 			byte[] imageData = Files.readAllBytes(imagePath);
 
 			Content content = Content.fromParts(
-			        Part.fromText("""
-			                この画像は学校開放日程表です。
+					Part.fromText("""
+							この画像は学校開放日程表です。
 
-			                画像を視覚的に解析してください。
+							画像を視覚的に解析してください。
 
-			                「10」と記載されているセルをすべて探してください。
+							「10」と記載されているセルをすべて探してください。
 
-			                「10」が記載されているセルについて、
-			                以下の情報を特定してください。
+							「10」が記載されているセルについて、
+							以下の情報を特定してください。
 
-			                ・日付
-			                ・時間帯
+							・日付
+							・時間帯
 
-			                時間帯は「午前」「午後」「夜間」のいずれかです。
+							時間帯は「午前」「午後」「夜間」のいずれかです。
 
-			                画像から確認できない情報を推測で追加しないでください。
-			                """),
+							画像から確認できない情報を推測で追加しないでください。
+							"""),
 
-			        Part.fromBytes(imageData, "image/jpeg"));
+					Part.fromBytes(imageData, "image/jpeg"));
 
 			GenerateContentConfig config = GenerateContentConfig.builder()
 					.responseMimeType("application/json")
@@ -76,43 +76,25 @@ public class GeminiTest {
 															.build()))
 									.build())
 					.build();
-			
+
 			System.out.println("Gemini API呼び出し開始");
-			
+
 			GenerateContentResponse response = client.models.generateContent(
 					"gemini-3.6-flash",
 					content,
 					config);
-			
+
 			System.out.println("Gemini API呼び出し完了");
 
 			String json = response.text();
 
 			ObjectMapper mapper = new ObjectMapper();
 
-			CalendarResponse calendarResponse =
-			        mapper.readValue(json, CalendarResponse.class);
+			CalendarResponse calendarResponse = mapper.readValue(json, CalendarResponse.class);
 
 			System.out.println("解析結果:");
 
-			DynamoDbService dynamoDbService =
-			        new DynamoDbService();
-
-			for (CalendarEntry entry : calendarResponse.getEntries()) {
-
-			    CalendarEvent event =
-			            CalendarConverter.convert(entry);
-
-			    System.out.println(
-			            "開始: " + event.getStart()
-			            + " / 終了: " + event.getEnd()
-			    );
-
-			    dynamoDbService.saveEvent(
-			            event,
-			            entry.getTimeZone()
-			    );
-			}
+			DynamoDbService dynamoDbService = new DynamoDbService();
 
 			dynamoDbService.close();
 		}

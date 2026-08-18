@@ -6,80 +6,120 @@ import java.time.LocalTime;
 
 public class CalendarConverter {
 
-    public static CalendarEvent convert(CalendarEntry entry) {
+	public static CalendarEvent convert(
+			CalendarEntry entry,
+			String scheduleMonth) {
 
-    	String dateText = entry.getDate();
-    	String timeZone = entry.getTimeZone();
+		String dateText = entry.getDate();
+		String timeZone = entry.getTimeZone();
 
-    	int month;
-    	int day;
+		if (scheduleMonth == null || scheduleMonth.isBlank()) {
+			throw new IllegalArgumentException(
+					"対象月が取得できません");
+		}
 
-    	if (dateText.contains("月")) {
+		// 「2026-08」を抽出
+		java.util.regex.Matcher yearMonthMatcher = java.util.regex.Pattern
+				.compile("(\\d{4})-(\\d{1,2})")
+				.matcher(scheduleMonth);
 
-    	    // 「9月5日」
-    	    java.util.regex.Matcher matcher =
-    	            java.util.regex.Pattern
-    	                    .compile("(\\d+)月(\\d+)日")
-    	                    .matcher(dateText);
+		if (!yearMonthMatcher.find()) {
 
-    	    if (!matcher.find()) {
-    	        throw new IllegalArgumentException(
-    	                "日付を解析できません: " + dateText
-    	        );
-    	    }
+			throw new IllegalArgumentException(
+					"対象月を解析できません: "
+							+ scheduleMonth);
+		}
 
-    	    month = Integer.parseInt(matcher.group(1));
-    	    day = Integer.parseInt(matcher.group(2));
+		int year = Integer.parseInt(
+				yearMonthMatcher.group(1));
 
-    	} else {
+		int month = Integer.parseInt(
+				yearMonthMatcher.group(2));
 
-    	    // 「5日」
-    	    java.util.regex.Matcher matcher =
-    	            java.util.regex.Pattern
-    	                    .compile("(\\d+)日")
-    	                    .matcher(dateText);
+		int day;
 
-    	    if (!matcher.find()) {
-    	        throw new IllegalArgumentException(
-    	                "日付を解析できません: " + dateText
-    	        );
-    	    }
+		// 「8月5日」
+		if (dateText.contains("月")) {
 
-    	    month = 9;
-    	    day = Integer.parseInt(matcher.group(1));
-    	}
+			java.util.regex.Matcher matcher = java.util.regex.Pattern
+					.compile("(\\d+)月(\\d+)日")
+					.matcher(dateText);
 
-    	LocalDate date = LocalDate.of(2026, month, day);
+			if (!matcher.find()) {
+				throw new IllegalArgumentException(
+						"日付を解析できません: "
+								+ dateText);
+			}
 
-        LocalTime startTime;
-        LocalTime endTime;
+			// 月はscheduleMonthを優先
+			day = Integer.parseInt(
+					matcher.group(2));
 
-        switch (timeZone) {
+		} else {
 
-            case "午前":
-                startTime = LocalTime.of(9, 0);
-                endTime = LocalTime.of(12, 0);
-                break;
+			// 「5日」
+			java.util.regex.Matcher matcher = java.util.regex.Pattern
+					.compile("(\\d+)日")
+					.matcher(dateText);
 
-            case "午後":
-                startTime = LocalTime.of(13, 0);
-                endTime = LocalTime.of(17, 0);
-                break;
+			if (!matcher.find()) {
+				throw new IllegalArgumentException(
+						"日付を解析できません: "
+								+ dateText);
+			}
 
-            case "夜間":
-                startTime = LocalTime.of(18, 0);
-                endTime = LocalTime.of(21, 0);
-                break;
+			day = Integer.parseInt(
+					matcher.group(1));
+		}
 
-            default:
-                throw new IllegalArgumentException(
-                        "不明な時間帯: " + timeZone
-                );
-        }
+		LocalDate date = LocalDate.of(
+				year,
+				month,
+				day);
 
-        return new CalendarEvent(
-                LocalDateTime.of(date, startTime),
-                LocalDateTime.of(date, endTime)
-        );
-    }
+		LocalTime startTime;
+		LocalTime endTime;
+
+		switch (timeZone) {
+
+		case "午前":
+			startTime = LocalTime.of(9, 0);
+			endTime = LocalTime.of(12, 0);
+			break;
+
+		case "午後":
+			startTime = LocalTime.of(13, 0);
+			endTime = LocalTime.of(17, 0);
+			break;
+
+		case "夜間":
+
+			// 木曜日は18:30開始
+			if (date.getDayOfWeek() == java.time.DayOfWeek.THURSDAY) {
+
+				startTime = LocalTime.of(18, 30);
+
+			} else {
+
+				startTime = LocalTime.of(18, 0);
+			}
+
+			endTime = LocalTime.of(21, 0);
+
+			break;
+
+		default:
+			throw new IllegalArgumentException(
+					"不明な時間帯: "
+							+ timeZone);
+		}
+
+		return new CalendarEvent(
+				LocalDateTime.of(
+						date,
+						startTime),
+				LocalDateTime.of(
+						date,
+						endTime));
+	}
 }

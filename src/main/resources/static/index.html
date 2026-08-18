@@ -1,96 +1,257 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>バスケットボール予定表</title>
+	<title>バスケットボール予定表</title>
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
-            margin: 0;
-            padding: 20px;
-        }
+	<style>
+		body {
+			font-family: sans-serif;
+			max-width: 900px;
+			margin: 0 auto;
+			padding: 30px 20px;
+		}
 
-        .container {
-            max-width: 700px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-        }
+		h1 {
+			margin-bottom: 30px;
+		}
 
-        h1 {
-            text-align: center;
-        }
+		/* =========================
+           アップロード
+           ========================= */
 
-        #schedule {
-            margin-top: 20px;
-        }
+		.upload-area {
+			padding: 20px;
+			border: 1px solid #ddd;
+			border-radius: 10px;
+			margin-bottom: 30px;
+		}
 
-        .event {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-        }
+		button {
+			padding: 10px 20px;
+			margin-top: 10px;
+			cursor: pointer;
+		}
 
-        .date {
-            font-size: 18px;
-            font-weight: bold;
-        }
+		#status {
+			margin-top: 15px;
+		}
 
-        .time {
-            margin-top: 5px;
-        }
+		/* =========================
+           カレンダー
+           ========================= */
 
-        .time-zone {
-            display: inline-block;
-            margin-top: 8px;
-            padding: 4px 8px;
-            background: #eee;
-            border-radius: 5px;
-            font-size: 13px;
-        }
+		.calendar-area {
+			margin-bottom: 40px;
+		}
 
-        .loading {
-            text-align: center;
-        }
+		.calendar-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 15px;
+		}
 
-        .error {
-            color: red;
-            text-align: center;
-        }
+		.calendar-header h2 {
+			margin: 0;
+		}
 
-        button {
-            display: block;
-            margin: 20px auto 0;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-    </style>
+		.month-button {
+			padding: 8px 15px;
+			margin: 0;
+		}
+
+		.calendar {
+			display: grid;
+			grid-template-columns: repeat(7, 1fr);
+			border-top: 1px solid #ddd;
+			border-left: 1px solid #ddd;
+		}
+
+		.weekday {
+			text-align: center;
+			font-weight: bold;
+			padding: 10px 0;
+			background: #f5f5f5;
+			border-right: 1px solid #ddd;
+			border-bottom: 1px solid #ddd;
+		}
+
+		.calendar-day {
+			min-height: 80px;
+			padding: 8px;
+			border-right: 1px solid #ddd;
+			border-bottom: 1px solid #ddd;
+			cursor: pointer;
+		}
+
+		.calendar-day:hover {
+			background: #f5f5f5;
+		}
+
+		.empty-day {
+			background: #fafafa;
+			cursor: default;
+		}
+
+		.day-number {
+			font-weight: bold;
+			margin-bottom: 5px;
+		}
+
+		.event-dot {
+			font-size: 12px;
+			margin-top: 3px;
+		}
+
+		/* =========================
+           予定一覧
+           ========================= */
+
+		.schedule {
+			border-top: 1px solid #ddd;
+			padding: 20px 0;
+		}
+
+		.date {
+			font-size: 20px;
+			font-weight: bold;
+		}
+
+		.time {
+			margin-top: 8px;
+		}
+
+		.time-zone {
+			margin-top: 5px;
+			color: #666;
+		}
+
+		.selected-day {
+			background: #eef6ff;
+		}
+
+		/* 土曜日 */
+		.saturday .day-number {
+			color: #1976d2;
+		}
+
+		/* 日曜日 */
+		.sunday .day-number {
+			color: #d32f2f;
+		}
+
+		/* 今日 */
+		.today {
+			background: #fff9c4;
+		}
+
+		/* 予定一覧 */
+		.upcoming-schedule {
+			border-top: 1px solid #ddd;
+			padding: 20px 0;
+		}
+
+		.upcoming-date {
+			font-size: 20px;
+			font-weight: bold;
+		}
+
+		.upcoming-time {
+			margin-top: 8px;
+			color: #000;
+		}
+
+		.upcoming-time-zone {
+			margin-top: 5px;
+			color: #666;
+		}
+		.holiday .day-number {
+		    color: #d32f2f;
+		}
+
+		.holiday-name {
+		    display: inline;
+		    font-size: 11px;
+		    color: #d32f2f;
+		    font-weight: normal;
+		    margin-left: 6px;
+		}
+	</style>
+
 </head>
 
 <body>
 
-<div class="container">
+	<h1>バスケットボール予定表</h1>
 
-    <h1>バスケットボール予定表</h1>
 
-    <div id="schedule">
-        <p class="loading">予定を取得しています...</p>
-    </div>
+	<!-- =========================
+     画像アップロード
+     ========================= -->
 
-    <button id="calendarButton">
-        カレンダー登録
-    </button>
+	<div class="upload-area">
 
-</div>
+		<h2>予定表を登録</h2>
 
-<script src="script.js"></script>
+		<input type="file" id="imageFile" accept="image/*">
+
+		<br>
+
+		<button id="uploadButton">
+			画像をアップロード
+		</button>
+
+		<div id="status"></div>
+
+	</div>
+
+
+	<!-- =========================
+     カレンダー
+     ========================= -->
+
+	<div class="calendar-area">
+
+		<div class="calendar-header">
+
+			<button id="prevMonth" class="month-button">
+				＜
+			</button>
+
+			<h2 id="calendarMonth">
+				2026年8月
+			</h2>
+
+			<button id="nextMonth" class="month-button">
+				＞
+			</button>
+
+		</div>
+
+
+		<div id="calendar" class="calendar">
+		</div>
+
+	</div>
+
+
+	<!-- =========================
+     今後の予定
+     ========================= -->
+
+	<h2>今後の予定</h2>
+
+	<div id="scheduleList">
+		予定を取得しています...
+	</div>
+
+
+	<script src="app.js"></script>
 
 </body>
+
 </html>
