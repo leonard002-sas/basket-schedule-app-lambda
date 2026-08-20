@@ -861,6 +861,127 @@ uploadButton.addEventListener(
     }
 );
 
+// ========================================
+// Cognito認証
+// ========================================
+
+const cognitoDomain =
+    "https://ap-northeast-1cd5fxlwj3.auth.ap-northeast-1.amazoncognito.com";
+
+const clientId =
+    "3mr9ep2rosop9ratlg1l3bta70";
+
+const redirectUri =
+    "https://d13o4oynf3jxlu.cloudfront.net";
+
+
+// ========================================
+// ログインボタン
+// ========================================
+
+const loginButton =
+    document.getElementById("loginButton");
+
+if (loginButton) {
+
+    loginButton.addEventListener(
+        "click",
+        () => {
+
+            const loginUrl =
+                `${cognitoDomain}/login` +
+                `?client_id=${clientId}` +
+                `&response_type=code` +
+                `&scope=openid+email+phone` +
+                `&redirect_uri=${encodeURIComponent(redirectUri)}`;
+
+            window.location.href =
+                loginUrl;
+
+        }
+    );
+
+}
+
+
+// ========================================
+// 認証コード → トークン
+// ========================================
+
+async function handleCognitoCallback() {
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    const code =
+        params.get("code");
+
+    if (!code) {
+        return;
+    }
+
+    console.log(
+        "Cognito認証コードを取得しました"
+    );
+
+    const response =
+        await fetch(
+            `${cognitoDomain}/oauth2/token`,
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/x-www-form-urlencoded"
+                },
+
+                body:
+                    new URLSearchParams({
+                        grant_type:
+                            "authorization_code",
+
+                        client_id:
+                            clientId,
+
+                        code:
+                            code,
+
+                        redirect_uri:
+                            redirectUri
+                    })
+            }
+        );
+
+    if (!response.ok) {
+
+        throw new Error(
+            "トークン取得失敗: " +
+            response.status
+        );
+
+    }
+
+    const tokens =
+        await response.json();
+
+    console.log(
+        "Cognitoトークン取得成功",
+        tokens
+    );
+
+}
+
+handleCognitoCallback()
+    .catch(error => {
+        console.error(
+            "Cognito認証エラー",
+            error
+        );
+    });
+
+
 
 // ========================================
 // 初期表示
