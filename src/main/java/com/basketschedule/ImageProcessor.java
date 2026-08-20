@@ -77,103 +77,109 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 				// ========================================
 
 				Content content = Content.fromParts(
+				        Part.fromText("""
+				                あなたは画像から手書きの日程表を読み取り、指定のJSON形式のみを出力するプログラムです。
 
-						Part.fromText("""
-								この画像は学校開放日程表です。
+				                【最重要指示】
+				                - 出力するJSONの値（Value）には、指定された文字列・数値以外の説明や注釈テキストを絶対に含めないでください。
+				                - 余計な解説、Markdown記法（```json など）、挨拶は一切出力せず、純粋なJSONのみを返してください。
 
-								画像を解析して、以下の情報を抽出してください。
+				                【抽出手順】
+				                1. scheduleMonth の算出:
+				                   - 画像右上の「〇年度」を取得してください（例: 「8年度」→ 令和8年 → 西暦2026年）。
+				                   - 画像上部の「〇月分」を取得してください（例: 「9月分」→ 「09」）。
+				                   - これらをハイフンで繋ぎ、必ず "YYYY-MM" の7文字の形式のみで出力してください（例: "2026-09"）。
+				                   - ※値の中に説明文や "entries structure..." などの余計な文字列を絶対に混ぜないでください。
 
-								【年度】
-								画像に記載されている「令和○年度」を読み取ってください。
-								例：
-								令和7年度 → fiscalYear = 2025
-								令和8年度 → fiscalYear = 2026
+				                2. entries の抽出:
+				                   - 「体育館」の列にある「午前」「午後」「夜間」欄のみを確認します。
+				                   - 数字の「10」が書かれているマスを探してください。
+				                   - 「10」がある日の「〇日」と、その時間帯区分（"午前", "午後", "夜間"）のペアをリストにしてください。
 
-								【対象月】
-								「学校開放日程表 ○月分」などの表記から対象月を読み取ってください。
-
-								【予定】
-								表の中から「10」と記載されているセルをすべて探してください。
-								そのセルの日付と時間帯を抽出してください。
-
-								時間帯は必ず以下のいずれかです。
-								午前
-								午後
-								夜間
-
-								対象月以外の日付はentriesに含めないでください。
-
-								画像から確認できない情報は推測しないでください。
-
-								予定がない場合はentriesを空配列にしてください。
-																								"""),
-
-						Part.fromBytes(
-								imageData,
-								"image/jpeg"));
-
+				                【出力JSONフォーマット】
+				                {
+				                  "scheduleMonth": "2026-09",
+				                  "entries": [
+				                    {
+				                      "date": "5日",
+				                      "timeZone": "午後"
+				                    }
+				                  ]
+				                }
+				                """),
+				        Part.fromBytes(
+				                imageData,
+				                "image/jpeg")
+				);
+				
+				
+				
 				// ========================================
-				// ④ GeminiのJSON形式
+				// ⑤ Gemini API呼び出し設定（統合版）
 				// ========================================
 
 				GenerateContentConfig config = GenerateContentConfig.builder()
+				        // 1. JSONのみを返すように強制
+				        .responseMimeType("application/json")
+				        
+				        // 2. AIの回答のブレ（ハルシネーション）を極限までなくす
+				        .temperature(0.0f) 
+				        
+				        // 3. 構造化出力（スキーマ）を定義
+				        .responseSchema(
+				                Schema.builder()
+				                        .type("OBJECT")
+				                        .properties(
+				                                Map.of(
+				                                        "scheduleMonth",
+				                                        Schema.builder()
+				                                                .type("STRING")
+				                                                // スキーマ側にも説明を入れるとさらに精度が上がります
+				                                                .description("必ず YYYY-MM の形式のみを出力（例: 2026-09）")
+				                                                .build(),
 
-						.responseMimeType(
-								"application/json")
+				                                        "entries",
+				                                        Schema.builder()
+				                                                .type("ARRAY")
+				                                                .items(
+				                                                        Schema.builder()
+				                                                                .type("OBJECT")
+				                                                                .properties(
+				                                                                        Map.of(
+				                                                                                "date",
+				                                                                                Schema.builder()
+				                                                                                        .type("STRING")
+				                                                                                        .build(),
 
-						.responseSchema(
-								Schema.builder()
-										.type("OBJECT")
-										.properties(
-												Map.of(
+				                                                                                "timeZone",
+				                                                                                Schema.builder()
+				                                                                                        .type("STRING")
+				                                                                                        .build()))
+				                                                                .build())
+				                                                .build()))
+				                        .build())
+				        .build();
 
-														"scheduleMonth",
-														Schema.builder()
-																.type("STRING")
-																.build(),
-
-														"entries",
-														Schema.builder()
-																.type("ARRAY")
-																.items(
-																		Schema.builder()
-																				.type("OBJECT")
-																				.properties(
-																						Map.of(
-
-																								"date",
-																								Schema.builder()
-																										.type("STRING")
-																										.build(),
-
-																								"timeZone",
-																								Schema.builder()
-																										.type("STRING")
-																										.build()))
-																				.build())
-																.build()))
-										.build())
-						.build();
 
 				// ========================================
-				// ⑤ Gemini API呼び出し
+				// ⑥ Gemini API呼び出し
 				// ========================================
 
-				context.getLogger().log(
-						"Gemini API呼び出し開始");
+				context.getLogger().log("Gemini API呼び出し開始");
+				context.getLogger().log("構文の中身です：" + content.text());
 
+				// 統合した config を渡す
 				GenerateContentResponse response = geminiClient.models.generateContent(
-						"gemini-3.6-flash",
-						content,
-						config);
+				        "gemini-3.6-flash", 
+				        content,
+				        config);
 
-				context.getLogger().log(
-						"Gemini API呼び出し完了");
+				context.getLogger().log("Gemini API呼び出し完了");
 
 				// ========================================
 				// ⑥ JSON解析
 				// ========================================
-
+				
 				String json = response.text();
 
 				context.getLogger().log(

@@ -29,21 +29,7 @@ public class GeminiTest {
 
 			Content content = Content.fromParts(
 					Part.fromText("""
-							この画像は学校開放日程表です。
-
-							画像を視覚的に解析してください。
-
-							「10」と記載されているセルをすべて探してください。
-
-							「10」が記載されているセルについて、
-							以下の情報を特定してください。
-
-							・日付
-							・時間帯
-
-							時間帯は「午前」「午後」「夜間」のいずれかです。
-
-							画像から確認できない情報を推測で追加しないでください。
+							「GeminiTest」と返却してください
 							"""),
 
 					Part.fromBytes(imageData, "image/jpeg"));
