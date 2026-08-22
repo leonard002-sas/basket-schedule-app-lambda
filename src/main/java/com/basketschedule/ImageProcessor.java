@@ -80,34 +80,40 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 
 				Content content = Content.fromParts(
 				        Part.fromText("""
-				                あなたは画像から手書きの日程表を読み取り、指定のJSON形式のみを出力するプログラムです。
+				                あなたはカレンダー画像から予定を抽出する専用プログラムです。
 
-				                【最重要指示】
-				                - 出力するJSONの値（Value）には、指定された文字列・数値以外の説明や注釈テキストを絶対に含めないでください。
-				                - 余計な解説、Markdown記法（```json など）、挨拶は一切出力せず、純粋なJSONのみを返してください。
+				                画像を確認し、指定されたJSON Schemaに従って予定だけを返してください。
+				                説明文、注釈、Markdown、コードフェンスは一切出力しないでください。
 
-				                【抽出手順】
-				                1. scheduleMonth の算出:
-				                   - 画像右上の「〇年度」を取得してください（例: 「8年度」→ 令和8年 → 西暦2026年）。
-				                   - 画像上部の「〇月分」を取得してください（例: 「9月分」→ 「09」）。
-				                   - これらをハイフンで繋ぎ、必ず "YYYY-MM" の7文字の形式のみで出力してください（例: "2026-09"）。
-				                   - ※値の中に説明文や "entries structure..." などの余計な文字列を絶対に混ぜないでください。
+				                【対象月】
+				                画像上部の「○年度」と「○月分」から対象年月を判断してください。
+				                scheduleMonth は必ず YYYY-MM の7文字だけを出力してください。
 
-				                2. entries の抽出:
-				                   - 「体育館」の列にある「午前」「午後」「夜間」欄のみを確認します。
-				                   - 数字の「10」が書かれているマスを探してください。
-				                   - 「10」がある日の「〇日」と、その時間帯区分（"午前", "午後", "夜間"）のペアをリストにしてください。
+				                例:
+				                「8年度」「9月分」
+				                → "2026-09"
 
-				                【出力JSONフォーマット】
-				                {
-				                  "scheduleMonth": "2026-09",
-				                  "entries": [
-				                    {
-				                      "date": "5日",
-				                      "timeZone": "午後"
-				                    }
-				                  ]
-				                }
+				                【予定の抽出】
+				                1. 「体育館」の列だけを確認してください。
+				                2. 「午前」「午後」「夜間」の各セルを確認してください。
+				                3. セルに数字の「10」が書かれている場合だけ予定として抽出してください。
+				                4. そのセルの日付と時間帯を取得してください。
+				                5. 「10」がないセルは出力しないでください。
+				                6. 推測で予定を追加しないでください。
+				                7. 同じ予定を重複して出力しないでください。
+
+				                【重要】
+				                scheduleMonth の値には YYYY-MM 以外の文字を絶対に入れないでください。
+
+				                正しい例:
+				                "2026-09"
+
+				                間違い:
+				                "2026-09-01/2026-09-30"
+				                "2026-09 (説明)"
+				                "2026-09 entries..."
+
+				                JSON Schemaに従ったJSONのみを返してください。
 				                """),
 				        Part.fromBytes(
 				                imageData,
@@ -120,28 +126,25 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 				// ⑤ Gemini API呼び出し設定
 				// ========================================
 				GenerateContentConfig config = GenerateContentConfig.builder()
-
-				        // 1. JSONのみを返す
 				        .responseMimeType("application/json")
 
-				        // 2. Thinkingを最大レベルにする
 				        .thinkingConfig(
 				                ThinkingConfig.builder()
 				                        .thinkingLevel(new ThinkingLevel("high"))
 				                        .build()
 				        )
 
-				        // 3. 構造化出力（スキーマ）
 				        .responseSchema(
 				                Schema.builder()
 				                        .type("OBJECT")
 				                        .properties(
 				                                Map.of(
+
 				                                        "scheduleMonth",
 				                                        Schema.builder()
 				                                                .type("STRING")
 				                                                .description(
-				                                                        "必ず YYYY-MM の形式のみを出力（例: 2026-09）"
+				                                                        "対象年月。YYYY-MM形式の7文字のみ。例: 2026-09"
 				                                                )
 				                                                .build(),
 
@@ -153,15 +156,23 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 				                                                                .type("OBJECT")
 				                                                                .properties(
 				                                                                        Map.of(
+
 				                                                                                "date",
 				                                                                                Schema.builder()
 				                                                                                        .type("STRING")
+				                                                                                        .description(
+				                                                                                                "日付。1日から31日まで。例: 5日"
+				                                                                                        )
 				                                                                                        .build(),
 
 				                                                                                "timeZone",
 				                                                                                Schema.builder()
 				                                                                                        .type("STRING")
+				                                                                                        .description(
+				                                                                                                "時間帯。午前、午後、夜間のいずれか"
+				                                                                                        )
 				                                                                                        .build()
+
 				                                                                        )
 				                                                                )
 				                                                                .build()
@@ -256,6 +267,24 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 							event2,
 							entry.getTimeZone(),
 							"施設ID");
+					
+					String timeZone = entry.getTimeZone();
+
+					if (!"午前".equals(timeZone)
+					        && !"午後".equals(timeZone)
+					        && !"夜間".equals(timeZone)) {
+
+					    throw new IllegalArgumentException(
+					            "時間帯が不正です: " + timeZone);
+					}
+					
+					String date = entry.getDate();
+
+					if (date == null || !date.matches("([1-9]|[12][0-9]|3[01])日")) {
+
+					    throw new IllegalArgumentException(
+					            "日付が不正です: " + date);
+					}
 				
 				}
 
