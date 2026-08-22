@@ -1,13 +1,57 @@
 version: 0.2
 
 phases:
+
   build:
     commands:
+
+      # ========================================
+      # Gradle Build
+      # ========================================
+
       - echo "=== Gradle build start ==="
+
       - chmod +x gradlew
+
       - ./gradlew clean build
+
       - echo "=== Gradle build complete ==="
 
-artifacts:
-  files:
-    - build/libs/*.jar
+
+      # ========================================
+      # Lambda Deploy
+      # ========================================
+
+      - echo "=== Lambda deploy start ==="
+
+      - aws lambda update-function-code --region ap-northeast-1 --function-name basket-schedule-image-processor --zip-file fileb://build/libs/basket-schedule-app-lambda-1.0.0.jar
+
+      - aws lambda update-function-code --region ap-northeast-1 --function-name FacilityApi --zip-file fileb://build/libs/basket-schedule-app-lambda-1.0.0.jar
+
+      - aws lambda update-function-code --region ap-northeast-1 --function-name basket-schedule-upload --zip-file fileb://build/libs/basket-schedule-app-lambda-1.0.0.jar
+
+      - aws lambda update-function-code --region ap-northeast-1 --function-name basket-schedule-get --zip-file fileb://build/libs/basket-schedule-app-lambda-1.0.0.jar
+
+      - echo "=== Lambda deploy complete ==="
+
+
+      # ========================================
+      # Static Website Deploy
+      # ========================================
+
+      - echo "=== S3 deploy start ==="
+
+      - aws s3 sync src/main/resources/static/ s3://basket-schedule-web/ --delete
+
+      - echo "=== S3 deploy complete ==="
+
+
+      # ========================================
+      # CloudFront Cache Invalidation
+      # ========================================
+
+      - echo "=== CloudFront invalidation start ==="
+
+      - aws cloudfront create-invalidation --distribution-id EMBH1RVLQTXDG --paths "/*"
+
+      - echo "=== CloudFront invalidation complete ==="
