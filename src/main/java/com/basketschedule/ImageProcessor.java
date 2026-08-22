@@ -13,6 +13,8 @@ import com.google.genai.types.GenerateContentConfig;
 import com.google.genai.types.GenerateContentResponse;
 import com.google.genai.types.Part;
 import com.google.genai.types.Schema;
+import com.google.genai.types.ThinkingConfig;
+import com.google.genai.types.ThinkingLevel;
 
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.regions.Region;
@@ -115,17 +117,21 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 				
 				
 				// ========================================
-				// ⑤ Gemini API呼び出し設定（統合版）
+				// ⑤ Gemini API呼び出し設定
 				// ========================================
-
 				GenerateContentConfig config = GenerateContentConfig.builder()
-				        // 1. JSONのみを返すように強制
+
+				        // 1. JSONのみを返す
 				        .responseMimeType("application/json")
-				        
-				        // 2. AIの回答のブレ（ハルシネーション）を極限までなくす
-				        .temperature(0.0f) 
-				        
-				        // 3. 構造化出力（スキーマ）を定義
+
+				        // 2. Thinkingを最大レベルにする
+				        .thinkingConfig(
+				                ThinkingConfig.builder()
+				                        .thinkingLevel(new ThinkingLevel("high"))
+				                        .build()
+				        )
+
+				        // 3. 構造化出力（スキーマ）
 				        .responseSchema(
 				                Schema.builder()
 				                        .type("OBJECT")
@@ -134,8 +140,9 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 				                                        "scheduleMonth",
 				                                        Schema.builder()
 				                                                .type("STRING")
-				                                                // スキーマ側にも説明を入れるとさらに精度が上がります
-				                                                .description("必ず YYYY-MM の形式のみを出力（例: 2026-09）")
+				                                                .description(
+				                                                        "必ず YYYY-MM の形式のみを出力（例: 2026-09）"
+				                                                )
 				                                                .build(),
 
 				                                        "entries",
@@ -154,10 +161,17 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 				                                                                                "timeZone",
 				                                                                                Schema.builder()
 				                                                                                        .type("STRING")
-				                                                                                        .build()))
-				                                                                .build())
-				                                                .build()))
-				                        .build())
+				                                                                                        .build()
+				                                                                        )
+				                                                                )
+				                                                                .build()
+				                                                )
+				                                                .build()
+				                                )
+				                        )
+				                        .build()
+				        )
+
 				        .build();
 
 
@@ -170,7 +184,7 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 
 				// 統合した config を渡す
 				GenerateContentResponse response = geminiClient.models.generateContent(
-				        "gemini-3.6-flash", 
+						"gemini-3.7-flash",
 				        content,
 				        config);
 
