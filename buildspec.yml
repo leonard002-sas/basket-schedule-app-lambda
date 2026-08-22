@@ -1,0 +1,13 @@
+version: 0.2
+
+phases:
+  build:
+    commands:
+      - echo "=== Gradle build start ==="
+      - chmod +x gradlew
+      - ./gradlew clean build
+      - echo "=== Gradle build complete ==="
+
+artifacts:
+  files:
+    - build/libs/*.jar
