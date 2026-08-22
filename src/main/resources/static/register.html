@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>予定表を登録</title>
+
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+        }
+
+        .section {
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .schedule-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .schedule-row input {
+            padding: 8px;
+            font-size: 14px;
+        }
+
+        .date-input {
+            width: 150px;
+        }
+
+        .time-input {
+            width: 100px;
+        }
+
+        .facility-input {
+            width: 250px;
+        }
+
+        button {
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+
+        .delete-button {
+            padding: 6px 10px;
+        }
+
+        #status {
+            margin-top: 15px;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <h1>予定表を登録</h1>
+
+    <!-- =========================
+         手入力
+         ========================= -->
+
+    <div class="section">
+
+        <h2>手入力で登録</h2>
+
+        <div id="scheduleRows">
+
+			<div class="schedule-row">
+
+			    <input
+			        type="date"
+			        class="date-input"
+			    >
+
+			    <input
+			        type="time"
+			        class="time-input"
+			    >
+
+			    <span>～</span>
+
+			    <input
+			        type="time"
+			        class="time-input"
+			    >
+
+			    <select class="facility-select">
+			        <option value="">施設を選択してください</option>
+			    </select>
+
+			    <button
+			        type="button"
+			        class="delete-button"
+			    >
+			        削除
+			    </button>
+
+			</div>
+        </div>
+
+        <button
+            type="button"
+            id="addScheduleButton"
+        >
+            ＋ 予定を追加
+        </button>
+
+        <br>
+
+        <button
+            type="button"
+            id="registerButton"
+        >
+            登録する
+        </button>
+
+        <div id="status"></div>
+
+    </div>
+
+
+    <!-- =========================
+         画像から登録
+         ========================= -->
+
+    <div class="section">
+
+        <h2>画像から登録</h2>
+
+        <input
+            type="file"
+            id="imageFile"
+            accept="image/*"
+        >
+
+        <br>
+
+        <button id="uploadButton">
+            画像をアップロード
+        </button>
+
+        <div id="uploadStatus"></div>
+
+    </div>
+
+
+    <button id="backButton">
+        カレンダーに戻る
+    </button>
+
+
+    <script src="register.js"></script>
+
+</body>
+
+</html>

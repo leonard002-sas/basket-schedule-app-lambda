@@ -240,7 +240,9 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 
 					dynamoDbService.saveEvent(
 							event2,
-							entry.getTimeZone());
+							entry.getTimeZone(),
+							"施設ID");
+				
 				}
 
 				dynamoDbService.close();

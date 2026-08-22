@@ -19,14 +19,20 @@ public class DynamoDbService {
                 .build();
     }
 
-    public void saveEvent(CalendarEvent event, String timeZone) {
+    public void saveEvent(
+            CalendarEvent event,
+            String timeZone,
+            String facilityId) {
 
         Map<String, AttributeValue> item = new HashMap<>();
 
         item.put(
                 "scheduleMonth",
                 AttributeValue.builder()
-                        .s(event.getStart().toLocalDate().toString().substring(0, 7))
+                        .s(event.getStart()
+                                .toLocalDate()
+                                .toString()
+                                .substring(0, 7))
                         .build()
         );
 
@@ -48,6 +54,14 @@ public class DynamoDbService {
                 "timeZone",
                 AttributeValue.builder()
                         .s(timeZone)
+                        .build()
+        );
+
+        // 施設ID
+        item.put(
+                "facilityId",
+                AttributeValue.builder()
+                        .s(facilityId)
                         .build()
         );
 

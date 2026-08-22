@@ -123,21 +123,19 @@ async function loadSchedule() {
     try {
 
         const response =
-            await fetch(API_URL);
+            await fetch(API_URL, {
+                method: "GET"
+            });
 
         if (!response.ok) {
 
             throw new Error(
                 "APIエラー: " + response.status
             );
-
         }
 
         schedules =
             await response.json();
-
-
-        // 日付順に並べる
 
         schedules.sort(
             (a, b) =>
@@ -145,16 +143,10 @@ async function loadSchedule() {
                 new Date(b.startDateTime)
         );
 
-
-        // 現在表示中の年の祝日を取得
-
         await loadHolidays(currentYear);
 
-
         displayCalendar();
-
         displaySchedule();
-
 
     } catch (error) {
 
@@ -162,9 +154,7 @@ async function loadSchedule() {
 
         scheduleElement.innerHTML =
             '<p class="error">予定の取得に失敗しました。</p>';
-
     }
-
 }
 
 
@@ -874,6 +864,139 @@ const clientId =
 const redirectUri =
     "https://d13o4oynf3jxlu.cloudfront.net";
 
+// ========================================
+// Cognito認証コード → トークン
+// ========================================
+
+async function handleCognitoCallback() {
+
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
+
+    const code =
+        params.get("code");
+
+    // ログイン後でなければ何もしない
+    if (!code) {
+        return;
+    }
+
+    console.log(
+        "Cognito認証コードを取得しました"
+    );
+
+    try {
+
+        const response =
+            await fetch(
+                `${cognitoDomain}/oauth2/token`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/x-www-form-urlencoded"
+                    },
+
+                    body:
+                        new URLSearchParams({
+                            grant_type:
+                                "authorization_code",
+
+                            client_id:
+                                clientId,
+
+                            code:
+                                code,
+
+                            redirect_uri:
+                                redirectUri
+                        })
+                }
+            );
+
+        const tokens =
+            await response.json();
+
+        console.log(
+            "Cognitoトークン取得結果:",
+            tokens
+        );
+
+        if (!response.ok) {
+
+            throw new Error(
+                tokens.error_description ||
+                tokens.error ||
+                "トークン取得に失敗しました"
+            );
+        }
+
+        // トークンを保存
+        console.log("=== トークン保存開始 ===");
+
+        console.log("id_token:", tokens.id_token);
+        console.log("access_token:", tokens.access_token);
+        console.log("refresh_token:", tokens.refresh_token);
+
+        localStorage.setItem("id_token", tokens.id_token);
+        localStorage.setItem("access_token", tokens.access_token);
+
+        if (tokens.refresh_token) {
+            localStorage.setItem(
+                "refresh_token",
+                tokens.refresh_token
+            );
+        }
+
+        console.log(
+            "保存後 id_token:",
+            localStorage.getItem("id_token")
+        );
+
+        console.log(
+            "保存後 access_token:",
+            localStorage.getItem("access_token")
+        );
+
+        console.log(
+            "保存後 refresh_token:",
+            localStorage.getItem("refresh_token")
+        );
+
+        console.log("=== トークン保存終了 ===");
+
+        console.log(
+            "Cognitoログイン成功"
+        );
+
+        console.log(
+            "ログイン直後のid_token:",
+            !!localStorage.getItem("id_token")
+        );
+
+        updateAuthUI();
+
+        // URLから ?code=xxxxx を削除
+        window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Cognito認証エラー:",
+            error
+        );
+
+    }
+
+}
+
 
 // ========================================
 // ログインボタン
@@ -903,88 +1026,248 @@ if (loginButton) {
 
 }
 
-
 // ========================================
-// 認証コード → トークン
+// ログイン状態・管理者権限を確認
 // ========================================
 
-async function handleCognitoCallback() {
+function updateAuthUI() {
 
-    const params =
-        new URLSearchParams(
-            window.location.search
+    const idToken =
+        localStorage.getItem("id_token");
+
+    const loginButton =
+        document.getElementById("loginButton");
+
+    const logoutButton =
+        document.getElementById("logoutButton");
+
+    const registerButton =
+        document.getElementById("registerButton");
+
+    const scheduleRegisterButton =
+        document.getElementById(
+            "scheduleRegisterButton"
         );
 
-    const code =
-        params.get("code");
 
-    if (!code) {
+    // =========================
+    // 未ログイン
+    // =========================
+
+    if (!idToken) {
+
+        if (loginButton) {
+
+            loginButton.style.display =
+                "inline-block";
+
+        }
+
+        if (logoutButton) {
+
+            logoutButton.style.display =
+                "none";
+
+        }
+
+        if (registerButton) {
+
+            registerButton.style.display =
+                "inline-block";
+
+        }
+
+        if (scheduleRegisterButton) {
+
+            scheduleRegisterButton.style.display =
+                "none";
+
+        }
+
         return;
     }
 
-    console.log(
-        "Cognito認証コードを取得しました"
-    );
 
-    const response =
-        await fetch(
-            `${cognitoDomain}/oauth2/token`,
-            {
-                method: "POST",
+    // =========================
+    // ログイン済み
+    // =========================
 
-                headers: {
-                    "Content-Type":
-                        "application/x-www-form-urlencoded"
-                },
+    if (loginButton) {
 
-                body:
-                    new URLSearchParams({
-                        grant_type:
-                            "authorization_code",
-
-                        client_id:
-                            clientId,
-
-                        code:
-                            code,
-
-                        redirect_uri:
-                            redirectUri
-                    })
-            }
-        );
-
-    if (!response.ok) {
-
-        throw new Error(
-            "トークン取得失敗: " +
-            response.status
-        );
+        loginButton.style.display =
+            "none";
 
     }
 
-    const tokens =
-        await response.json();
+    if (logoutButton) {
 
-    console.log(
-        "Cognitoトークン取得成功",
-        tokens
-    );
+        logoutButton.style.display =
+            "inline-block";
+
+    }
+
+    if (registerButton) {
+
+        registerButton.style.display =
+            "none";
+
+    }
+
+
+    // =========================
+    // 管理者判定
+    // =========================
+
+    try {
+
+        const payload =
+            JSON.parse(
+                atob(
+                    idToken
+                        .split(".")[1]
+                        .replace(/-/g, "+")
+                        .replace(/_/g, "/")
+                )
+            );
+
+        console.log(
+            "Cognitoユーザー情報:",
+            payload
+        );
+
+        const groups =
+            payload["cognito:groups"] || [];
+
+        console.log(
+            "Cognitoグループ:",
+            groups
+        );
+
+        const isAdmin =
+            groups.includes("admins");
+
+
+        // =========================
+        // 管理者の場合
+        // =========================
+
+        if (scheduleRegisterButton) {
+
+            scheduleRegisterButton.style.display =
+                isAdmin
+                    ? "inline-block"
+                    : "none";
+
+        }
+
+    } catch (error) {
+
+        console.error(
+            "IDトークン解析エラー:",
+            error
+        );
+
+        if (scheduleRegisterButton) {
+
+            scheduleRegisterButton.style.display =
+                "none";
+
+        }
+
+    }
 
 }
 
-handleCognitoCallback()
-    .catch(error => {
-        console.error(
-            "Cognito認証エラー",
-            error
-        );
-    });
+// ========================================
+// ログアウトボタン
+// ========================================
 
+const logoutButton =
+    document.getElementById("logoutButton");
+
+if (logoutButton) {
+
+    logoutButton.addEventListener(
+        "click",
+        () => {
+
+            // ローカルのトークンを削除
+            localStorage.removeItem("id_token");
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("refresh_token");
+
+            // Cognitoからログアウト
+            const logoutUrl =
+                `${cognitoDomain}/logout` +
+                `?client_id=${clientId}` +
+                `&logout_uri=${encodeURIComponent(redirectUri)}`;
+
+            window.location.href =
+                logoutUrl;
+        }
+    );
+}
+
+// ========================================
+// 新規登録ボタン
+// ========================================
+
+const registerButton =
+    document.getElementById("registerButton");
+
+if (registerButton) {
+
+    registerButton.addEventListener(
+        "click",
+        () => {
+
+            const signupUrl =
+                `${cognitoDomain}/signup` +
+                `?client_id=${clientId}` +
+                `&response_type=code` +
+                `&scope=openid+email+phone` +
+                `&redirect_uri=${encodeURIComponent(redirectUri)}`;
+
+            window.location.href = signupUrl;
+        }
+    );
+}
 
 
 // ========================================
 // 初期表示
 // ========================================
 
-loadSchedule();
+
+handleCognitoCallback()
+    .then(() => {
+
+        console.log("=== 初期表示処理開始 ===");
+
+        updateAuthUI();
+
+        console.log("=== updateAuthUI完了 ===");
+
+        loadSchedule();
+    });
+
+// ========================================
+// 予定表登録画面へ
+// ========================================
+
+const scheduleRegisterButton =
+    document.getElementById("scheduleRegisterButton");
+
+if (scheduleRegisterButton) {
+
+    scheduleRegisterButton.addEventListener(
+        "click",
+        () => {
+
+            window.location.href =
+                "register.html";
+
+        }
+    );
+
+}
