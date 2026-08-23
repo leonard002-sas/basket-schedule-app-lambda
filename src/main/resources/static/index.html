@@ -1,21 +1,32 @@
 <!DOCTYPE html>
+
 <html lang="ja">
 
 <head>
+
 	<meta charset="UTF-8">
+
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	
+
 	<title>バスケットボール予定表</title>
+
 	<style>
 		body {
+
 			font-family: sans-serif;
+
 			max-width: 900px;
+
 			margin: 0 auto;
+
 			padding: 30px 20px;
+
 		}
 
 		h1 {
+
 			margin-bottom: 30px;
+
 		}
 
 		/* =========================
@@ -23,66 +34,121 @@
            ========================= */
 
 		.calendar-area {
+
 			margin-bottom: 40px;
+
 		}
 
 		.calendar-header {
+
 			display: flex;
+
 			justify-content: space-between;
+
 			align-items: center;
+
 			margin-bottom: 15px;
+
 		}
 
 		.calendar-header h2 {
+
 			margin: 0;
+
 		}
 
 		.month-button {
+
 			padding: 8px 15px;
+
 			margin: 0;
+
 		}
 
 		.calendar {
+
 			display: grid;
+
 			grid-template-columns: repeat(7, 1fr);
+
 			border-top: 1px solid #ddd;
+
 			border-left: 1px solid #ddd;
+
 		}
 
 		.weekday {
+
 			text-align: center;
+
 			font-weight: bold;
+
 			padding: 10px 0;
+
 			background: #f5f5f5;
+
 			border-right: 1px solid #ddd;
+
 			border-bottom: 1px solid #ddd;
+
 		}
 
 		.calendar-day {
+
 			min-height: 80px;
+
 			padding: 8px;
+
 			border-right: 1px solid #ddd;
+
 			border-bottom: 1px solid #ddd;
+
 			cursor: pointer;
+
 		}
 
 		.calendar-day:hover {
+
 			background: #f5f5f5;
+
 		}
 
 		.empty-day {
+
 			background: #fafafa;
+
 			cursor: default;
+
 		}
 
 		.day-number {
+
 			font-weight: bold;
+
 			margin-bottom: 5px;
+
 		}
 
 		.event-dot {
+
 			font-size: 12px;
+
 			margin-top: 3px;
+
+			padding: 4px 6px;
+
+			border-radius: 4px;
+
+			background: #eef6ff;
+
+			cursor: pointer;
+
+		}
+
+		.event-dot:hover {
+
+			background: #dbeeff;
+
 		}
 
 		/* =========================
@@ -90,73 +156,251 @@
            ========================= */
 
 		.schedule {
+
 			border-top: 1px solid #ddd;
+
 			padding: 20px 0;
+
 		}
 
 		.date {
+
 			font-size: 20px;
+
 			font-weight: bold;
+
 		}
 
 		.time {
+
 			margin-top: 8px;
+
 		}
 
 		.time-zone {
+
 			margin-top: 5px;
+
 			color: #666;
+
 		}
 
 		.selected-day {
+
 			background: #eef6ff;
+
 		}
 
 		/* 土曜日 */
+
 		.saturday .day-number {
+
 			color: #1976d2;
+
 		}
 
 		/* 日曜日 */
+
 		.sunday .day-number {
+
 			color: #d32f2f;
+
 		}
 
 		/* 今日 */
+
 		.today {
+
 			background: #fff9c4;
+
 		}
 
 		/* 予定一覧 */
+
 		.upcoming-schedule {
+
 			border-top: 1px solid #ddd;
+
 			padding: 20px 0;
+
 		}
 
 		.upcoming-date {
+
 			font-size: 20px;
+
 			font-weight: bold;
+
 		}
 
 		.upcoming-time {
+
 			margin-top: 8px;
+
 			color: #000;
+
 		}
 
 		.upcoming-time-zone {
+
 			margin-top: 5px;
+
 			color: #666;
+
 		}
+
 		.holiday .day-number {
-		    color: #d32f2f;
+
+			color: #d32f2f;
+
 		}
 
 		.holiday-name {
-		    display: inline;
-		    font-size: 11px;
-		    color: #d32f2f;
-		    font-weight: normal;
-		    margin-left: 6px;
+
+			display: inline;
+
+			font-size: 11px;
+
+			color: #d32f2f;
+
+			font-weight: normal;
+
+			margin-left: 6px;
+
+		}
+
+		/* =========================
+           予定詳細ダイアログ
+           ========================= */
+
+		.modal-overlay {
+
+			display: none;
+
+			position: fixed;
+
+			inset: 0;
+
+			background: rgba(0, 0, 0, 0.45);
+
+			justify-content: center;
+
+			align-items: center;
+
+			padding: 20px;
+
+			z-index: 1000;
+
+		}
+
+		.modal-overlay.active {
+
+			display: flex;
+
+		}
+
+		.modal {
+
+			width: 100%;
+
+			max-width: 500px;
+
+			background: #fff;
+
+			border-radius: 12px;
+
+			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+
+			overflow: hidden;
+
+		}
+
+		.modal-header {
+
+			display: flex;
+
+			justify-content: space-between;
+
+			align-items: center;
+
+			padding: 15px 20px;
+
+			border-bottom: 1px solid #ddd;
+
+		}
+
+		.modal-header h2 {
+
+			margin: 0;
+
+			font-size: 20px;
+
+		}
+
+		.modal-close-button {
+
+			border: none;
+
+			background: transparent;
+
+			font-size: 28px;
+
+			line-height: 1;
+
+			cursor: pointer;
+
+			padding: 0 5px;
+
+		}
+
+		.modal-content {
+
+			padding: 20px;
+
+		}
+
+		.detail-row {
+
+			display: flex;
+
+			gap: 15px;
+
+			padding: 12px 0;
+
+			border-bottom: 1px solid #eee;
+
+		}
+
+		.detail-row:last-child {
+
+			border-bottom: none;
+
+		}
+
+		.detail-label {
+
+			width: 80px;
+
+			flex-shrink: 0;
+
+			font-weight: bold;
+
+		}
+
+		.detail-value {
+
+			word-break: break-word;
+
+		}
+
+		.modal-footer {
+
+			padding: 15px 20px;
+
+			text-align: right;
+
+			border-top: 1px solid #ddd;
+
 		}
 	</style>
 
@@ -167,20 +411,30 @@
 	<h1>バスケットボール予定表</h1>
 
 	<button id="loginButton">ログイン</button>
-	<button id="logoutButton" style="display: none;">ログアウト</button>
-	<button id="registerButton" style="display: none;">新規登録</button>
+
+	<button id="logoutButton" style="display: none;">
+
+		ログアウト
+
+	</button>
+
+	<button id="registerButton" style="display: none;">
+
+		新規登録
+
+	</button>
 
 	<!-- =========================
-     画像アップロード
+     予定表登録
      ========================= -->
-	
-	 <button
-	     id="scheduleRegisterButton"
-	     style="display: none;"
-	 >
-	     予定表登録
-	 </button>
-	 
+
+	<button id="scheduleRegisterButton" style="display: none;">
+
+		予定表登録
+
+	</button>
+
+
 	<!-- =========================
      カレンダー
      ========================= -->
@@ -190,21 +444,27 @@
 		<div class="calendar-header">
 
 			<button id="prevMonth" class="month-button">
+
 				＜
+
 			</button>
 
 			<h2 id="calendarMonth">
+
 				2026年8月
+
 			</h2>
 
 			<button id="nextMonth" class="month-button">
+
 				＞
+
 			</button>
 
 		</div>
 
-
 		<div id="calendar" class="calendar">
+
 		</div>
 
 	</div>
@@ -217,7 +477,163 @@
 	<h2>今後の予定</h2>
 
 	<div id="scheduleList">
+
 		予定を取得しています...
+
+	</div>
+
+
+	<!-- =========================
+     予定詳細ダイアログ
+     ========================= -->
+
+	<div id="scheduleDetailModal" class="modal-overlay">
+
+		<div class="modal" role="dialog" aria-modal="true" aria-labelledby="scheduleDetailTitle">
+
+			<div class="modal-header">
+
+				<h2 id="scheduleDetailTitle">
+
+					予定詳細
+
+				</h2>
+
+				<button type="button" id="closeScheduleDetailButton" class="modal-close-button" aria-label="閉じる">
+
+					×
+				</button>
+
+			</div>
+
+
+			<div class="modal-content">
+
+				<div class="detail-row">
+
+					<span class="detail-label">
+
+						日付
+
+					</span>
+
+					<span id="detailDate" class="detail-value">
+
+					</span>
+
+				</div>
+
+
+				<div class="detail-row">
+
+					<span class="detail-label">
+
+						曜日
+
+					</span>
+
+					<span id="detailDayOfWeek" class="detail-value">
+
+					</span>
+
+				</div>
+
+
+				<div class="detail-row">
+
+					<span class="detail-label">
+
+						開始時間
+
+					</span>
+
+					<span id="detailStartTime" class="detail-value">
+
+					</span>
+
+				</div>
+
+
+				<div class="detail-row">
+
+					<span class="detail-label">
+
+						終了時間
+
+					</span>
+
+					<span id="detailEndTime" class="detail-value">
+
+					</span>
+
+				</div>
+
+
+				<div class="detail-row">
+
+					<span class="detail-label">
+
+						施設
+
+					</span>
+
+					<span id="detailFacilityName" class="detail-value">
+
+					</span>
+
+				</div>
+
+
+				<div class="detail-row">
+
+					<span class="detail-label">
+
+						住所
+
+					</span>
+
+					<span id="detailAddress" class="detail-value">
+
+					</span>
+
+				</div>
+
+
+				<div class="detail-row">
+
+					<span class="detail-label">
+
+						施設URL
+
+					</span>
+
+					<span class="detail-value">
+
+						<a id="detailFacilityUrl" href="#" target="_blank" rel="noopener noreferrer">
+
+							施設ページを開く
+
+						</a>
+
+					</span>
+
+				</div>
+
+			</div>
+
+
+			<div class="modal-footer">
+
+				<button type="button" id="closeScheduleDetailButtonBottom">
+
+					閉じる
+
+				</button>
+
+			</div>
+
+		</div>
+
 	</div>
 
 

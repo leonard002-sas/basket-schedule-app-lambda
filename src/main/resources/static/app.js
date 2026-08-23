@@ -399,33 +399,55 @@ async function displayCalendar() {
         // 予定表示
         // ========================================
 
-        daySchedules.forEach(schedule => {
+		daySchedules.forEach(schedule => {
 
-            const event =
-                document.createElement("div");
+		    const event =
+		        document.createElement("div");
 
-            event.className =
-                "event-dot";
+		    event.className =
+		        "event-dot";
 
+		    const start =
+		        new Date(
+		            schedule.startDateTime
+		        );
 
-            const start =
-                new Date(
-                    schedule.startDateTime
-                );
+		    const end =
+		        new Date(
+		            schedule.endDateTime
+		        );
 
-            const end =
-                new Date(
-                    schedule.endDateTime
-                );
-
-
-            event.textContent =
-                `${formatTime(start)}～${formatTime(end)}`;
+		    event.textContent =
+		        `${formatTime(start)}～${formatTime(end)}`;
 
 
-            element.appendChild(event);
+		    // ========================================
+		    // 予定クリック
+		    // ========================================
 
-        });
+		    event.addEventListener(
+		        "click",
+		        (clickEvent) => {
+
+		            // 日付セルのクリック処理を止める
+		            clickEvent.stopPropagation();
+
+		            showScheduleDetail(
+		                schedule
+		            );
+
+		        }
+		    );
+
+
+		    // マウスカーソル
+		    event.style.cursor =
+		        "pointer";
+
+
+		    element.appendChild(event);
+
+		});
 
 
         // ========================================
@@ -1269,6 +1291,248 @@ if (scheduleRegisterButton) {
 
             window.location.href =
                 "register.html";
+
+        }
+    );
+
+}
+
+// ========================================
+// 予定詳細ダイアログ
+// ========================================
+
+const scheduleDetailModal =
+    document.getElementById(
+        "scheduleDetailModal"
+    );
+
+const closeScheduleDetailButton =
+    document.getElementById(
+        "closeScheduleDetailButton"
+    );
+
+const closeScheduleDetailButtonBottom =
+    document.getElementById(
+        "closeScheduleDetailButtonBottom"
+    );
+
+
+// ========================================
+// 詳細ダイアログを閉じる
+// ========================================
+
+function closeScheduleDetail() {
+
+    scheduleDetailModal.classList.remove(
+        "active"
+    );
+
+}
+
+
+// ========================================
+// 詳細APIから予定取得
+// ========================================
+
+async function showScheduleDetail(
+    schedule
+) {
+
+    try {
+
+        const params =
+            new URLSearchParams({
+
+                scheduleMonth:
+                    schedule.scheduleMonth,
+
+                startDateTime:
+                    schedule.startDateTime
+
+            });
+
+
+        const response =
+            await fetch(
+                `${API_URL}?${params.toString()}`,
+                {
+                    method: "GET"
+                }
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "予定詳細APIエラー: "
+                + response.status
+            );
+
+        }
+
+
+        const detail =
+            await response.json();
+
+
+        console.log(
+            "予定詳細:",
+            detail
+        );
+
+
+        // ========================================
+        // 日時
+        // ========================================
+
+        const start =
+            new Date(
+                detail.startDateTime
+            );
+
+        const end =
+            new Date(
+                detail.endDateTime
+            );
+
+
+        document.getElementById(
+            "detailDate"
+        ).textContent =
+            `${start.getFullYear()}年`
+            + `${start.getMonth() + 1}月`
+            + `${start.getDate()}日`;
+
+
+        document.getElementById(
+            "detailDayOfWeek"
+        ).textContent =
+            detail.dayOfWeek;
+
+
+        document.getElementById(
+            "detailStartTime"
+        ).textContent =
+            formatTime(start);
+
+
+        document.getElementById(
+            "detailEndTime"
+        ).textContent =
+            formatTime(end);
+
+
+        // ========================================
+        // 施設
+        // ========================================
+
+        document.getElementById(
+            "detailFacilityName"
+        ).textContent =
+            detail.facilityName
+                || "未設定";
+
+
+        document.getElementById(
+            "detailAddress"
+        ).textContent =
+            detail.address
+                || "未設定";
+
+
+        const facilityUrl =
+            document.getElementById(
+                "detailFacilityUrl"
+            );
+
+
+        if (detail.url) {
+
+            facilityUrl.href =
+                detail.url;
+
+            facilityUrl.style.display =
+                "inline";
+
+        } else {
+
+            facilityUrl.removeAttribute(
+                "href"
+            );
+
+            facilityUrl.style.display =
+                "none";
+
+        }
+
+
+        // ========================================
+        // 表示
+        // ========================================
+
+        scheduleDetailModal.classList.add(
+            "active"
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "予定詳細取得エラー:",
+            error
+        );
+
+        alert(
+            "予定詳細の取得に失敗しました。"
+        );
+
+    }
+
+}
+
+
+// ========================================
+// 閉じるボタン
+// ========================================
+
+if (closeScheduleDetailButton) {
+
+    closeScheduleDetailButton.addEventListener(
+        "click",
+        closeScheduleDetail
+    );
+
+}
+
+
+if (closeScheduleDetailButtonBottom) {
+
+    closeScheduleDetailButtonBottom.addEventListener(
+        "click",
+        closeScheduleDetail
+    );
+
+}
+
+
+// ========================================
+// 背景クリックで閉じる
+// ========================================
+
+if (scheduleDetailModal) {
+
+    scheduleDetailModal.addEventListener(
+        "click",
+        (event) => {
+
+            if (
+                event.target ===
+                scheduleDetailModal
+            ) {
+
+                closeScheduleDetail();
+
+            }
 
         }
     );
