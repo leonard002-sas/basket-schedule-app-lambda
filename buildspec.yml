@@ -3,6 +3,7 @@ version: 0.2
 phases:
 
   build:
+
     commands:
 
       # ========================================
@@ -31,6 +32,8 @@ phases:
       - aws lambda update-function-code --region ap-northeast-1 --function-name basket-schedule-upload --zip-file fileb://build/libs/basket-schedule-app-lambda-1.0.0.jar
 
       - aws lambda update-function-code --region ap-northeast-1 --function-name basket-schedule-get --zip-file fileb://build/libs/basket-schedule-app-lambda-1.0.0.jar
+
+      - aws lambda update-function-code --region ap-northeast-1 --function-name ScheduleRegisterApi --zip-file fileb://build/libs/basket-schedule-app-lambda-1.0.0.jar
 
       - echo "=== Lambda deploy complete ==="
 
