@@ -454,6 +454,173 @@ backButton.addEventListener(
     }
 );
 
+// ========================================
+// 画像アップロード
+// ========================================
+
+const uploadButton =
+    document.getElementById("uploadButton");
+
+const imageInput =
+    document.getElementById("imageFile");
+
+const uploadStatus =
+    document.getElementById("uploadStatus");
+
+if (uploadButton) {
+
+    uploadButton.addEventListener(
+        "click",
+        async () => {
+
+            console.log(
+                "=== 画像アップロードボタン押下 ==="
+            );
+
+            const file =
+                imageInput.files[0];
+
+            if (!file) {
+
+                alert(
+                    "画像を選択してください。"
+                );
+
+                return;
+            }
+
+            try {
+
+                uploadButton.disabled = true;
+
+                uploadStatus.textContent =
+                    "アップロード準備中...";
+
+                // ====================================
+                // ① Upload APIからPresigned URL取得
+                // ====================================
+
+                console.log(
+                    "Upload API呼び出し開始"
+                );
+
+                const response =
+                    await fetch(
+                        UPLOAD_API_URL,
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+                                fileName:
+                                    file.name,
+                                contentType:
+                                    file.type
+                            })
+                        }
+                    );
+
+                console.log(
+                    "Upload API response:",
+                    response.status
+                );
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        "Upload APIエラー: "
+                        + response.status
+                    );
+                }
+
+                const data =
+                    await response.json();
+
+                console.log(
+                    "Presigned URL取得成功"
+                );
+
+                // ====================================
+                // ② S3へ直接アップロード
+                // ====================================
+
+                uploadStatus.textContent =
+                    "画像をS3へアップロード中...";
+
+                const uploadResponse =
+                    await fetch(
+                        data.uploadUrl,
+                        {
+                            method: "PUT",
+
+                            headers: {
+                                "Content-Type":
+                                    file.type
+                            },
+
+                            body: file
+                        }
+                    );
+
+                console.log(
+                    "S3 upload response:",
+                    uploadResponse.status
+                );
+
+                if (!uploadResponse.ok) {
+
+                    throw new Error(
+                        "S3アップロードエラー: "
+                        + uploadResponse.status
+                    );
+                }
+
+                // ====================================
+                // ③ 完了
+                // ====================================
+
+                uploadStatus.textContent =
+                    "アップロード完了！解析中です。";
+
+                console.log(
+                    "=== 画像アップロード成功 ==="
+                );
+
+                alert(
+                    "画像をアップロードしました。\n" +
+                    "Geminiによる予定解析を開始します。"
+                );
+
+                imageInput.value = "";
+
+            } catch (error) {
+
+                console.error(
+                    "画像アップロードエラー:",
+                    error
+                );
+
+                uploadStatus.textContent =
+                    "アップロードに失敗しました。";
+
+                alert(
+                    "アップロードに失敗しました。\n" +
+                    error.message
+                );
+
+            } finally {
+
+                uploadButton.disabled = false;
+
+            }
+        }
+    );
+}
+
 
 // ========================================
 // 初期処理
