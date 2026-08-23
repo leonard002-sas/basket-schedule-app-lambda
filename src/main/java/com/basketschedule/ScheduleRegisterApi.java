@@ -331,21 +331,6 @@ public class ScheduleRegisterApi
                 "application/json; charset=UTF-8"
         );
 
-        headers.put(
-                "Access-Control-Allow-Origin",
-                "https://d13o4oynf3jxlu.cloudfront.net"
-        );
-
-        headers.put(
-                "Access-Control-Allow-Headers",
-                "Content-Type,Authorization"
-        );
-
-        headers.put(
-                "Access-Control-Allow-Methods",
-                "POST,OPTIONS"
-        );
-
         Map<String, Object> response =
                 new HashMap<>();
 
