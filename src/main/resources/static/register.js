@@ -4,13 +4,20 @@
 
 const FACILITY_API_URL =
     "https://wybpjskbmgh6jbra4647ethnhm0pkulf.lambda-url.ap-northeast-1.on.aws/";
-	
-	// ========================================
-	// 手入力登録API
-	// ========================================
 
-	const SCHEDULE_REGISTER_API_URL =
-	    "https://z7gedcbjogrjl7ld4o6rcj7dte0cjklf.lambda-url.ap-northeast-1.on.aws/";
+// ========================================
+// 手入力登録API
+// ========================================
+
+const SCHEDULE_REGISTER_API_URL =
+    "https://z7gedcbjogrjl7ld4o6rcj7dte0cjklf.lambda-url.ap-northeast-1.on.aws/";
+
+// ========================================
+// 画像アップロードAPI
+// ========================================
+
+const UPLOAD_API_URL =
+    "https://gg5d4xxwdpfjdesh2n5vyxqm5q0mnwii.lambda-url.ap-northeast-1.on.aws/";
 
 
 // ========================================
@@ -391,7 +398,7 @@ registerButton.addEventListener(
 
                 throw new Error(
                     result.message
-                        || "登録に失敗しました"
+                    || "登録に失敗しました"
                 );
 
             }
