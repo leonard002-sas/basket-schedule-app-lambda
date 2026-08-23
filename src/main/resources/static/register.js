@@ -4,6 +4,13 @@
 
 const FACILITY_API_URL =
     "https://wybpjskbmgh6jbra4647ethnhm0pkulf.lambda-url.ap-northeast-1.on.aws/";
+	
+	// ========================================
+	// 手入力登録API
+	// ========================================
+
+	const SCHEDULE_REGISTER_API_URL =
+	    "https://z7gedcbjogrjl7ld4o6rcj7dte0cjklf.lambda-url.ap-northeast-1.on.aws/";
 
 
 // ========================================
@@ -227,77 +234,201 @@ const registerButton =
         "registerButton"
     );
 
+const status =
+    document.getElementById(
+        "status"
+    );
 
 registerButton.addEventListener(
     "click",
-    () => {
+    async () => {
 
-        const rows =
-            document.querySelectorAll(
-                ".schedule-row"
-            );
+        try {
 
-        const schedules = [];
-
-
-        rows.forEach((row) => {
-
-            const date =
-                row.querySelector(
-                    ".date-input"
-                ).value;
-
-
-            const timeInputs =
-                row.querySelectorAll(
-                    ".time-input"
+            const rows =
+                document.querySelectorAll(
+                    ".schedule-row"
                 );
 
+            const schedules = [];
 
-            const startTime =
-                timeInputs[0].value;
+            // ====================================
+            // 入力値取得
+            // ====================================
 
-            const endTime =
-                timeInputs[1].value;
+            rows.forEach((row) => {
 
+                const date =
+                    row.querySelector(
+                        ".date-input"
+                    ).value;
 
-            const facilitySelect =
-                row.querySelector(
-                    ".facility-select"
-                );
+                const timeInputs =
+                    row.querySelectorAll(
+                        ".time-input"
+                    );
 
+                const startTime =
+                    timeInputs[0].value;
 
-            const facilityId =
-                facilitySelect.value;
+                const endTime =
+                    timeInputs[1].value;
 
+                const facilitySelect =
+                    row.querySelector(
+                        ".facility-select"
+                    );
 
-            const facilityName =
-                facilitySelect
-                    .selectedOptions[0]
-                    ?.textContent;
+                const facilityId =
+                    facilitySelect.value;
 
+                const facilityName =
+                    facilitySelect
+                        .selectedOptions[0]
+                        ?.textContent;
 
-            schedules.push({
-
-                date: date,
-
-                startTime: startTime,
-
-                endTime: endTime,
-
-                facilityId: facilityId,
-
-                facilityName: facilityName
+                schedules.push({
+                    date: date,
+                    startTime: startTime,
+                    endTime: endTime,
+                    facilityId: facilityId,
+                    facilityName: facilityName
+                });
 
             });
 
-        });
+            console.log(
+                "登録する予定:",
+                schedules
+            );
 
+            // ====================================
+            // 入力チェック
+            // ====================================
 
-        console.log(
-            "登録する予定:",
-            schedules
-        );
+            for (const schedule of schedules) {
+
+                if (!schedule.date) {
+                    throw new Error(
+                        "日付を入力してください"
+                    );
+                }
+
+                if (!schedule.startTime) {
+                    throw new Error(
+                        "開始時間を入力してください"
+                    );
+                }
+
+                if (!schedule.endTime) {
+                    throw new Error(
+                        "終了時間を入力してください"
+                    );
+                }
+
+                if (!schedule.facilityId) {
+                    throw new Error(
+                        "施設を選択してください"
+                    );
+                }
+
+            }
+
+            if (schedules.length === 0) {
+
+                throw new Error(
+                    "登録する予定がありません"
+                );
+
+            }
+
+            // ====================================
+            // 登録中
+            // ====================================
+
+            registerButton.disabled = true;
+
+            if (status) {
+                status.textContent =
+                    "登録中です...";
+            }
+
+            // ====================================
+            // ScheduleRegisterApi呼び出し
+            // ====================================
+
+            const response =
+                await fetch(
+                    SCHEDULE_REGISTER_API_URL,
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body: JSON.stringify({
+                            schedules:
+                                schedules
+                        })
+                    }
+                );
+
+            const result =
+                await response.json();
+
+            console.log(
+                "登録APIレスポンス:",
+                result
+            );
+
+            // ====================================
+            // APIエラー
+            // ====================================
+
+            if (!response.ok) {
+
+                throw new Error(
+                    result.message
+                        || "登録に失敗しました"
+                );
+
+            }
+
+            // ====================================
+            // 登録成功
+            // ====================================
+
+            if (status) {
+
+                status.textContent =
+                    schedules.length
+                    + "件の予定を登録しました。";
+
+            }
+
+        } catch (error) {
+
+            console.error(
+                "登録エラー:",
+                error
+            );
+
+            if (status) {
+
+                status.textContent =
+                    "登録エラー: "
+                    + error.message;
+
+            }
+
+        } finally {
+
+            registerButton.disabled =
+                false;
+
+        }
 
     }
 );
