@@ -262,11 +262,13 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 									+ event2.getStart()
 									+ " / 終了: "
 									+ event2.getEnd());
-
+					
+					String OCHIGO_ID= "facility001";
+					
 					dynamoDbService.saveEvent(
 							event2,
 							entry.getTimeZone(),
-							"施設ID");
+							OCHIGO_ID);
 					
 					String timeZone = entry.getTimeZone();
 
