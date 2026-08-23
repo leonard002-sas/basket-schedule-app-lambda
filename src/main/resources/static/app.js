@@ -697,159 +697,162 @@ function formatTime(date) {
 }
 
 
+
+
 // ========================================
 // 画像アップロード
 // ========================================
+if (uploadButton) {
 
-uploadButton.addEventListener(
-    "click",
-    async () => {
+    uploadButton.addEventListener(
+        "click",
+        async () => {
 
-        const file =
-            imageInput.files[0];
+            const file =
+                imageInput.files[0];
 
+            if (!file) {
 
-        if (!file) {
-
-            alert(
-                "画像を選択してください。"
-            );
-
-            return;
-
-        }
-
-
-        try {
-
-            uploadButton.disabled = true;
-
-            uploadStatus.textContent =
-                "アップロード準備中...";
-
-
-            // ========================================
-            // ① Presigned URL取得
-            // ========================================
-
-            const response =
-                await fetch(
-                    UPLOAD_API_URL,
-                    {
-                        method: "POST",
-
-                        headers: {
-                            "Content-Type":
-                                "application/json"
-                        },
-
-                        body: JSON.stringify({
-                            fileName:
-                                file.name,
-
-                            contentType:
-                                file.type
-                        })
-                    }
+                alert(
+                    "画像を選択してください。"
                 );
 
-
-            if (!response.ok) {
-
-                throw new Error(
-                    "Upload APIエラー: " +
-                    response.status
-                );
-
+                return;
             }
 
 
-            const data =
-                await response.json();
+            try {
+
+                uploadButton.disabled =
+                    true;
+
+                uploadStatus.textContent =
+                    "アップロード準備中...";
 
 
-            // ========================================
-            // ② S3へ直接アップロード
-            // ========================================
+                // ========================================
+                // ① Presigned URL取得
+                // ========================================
 
-            uploadStatus.textContent =
-                "画像をS3へアップロード中...";
+                const response =
+                    await fetch(
+                        UPLOAD_API_URL,
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+
+                                fileName:
+                                    file.name,
+
+                                contentType:
+                                    file.type
+
+                            })
+                        }
+                    );
 
 
-            const uploadResponse =
-                await fetch(
-                    data.uploadUrl,
-                    {
-                        method: "PUT",
+                if (!response.ok) {
 
-                        headers: {
-                            "Content-Type":
-                                file.type
-                        },
+                    throw new Error(
+                        "Upload APIエラー: "
+                        + response.status
+                    );
 
-                        body: file
-                    }
+                }
+
+
+                const data =
+                    await response.json();
+
+
+                // ========================================
+                // ② S3へ直接アップロード
+                // ========================================
+
+                uploadStatus.textContent =
+                    "画像をS3へアップロード中...";
+
+
+                const uploadResponse =
+                    await fetch(
+                        data.uploadUrl,
+                        {
+                            method: "PUT",
+
+                            headers: {
+                                "Content-Type":
+                                    file.type
+                            },
+
+                            body: file
+                        }
+                    );
+
+
+                if (!uploadResponse.ok) {
+
+                    throw new Error(
+                        "S3アップロードエラー: "
+                        + uploadResponse.status
+                    );
+
+                }
+
+
+                // ========================================
+                // ③ 完了
+                // ========================================
+
+                uploadStatus.textContent =
+                    "アップロード完了！解析中です。";
+
+
+                alert(
+                    "画像をアップロードしました。\n"
+                    + "Geminiによる予定解析を開始します。"
                 );
 
 
-            if (!uploadResponse.ok) {
+                imageInput.value = "";
 
-                throw new Error(
-                    "S3アップロードエラー: " +
-                    uploadResponse.status
+
+            } catch (error) {
+
+                console.error(
+                    "画像アップロードエラー:",
+                    error
                 );
+
+
+                uploadStatus.textContent =
+                    "アップロードに失敗しました。";
+
+
+                alert(
+                    "アップロードに失敗しました。\n"
+                    + error.message
+                );
+
+
+            } finally {
+
+                uploadButton.disabled =
+                    false;
 
             }
 
-
-            // ========================================
-            // ③ 完了
-            // ========================================
-
-            uploadStatus.textContent =
-                "アップロード完了！解析中です。";
-
-
-            alert(
-                "画像をアップロードしました。\n" +
-                "Geminiによる予定解析を開始します。"
-            );
-
-
-            imageInput.value = "";
-
-
-            // ImageProcessorの処理時間を待つ
-
-            setTimeout(
-                loadSchedule,
-                10000
-            );
-
-
-        } catch (error) {
-
-            console.error(error);
-
-
-            uploadStatus.textContent =
-                "アップロードに失敗しました。";
-
-
-            alert(
-                "アップロードに失敗しました。\n" +
-                error.message
-            );
-
-
-        } finally {
-
-            uploadButton.disabled = false;
-
         }
+    );
 
-    }
-);
+}
+
 
 // ========================================
 // Cognito認証
@@ -1271,3 +1274,4 @@ if (scheduleRegisterButton) {
     );
 
 }
+
