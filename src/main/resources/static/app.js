@@ -1479,7 +1479,7 @@ async function showScheduleDetail(
 
 
         // ========================================
-        // 表示
+        // 管理者ボタン表示
         // ========================================
 
         const idToken =
@@ -1501,11 +1501,27 @@ async function showScheduleDetail(
                         )
                     );
 
+                console.log(
+                    "詳細画面のCognitoユーザー:",
+                    payload
+                );
+
                 const groups =
                     payload["cognito:groups"] || [];
 
+                console.log(
+                    "詳細画面のCognitoグループ:",
+                    groups
+                );
+
                 isAdmin =
-                    groups.includes("admins");
+                    Array.isArray(groups)
+                    && groups.includes("admins");
+
+                console.log(
+                    "詳細画面 isAdmin:",
+                    isAdmin
+                );
 
             } catch (error) {
 
@@ -1517,37 +1533,14 @@ async function showScheduleDetail(
             }
         }
 
-		// ========================================
-		// 編集画面へ
-		// ========================================
+        if (editScheduleButton) {
 
-		if (editScheduleButton) {
+            editScheduleButton.style.display =
+                isAdmin
+                    ? "inline-block"
+                    : "none";
 
-		    editScheduleButton.addEventListener(
-		        "click",
-		        () => {
-
-		            if (!currentScheduleDetail) {
-		                return;
-		            }
-
-		            const params =
-		                new URLSearchParams({
-		                    mode: "edit",
-
-		                    scheduleMonth:
-		                        currentScheduleDetail.scheduleMonth,
-
-		                    startDateTime:
-		                        currentScheduleDetail.startDateTime
-		                });
-
-		            window.location.href =
-		                `register.html?${params.toString()}`;
-		        }
-		    );
-
-		}
+        }
 
         if (deleteScheduleButton) {
 
@@ -1720,6 +1713,38 @@ if (deleteScheduleButton) {
 
             }
 
+        }
+    );
+
+}
+
+// ========================================
+// 編集画面へ
+// ========================================
+
+if (editScheduleButton) {
+
+    editScheduleButton.addEventListener(
+        "click",
+        () => {
+
+            if (!currentScheduleDetail) {
+                return;
+            }
+
+            const params =
+                new URLSearchParams({
+                    mode: "edit",
+
+                    scheduleMonth:
+                        currentScheduleDetail.scheduleMonth,
+
+                    startDateTime:
+                        currentScheduleDetail.startDateTime
+                });
+
+            window.location.href =
+                `register.html?${params.toString()}`;
         }
     );
 
