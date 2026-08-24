@@ -399,55 +399,55 @@ async function displayCalendar() {
         // 予定表示
         // ========================================
 
-		daySchedules.forEach(schedule => {
+        daySchedules.forEach(schedule => {
 
-		    const event =
-		        document.createElement("div");
+            const event =
+                document.createElement("div");
 
-		    event.className =
-		        "event-dot";
+            event.className =
+                "event-dot";
 
-		    const start =
-		        new Date(
-		            schedule.startDateTime
-		        );
+            const start =
+                new Date(
+                    schedule.startDateTime
+                );
 
-		    const end =
-		        new Date(
-		            schedule.endDateTime
-		        );
+            const end =
+                new Date(
+                    schedule.endDateTime
+                );
 
-		    event.textContent =
-		        `${formatTime(start)}～${formatTime(end)}`;
-
-
-		    // ========================================
-		    // 予定クリック
-		    // ========================================
-
-		    event.addEventListener(
-		        "click",
-		        (clickEvent) => {
-
-		            // 日付セルのクリック処理を止める
-		            clickEvent.stopPropagation();
-
-		            showScheduleDetail(
-		                schedule
-		            );
-
-		        }
-		    );
+            event.textContent =
+                `${formatTime(start)}～${formatTime(end)}`;
 
 
-		    // マウスカーソル
-		    event.style.cursor =
-		        "pointer";
+            // ========================================
+            // 予定クリック
+            // ========================================
+
+            event.addEventListener(
+                "click",
+                (clickEvent) => {
+
+                    // 日付セルのクリック処理を止める
+                    clickEvent.stopPropagation();
+
+                    showScheduleDetail(
+                        schedule
+                    );
+
+                }
+            );
 
 
-		    element.appendChild(event);
+            // マウスカーソル
+            event.style.cursor =
+                "pointer";
 
-		});
+
+            element.appendChild(event);
+
+        });
 
 
         // ========================================
@@ -1316,6 +1316,15 @@ const closeScheduleDetailButtonBottom =
         "closeScheduleDetailButtonBottom"
     );
 
+const editScheduleButton =
+    document.getElementById(
+        "editScheduleButton"
+    );
+
+const deleteScheduleButton =
+    document.getElementById(
+        "deleteScheduleButton"
+    );
 
 // ========================================
 // 詳細ダイアログを閉じる
@@ -1333,6 +1342,8 @@ function closeScheduleDetail() {
 // ========================================
 // 詳細APIから予定取得
 // ========================================
+
+let currentScheduleDetail = null;
 
 async function showScheduleDetail(
     schedule
@@ -1374,11 +1385,12 @@ async function showScheduleDetail(
         const detail =
             await response.json();
 
-
         console.log(
             "予定詳細:",
             detail
         );
+
+        currentScheduleDetail = detail;
 
 
         // ========================================
@@ -1430,14 +1442,14 @@ async function showScheduleDetail(
             "detailFacilityName"
         ).textContent =
             detail.facilityName
-                || "未設定";
+            || "未設定";
 
 
         document.getElementById(
             "detailAddress"
         ).textContent =
             detail.address
-                || "未設定";
+            || "未設定";
 
 
         const facilityUrl =
@@ -1469,6 +1481,59 @@ async function showScheduleDetail(
         // ========================================
         // 表示
         // ========================================
+
+        const idToken =
+            localStorage.getItem("id_token");
+
+        let isAdmin = false;
+
+        if (idToken) {
+
+            try {
+
+                const payload =
+                    JSON.parse(
+                        atob(
+                            idToken
+                                .split(".")[1]
+                                .replace(/-/g, "+")
+                                .replace(/_/g, "/")
+                        )
+                    );
+
+                const groups =
+                    payload["cognito:groups"] || [];
+
+                isAdmin =
+                    groups.includes("admins");
+
+            } catch (error) {
+
+                console.error(
+                    "管理者判定エラー:",
+                    error
+                );
+
+            }
+        }
+
+        if (editScheduleButton) {
+
+            editScheduleButton.style.display =
+                isAdmin
+                    ? "inline-block"
+                    : "none";
+
+        }
+
+        if (deleteScheduleButton) {
+
+            deleteScheduleButton.style.display =
+                isAdmin
+                    ? "inline-block"
+                    : "none";
+
+        }
 
         scheduleDetailModal.classList.add(
             "active"
@@ -1531,6 +1596,104 @@ if (scheduleDetailModal) {
             ) {
 
                 closeScheduleDetail();
+
+            }
+
+        }
+    );
+
+}
+
+// ========================================
+// 予定削除
+// ========================================
+
+if (deleteScheduleButton) {
+
+    deleteScheduleButton.addEventListener(
+        "click",
+        async () => {
+
+            if (!currentScheduleDetail) {
+                return;
+            }
+
+            const confirmed =
+                window.confirm(
+                    "この予定を削除しますか？"
+                );
+
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+
+                deleteScheduleButton.disabled =
+                    true;
+
+                const response =
+                    await fetch(
+                        API_URL,
+                        {
+                            method: "DELETE",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+                                scheduleMonth:
+                                    currentScheduleDetail.scheduleMonth,
+
+                                startDateTime:
+                                    currentScheduleDetail.startDateTime
+                            })
+                        }
+                    );
+
+                const result =
+                    await response.json();
+
+                console.log(
+                    "削除APIレスポンス:",
+                    result
+                );
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        result.message ||
+                        "削除に失敗しました"
+                    );
+
+                }
+
+                alert(
+                    "予定を削除しました。"
+                );
+
+                closeScheduleDetail();
+
+                await loadSchedule();
+
+            } catch (error) {
+
+                console.error(
+                    "予定削除エラー:",
+                    error
+                );
+
+                alert(
+                    "予定の削除に失敗しました。\n"
+                    + error.message
+                );
+
+            } finally {
+
+                deleteScheduleButton.disabled =
+                    false;
 
             }
 
