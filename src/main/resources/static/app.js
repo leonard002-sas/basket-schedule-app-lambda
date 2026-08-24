@@ -1719,6 +1719,127 @@ if (deleteScheduleButton) {
 }
 
 // ========================================
+// 編集モード開始
+// ========================================
+
+function enterEditMode() {
+
+    if (!currentScheduleDetail) {
+        return;
+    }
+
+    // ========================================
+    // 閲覧モードを非表示
+    // ========================================
+
+    if (scheduleViewMode) {
+        scheduleViewMode.style.display =
+            "none";
+    }
+
+    // ========================================
+    // 編集モードを表示
+    // ========================================
+
+    if (scheduleEditMode) {
+        scheduleEditMode.style.display =
+            "block";
+    }
+
+    // ========================================
+    // 閲覧ボタンを非表示
+    // ========================================
+
+    if (viewModeButtons) {
+        viewModeButtons.style.display =
+            "none";
+    }
+
+    // ========================================
+    // 編集ボタンを表示
+    // ========================================
+
+    if (editModeButtons) {
+        editModeButtons.style.display =
+            "block";
+    }
+
+    // ========================================
+    // 既存値をフォームへ設定
+    // ========================================
+
+    const startDateTime =
+        currentScheduleDetail.startDateTime;
+
+    const endDateTime =
+        currentScheduleDetail.endDateTime;
+
+    if (editDate) {
+        editDate.value =
+            startDateTime.substring(0, 10);
+    }
+
+    if (editStartTime) {
+        editStartTime.value =
+            startDateTime.substring(11, 16);
+    }
+
+    if (editEndTime) {
+        editEndTime.value =
+            endDateTime.substring(11, 16);
+    }
+
+    if (editFacilityId) {
+        editFacilityId.value =
+            currentScheduleDetail.facilityId;
+    }
+
+    // 曜日
+    updateEditDayOfWeek();
+
+    // 施設の住所・URL
+    updateEditFacilityInfo();
+
+    console.log(
+        "=== 編集モード開始 ==="
+    );
+}
+
+// ========================================
+// 編集日付から曜日を更新
+// ========================================
+
+function updateEditDayOfWeek() {
+
+    if (!editDate || !editDayOfWeek) {
+        return;
+    }
+
+    if (!editDate.value) {
+        editDayOfWeek.textContent = "";
+        return;
+    }
+
+    const date =
+        new Date(
+            editDate.value + "T00:00:00"
+        );
+
+    const weekdays = [
+        "日",
+        "月",
+        "火",
+        "水",
+        "木",
+        "金",
+        "土"
+    ];
+
+    editDayOfWeek.textContent =
+        weekdays[date.getDay()];
+}
+
+// ========================================
 // 編集ボタン
 // ========================================
 
