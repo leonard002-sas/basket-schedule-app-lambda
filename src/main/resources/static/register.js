@@ -19,6 +19,30 @@ const SCHEDULE_REGISTER_API_URL =
 const UPLOAD_API_URL =
     "https://gg5d4xxwdpfjdesh2n5vyxqm5q0mnwii.lambda-url.ap-northeast-1.on.aws/";
 
+// ========================================
+// スケジュールAPI
+// ========================================
+
+const SCHEDULE_API_URL =
+    "https://7yxh3p2c5swyx6ajv45ldmiswe0tirop.lambda-url.ap-northeast-1.on.aws/";
+	
+// ========================================
+// 編集モード
+// ========================================
+
+const urlParams =
+    new URLSearchParams(
+        window.location.search
+    );
+
+const isEditMode =
+    urlParams.get("mode") === "edit";
+
+const editScheduleMonth =
+    urlParams.get("scheduleMonth");
+
+const editStartDateTime =
+    urlParams.get("startDateTime");
 
 // ========================================
 // 施設マスタ
@@ -26,6 +50,36 @@ const UPLOAD_API_URL =
 
 let facilities = [];
 
+// ========================================
+// 編集モード表示
+// ========================================
+
+if (isEditMode) {
+
+    document.getElementById(
+        "pageTitle"
+    ).textContent =
+        "予定を編集";
+
+    const registerButton =
+        document.getElementById(
+            "registerButton"
+        );
+
+    registerButton.textContent =
+        "更新する";
+
+    const imageRegisterSection =
+        document.getElementById(
+            "imageRegisterSection"
+        );
+
+    if (imageRegisterSection) {
+
+        imageRegisterSection.style.display =
+            "none";
+    }
+}
 
 // ========================================
 // 施設マスタ取得
@@ -360,27 +414,77 @@ registerButton.addEventListener(
                     "登録中です...";
             }
 
-            // ====================================
-            // ScheduleRegisterApi呼び出し
-            // ====================================
+            // ========================================
+            // API呼び出し
+            // ========================================
 
-            const response =
-                await fetch(
-                    SCHEDULE_REGISTER_API_URL,
-                    {
-                        method: "POST",
+            let response;
 
-                        headers: {
-                            "Content-Type":
-                                "application/json"
-                        },
+            if (isEditMode) {
 
-                        body: JSON.stringify({
-                            schedules:
-                                schedules
-                        })
-                    }
-                );
+                // ====================================
+                // 編集
+                // ====================================
+
+                response =
+                    await fetch(
+                        "https://7yxh3p2c5swyx6ajv45ldmiswe0tirop.lambda-url.ap-northeast-1.on.aws/",
+                        {
+                            method: "PUT",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+
+                                oldScheduleMonth:
+                                    editScheduleMonth,
+
+                                oldStartDateTime:
+                                    editStartDateTime,
+
+                                date:
+                                    schedules[0].date,
+
+                                startTime:
+                                    schedules[0].startTime,
+
+                                endTime:
+                                    schedules[0].endTime,
+
+                                facilityId:
+                                    schedules[0].facilityId
+
+                            })
+                        }
+                    );
+
+            } else {
+
+                // ====================================
+                // 新規登録
+                // ====================================
+
+                response =
+                    await fetch(
+                        SCHEDULE_REGISTER_API_URL,
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body: JSON.stringify({
+                                schedules:
+                                    schedules
+                            })
+                        }
+                    );
+            }
 
             const result =
                 await response.json();
@@ -407,12 +511,16 @@ registerButton.addEventListener(
             // 登録成功
             // ====================================
 
-            if (status) {
+            if (isEditMode) {
+
+                status.textContent =
+                    "予定を更新しました。";
+
+            } else {
 
                 status.textContent =
                     schedules.length
                     + "件の予定を登録しました。";
-
             }
 
         } catch (error) {
@@ -628,9 +736,149 @@ if (uploadButton) {
     );
 }
 
+// ========================================
+// 編集対象の予定取得
+// ========================================
+
+async function loadEditSchedule() {
+
+    if (!isEditMode) {
+        return;
+    }
+
+    if (!editScheduleMonth || !editStartDateTime) {
+
+        alert(
+            "編集対象の予定情報がありません。"
+        );
+
+        return;
+    }
+
+    try {
+
+        const params =
+            new URLSearchParams({
+                scheduleMonth:
+                    editScheduleMonth,
+
+                startDateTime:
+                    editStartDateTime
+            });
+
+        const response =
+            await fetch(
+                `${SCHEDULE_API_URL}?${params.toString()}`,
+                {
+                    method: "GET"
+                }
+            );
+
+        if (!response.ok) {
+
+            throw new Error(
+                "予定取得エラー: "
+                + response.status
+            );
+
+        }
+
+        const schedule =
+            await response.json();
+
+        console.log(
+            "編集対象:",
+            schedule
+        );
+
+        // ========================================
+        // 既存の入力行を取得
+        // ========================================
+
+        const row =
+            document.querySelector(
+                ".schedule-row"
+            );
+
+        // ========================================
+        // 日付
+        // ========================================
+
+        const start =
+            new Date(
+                schedule.startDateTime
+            );
+
+        const end =
+            new Date(
+                schedule.endDateTime
+            );
+
+        row.querySelector(
+            ".date-input"
+        ).value =
+            `${start.getFullYear()}-${String(
+                start.getMonth() + 1
+            ).padStart(2, "0")}-${String(
+                start.getDate()
+            ).padStart(2, "0")}`;
+
+        // ========================================
+        // 開始時間・終了時間
+        // ========================================
+
+        const timeInputs =
+            row.querySelectorAll(
+                ".time-input"
+            );
+
+        timeInputs[0].value =
+            `${String(
+                start.getHours()
+            ).padStart(2, "0")}:${String(
+                start.getMinutes()
+            ).padStart(2, "0")}`;
+
+        timeInputs[1].value =
+            `${String(
+                end.getHours()
+            ).padStart(2, "0")}:${String(
+                end.getMinutes()
+            ).padStart(2, "0")}`;
+
+        // ========================================
+        // 施設
+        // ========================================
+
+        const facilitySelect =
+            row.querySelector(
+                ".facility-select"
+            );
+
+        facilitySelect.value =
+            schedule.facilityId;
+
+    } catch (error) {
+
+        console.error(
+            "編集対象取得エラー:",
+            error
+        );
+
+        alert(
+            "編集対象の予定を取得できませんでした。"
+        );
+
+    }
+}
+
+
 
 // ========================================
 // 初期処理
 // ========================================
 
-loadFacilities();
+loadFacilities()
+    .then(() => {
+        loadEditSchedule();
+    });

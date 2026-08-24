@@ -1517,14 +1517,37 @@ async function showScheduleDetail(
             }
         }
 
-        if (editScheduleButton) {
+		// ========================================
+		// 編集画面へ
+		// ========================================
 
-            editScheduleButton.style.display =
-                isAdmin
-                    ? "inline-block"
-                    : "none";
+		if (editScheduleButton) {
 
-        }
+		    editScheduleButton.addEventListener(
+		        "click",
+		        () => {
+
+		            if (!currentScheduleDetail) {
+		                return;
+		            }
+
+		            const params =
+		                new URLSearchParams({
+		                    mode: "edit",
+
+		                    scheduleMonth:
+		                        currentScheduleDetail.scheduleMonth,
+
+		                    startDateTime:
+		                        currentScheduleDetail.startDateTime
+		                });
+
+		            window.location.href =
+		                `register.html?${params.toString()}`;
+		        }
+		    );
+
+		}
 
         if (deleteScheduleButton) {
 
