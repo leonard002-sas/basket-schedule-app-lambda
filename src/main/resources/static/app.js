@@ -32,6 +32,12 @@ const nextMonthButton =
 
 let schedules = [];
 
+// 施設マスタ
+let facilities = [];
+
+// 現在開いている予定
+let currentScheduleDetail = null;
+
 
 // ========================================
 // 現在表示している月
@@ -1004,6 +1010,16 @@ async function handleCognitoCallback() {
 
         updateAuthUI();
 
+        console.log(
+            "=== updateAuthUI完了 ==="
+        );
+
+        // 先に施設マスタを取得
+        await loadFacilities();
+
+        // その後、予定取得
+        await loadSchedule();
+
         // URLから ?code=xxxxx を削除
         window.history.replaceState(
             {},
@@ -1342,9 +1358,6 @@ function closeScheduleDetail() {
 // ========================================
 // 詳細APIから予定取得
 // ========================================
-
-let currentScheduleDetail = null;
-
 async function showScheduleDetail(
     schedule
 ) {
@@ -1898,7 +1911,7 @@ async function loadFacilities() {
             facilities
         );
 
-        // 編集用プルダウン作成
+        // 編集用施設プルダウンを作成
         prepareEditFacilityOptions();
 
     } catch (error) {
