@@ -4,7 +4,13 @@ const API_URL =
 const UPLOAD_API_URL =
     "https://gg5d4xxwdpfjdesh2n5vyxqm5q0mnwii.lambda-url.ap-northeast-1.on.aws/";
 
+// ========================================
+// 施設API
+// ========================================
 
+const FACILITY_API_URL =
+    "https://wybpjskbmgh6jbra4647ethnhm0pkulf.lambda-url.ap-northeast-1.on.aws/";
+	
 const scheduleElement =
     document.getElementById("scheduleList");
 
