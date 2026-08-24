@@ -1719,127 +1719,6 @@ if (deleteScheduleButton) {
 }
 
 // ========================================
-// 編集モード開始
-// ========================================
-
-function enterEditMode() {
-
-    if (!currentScheduleDetail) {
-        return;
-    }
-
-    // ========================================
-    // 閲覧モードを非表示
-    // ========================================
-
-    if (scheduleViewMode) {
-        scheduleViewMode.style.display =
-            "none";
-    }
-
-    // ========================================
-    // 編集モードを表示
-    // ========================================
-
-    if (scheduleEditMode) {
-        scheduleEditMode.style.display =
-            "block";
-    }
-
-    // ========================================
-    // 閲覧ボタンを非表示
-    // ========================================
-
-    if (viewModeButtons) {
-        viewModeButtons.style.display =
-            "none";
-    }
-
-    // ========================================
-    // 編集ボタンを表示
-    // ========================================
-
-    if (editModeButtons) {
-        editModeButtons.style.display =
-            "block";
-    }
-
-    // ========================================
-    // 既存値をフォームへ設定
-    // ========================================
-
-    const startDateTime =
-        currentScheduleDetail.startDateTime;
-
-    const endDateTime =
-        currentScheduleDetail.endDateTime;
-
-    if (editDate) {
-        editDate.value =
-            startDateTime.substring(0, 10);
-    }
-
-    if (editStartTime) {
-        editStartTime.value =
-            startDateTime.substring(11, 16);
-    }
-
-    if (editEndTime) {
-        editEndTime.value =
-            endDateTime.substring(11, 16);
-    }
-
-    if (editFacilityId) {
-        editFacilityId.value =
-            currentScheduleDetail.facilityId;
-    }
-
-    // 曜日
-    updateEditDayOfWeek();
-
-    // 施設の住所・URL
-    updateEditFacilityInfo();
-
-    console.log(
-        "=== 編集モード開始 ==="
-    );
-}
-
-// ========================================
-// 編集日付から曜日を更新
-// ========================================
-
-function updateEditDayOfWeek() {
-
-    if (!editDate || !editDayOfWeek) {
-        return;
-    }
-
-    if (!editDate.value) {
-        editDayOfWeek.textContent = "";
-        return;
-    }
-
-    const date =
-        new Date(
-            editDate.value + "T00:00:00"
-        );
-
-    const weekdays = [
-        "日",
-        "月",
-        "火",
-        "水",
-        "木",
-        "金",
-        "土"
-    ];
-
-    editDayOfWeek.textContent =
-        weekdays[date.getDay()];
-}
-
-// ========================================
 // 編集ボタン
 // ========================================
 
@@ -1860,3 +1739,667 @@ if (editScheduleButton) {
 
 }
 
+// ========================================
+// 編集用施設プルダウン作成
+// ========================================
+
+function prepareEditFacilityOptions() {
+
+    if (!editFacilityId) {
+        return;
+    }
+
+    editFacilityId.innerHTML = "";
+
+    const defaultOption =
+        document.createElement("option");
+
+    defaultOption.value = "";
+
+    defaultOption.textContent =
+        "施設を選択してください";
+
+    editFacilityId.appendChild(
+        defaultOption
+    );
+
+    facilities.forEach(
+        facility => {
+
+            const option =
+                document.createElement("option");
+
+            option.value =
+                facility.facilityId;
+
+            option.textContent =
+                facility.facilityName;
+
+            editFacilityId.appendChild(
+                option
+            );
+
+        }
+    );
+
+    console.log(
+        "編集用施設プルダウン:",
+        facilities
+    );
+}
+
+
+// ========================================
+// 施設変更時の情報更新
+// ========================================
+
+function updateEditFacilityInfo() {
+
+    if (!editFacilityId) {
+        return;
+    }
+
+    const selectedFacility =
+        facilities.find(
+            facility =>
+                facility.facilityId ===
+                editFacilityId.value
+        );
+
+    if (!selectedFacility) {
+
+        if (editAddress) {
+            editAddress.textContent =
+                "未設定";
+        }
+
+        if (editFacilityUrl) {
+            editFacilityUrl.removeAttribute(
+                "href"
+            );
+
+            editFacilityUrl.style.display =
+                "none";
+        }
+
+        return;
+    }
+
+
+    // ========================================
+    // 住所
+    // ========================================
+
+    if (editAddress) {
+
+        editAddress.textContent =
+            selectedFacility.address
+            || "未設定";
+
+    }
+
+
+    // ========================================
+    // URL
+    // ========================================
+
+    if (editFacilityUrl) {
+
+        if (selectedFacility.url) {
+
+            editFacilityUrl.href =
+                selectedFacility.url;
+
+            editFacilityUrl.style.display =
+                "inline";
+
+        } else {
+
+            editFacilityUrl.removeAttribute(
+                "href"
+            );
+
+            editFacilityUrl.style.display =
+                "none";
+
+        }
+
+    }
+
+}
+
+// ========================================
+// 施設マスタ取得
+// ========================================
+
+async function loadFacilities() {
+
+    try {
+
+        const response =
+            await fetch(
+                FACILITY_API_URL
+            );
+
+        if (!response.ok) {
+
+            throw new Error(
+                "施設APIエラー: "
+                + response.status
+            );
+
+        }
+
+        facilities =
+            await response.json();
+
+        console.log(
+            "施設マスタ:",
+            facilities
+        );
+
+        // 編集用プルダウン作成
+        prepareEditFacilityOptions();
+
+    } catch (error) {
+
+        console.error(
+            "施設取得エラー:",
+            error
+        );
+
+    }
+
+}
+
+// ========================================
+// 施設変更
+// ========================================
+
+if (editFacilityId) {
+
+    editFacilityId.addEventListener(
+        "change",
+        () => {
+
+            console.log(
+                "選択された施設:",
+                editFacilityId.value
+            );
+
+            updateEditFacilityInfo();
+
+        }
+    );
+
+}
+
+// ========================================
+// 編集モード開始
+// ========================================
+
+function enterEditMode() {
+
+    if (!currentScheduleDetail) {
+        return;
+    }
+
+
+    // ========================================
+    // 閲覧モード → 編集モード
+    // ========================================
+
+    if (scheduleViewMode) {
+
+        scheduleViewMode.style.display =
+            "none";
+
+    }
+
+    if (scheduleEditMode) {
+
+        scheduleEditMode.style.display =
+            "block";
+
+    }
+
+    if (viewModeButtons) {
+
+        viewModeButtons.style.display =
+            "none";
+
+    }
+
+    if (editModeButtons) {
+
+        editModeButtons.style.display =
+            "block";
+
+    }
+
+
+    // ========================================
+    // 既存値を設定
+    // ========================================
+
+    const startDateTime =
+        currentScheduleDetail.startDateTime;
+
+    const endDateTime =
+        currentScheduleDetail.endDateTime;
+
+
+    if (editDate) {
+
+        editDate.value =
+            startDateTime.substring(
+                0,
+                10
+            );
+
+    }
+
+
+    if (editStartTime) {
+
+        editStartTime.value =
+            startDateTime.substring(
+                11,
+                16
+            );
+
+    }
+
+
+    if (editEndTime) {
+
+        editEndTime.value =
+            endDateTime.substring(
+                11,
+                16
+            );
+
+    }
+
+
+    // ========================================
+    // 施設
+    // ========================================
+
+    if (editFacilityId) {
+
+        editFacilityId.value =
+            currentScheduleDetail.facilityId;
+
+    }
+
+
+    // ========================================
+    // 曜日
+    // ========================================
+
+    updateEditDayOfWeek();
+
+
+    // ========================================
+    // 施設情報
+    // ========================================
+
+    updateEditFacilityInfo();
+
+
+    console.log(
+        "=== 編集モード開始 ==="
+    );
+
+}
+
+// ========================================
+// 保存
+// ========================================
+
+if (saveScheduleButton) {
+
+    saveScheduleButton.addEventListener(
+        "click",
+        async () => {
+
+            if (!currentScheduleDetail) {
+
+                console.error(
+                    "currentScheduleDetail がありません"
+                );
+
+                return;
+            }
+
+
+            const date =
+                editDate.value;
+
+            const startTime =
+                editStartTime.value;
+
+            const endTime =
+                editEndTime.value;
+
+            const facilityId =
+                editFacilityId.value;
+
+
+            console.log(
+                "=== 保存開始 ==="
+            );
+
+            console.log(
+                "日付:",
+                date
+            );
+
+            console.log(
+                "開始:",
+                startTime
+            );
+
+            console.log(
+                "終了:",
+                endTime
+            );
+
+            console.log(
+                "施設:",
+                facilityId
+            );
+
+
+            // ========================================
+            // 入力チェック
+            // ========================================
+
+            if (!date) {
+
+                alert(
+                    "日付を入力してください。"
+                );
+
+                return;
+            }
+
+
+            if (!startTime) {
+
+                alert(
+                    "開始時間を入力してください。"
+                );
+
+                return;
+            }
+
+
+            if (!endTime) {
+
+                alert(
+                    "終了時間を入力してください。"
+                );
+
+                return;
+            }
+
+
+            if (!facilityId) {
+
+                alert(
+                    "施設を選択してください。"
+                );
+
+                return;
+            }
+
+
+            if (endTime <= startTime) {
+
+                alert(
+                    "終了時間は開始時間より後にしてください。"
+                );
+
+                return;
+            }
+
+
+            try {
+
+                saveScheduleButton.disabled =
+                    true;
+
+                saveScheduleButton.textContent =
+                    "保存中...";
+
+
+                // ========================================
+                // PUT
+                // ========================================
+
+                const response =
+                    await fetch(
+                        API_URL,
+                        {
+                            method:
+                                "PUT",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body:
+                                JSON.stringify({
+
+                                    oldScheduleMonth:
+                                        currentScheduleDetail
+                                            .scheduleMonth,
+
+                                    oldStartDateTime:
+                                        currentScheduleDetail
+                                            .startDateTime,
+
+                                    date:
+                                        date,
+
+                                    startTime:
+                                        startTime,
+
+                                    endTime:
+                                        endTime,
+
+                                    facilityId:
+                                        facilityId
+
+                                })
+                        }
+                    );
+
+
+                const result =
+                    await response.json();
+
+
+                console.log(
+                    "更新APIレスポンス:",
+                    result
+                );
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        result.message
+                        || "更新に失敗しました"
+                    );
+
+                }
+
+
+                // ========================================
+                // 成功
+                // ========================================
+
+                alert(
+                    "予定を更新しました。"
+                );
+
+
+                // ========================================
+                // 最新データ再取得
+                // ========================================
+
+                await loadSchedule();
+
+
+                // ========================================
+                // 編集モード終了
+                // ========================================
+
+                exitEditMode();
+
+
+                // ========================================
+                // 更新後の予定を検索
+                // ========================================
+
+                const newStartDateTime =
+                    `${date}T${startTime}`;
+
+
+                const updatedSchedule =
+                    schedules.find(
+                        schedule =>
+                            schedule.startDateTime ===
+                            newStartDateTime
+                    );
+
+
+                if (updatedSchedule) {
+
+                    await showScheduleDetail(
+                        updatedSchedule
+                    );
+
+                } else {
+
+                    closeScheduleDetail();
+
+                }
+
+
+            } catch (error) {
+
+                console.error(
+                    "予定更新エラー:",
+                    error
+                );
+
+
+                alert(
+                    "予定の更新に失敗しました。\n"
+                    + error.message
+                );
+
+
+            } finally {
+
+                saveScheduleButton.disabled =
+                    false;
+
+                saveScheduleButton.textContent =
+                    "保存";
+
+            }
+
+        }
+    );
+
+}
+
+// ========================================
+// 曜日更新
+// ========================================
+
+function updateEditDayOfWeek() {
+
+    if (
+        !editDate ||
+        !editDayOfWeek
+    ) {
+        return;
+    }
+
+
+    if (!editDate.value) {
+
+        editDayOfWeek.textContent =
+            "";
+
+        return;
+    }
+
+
+    const date =
+        new Date(
+            editDate.value
+            + "T00:00:00"
+        );
+
+
+    const weekdays = [
+        "日",
+        "月",
+        "火",
+        "水",
+        "木",
+        "金",
+        "土"
+    ];
+
+
+    editDayOfWeek.textContent =
+        weekdays[
+        date.getDay()
+        ];
+
+}
+
+// ========================================
+// 編集モード終了
+// ========================================
+
+function exitEditMode() {
+
+    if (scheduleViewMode) {
+
+        scheduleViewMode.style.display =
+            "block";
+
+    }
+
+    if (scheduleEditMode) {
+
+        scheduleEditMode.style.display =
+            "none";
+
+    }
+
+    if (viewModeButtons) {
+
+        viewModeButtons.style.display =
+            "block";
+
+    }
+
+    if (editModeButtons) {
+
+        editModeButtons.style.display =
+            "none";
+
+    }
+
+}
