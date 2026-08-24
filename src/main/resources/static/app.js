@@ -1719,7 +1719,7 @@ if (deleteScheduleButton) {
 }
 
 // ========================================
-// 編集画面へ
+// 編集ボタン
 // ========================================
 
 if (editScheduleButton) {
@@ -1732,19 +1732,8 @@ if (editScheduleButton) {
                 return;
             }
 
-            const params =
-                new URLSearchParams({
-                    mode: "edit",
+            enterEditMode();
 
-                    scheduleMonth:
-                        currentScheduleDetail.scheduleMonth,
-
-                    startDateTime:
-                        currentScheduleDetail.startDateTime
-                });
-
-            window.location.href =
-                `register.html?${params.toString()}`;
         }
     );
 
