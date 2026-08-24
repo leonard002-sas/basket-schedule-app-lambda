@@ -1014,12 +1014,6 @@ async function handleCognitoCallback() {
             "=== updateAuthUI完了 ==="
         );
 
-        // 先に施設マスタを取得
-        await loadFacilities();
-
-        // その後、予定取得
-        await loadSchedule();
-
         // URLから ?code=xxxxx を削除
         window.history.replaceState(
             {},
@@ -1281,15 +1275,24 @@ if (registerButton) {
 
 
 handleCognitoCallback()
-    .then(() => {
+    .then(async () => {
 
-        console.log("=== 初期表示処理開始 ===");
+        console.log(
+            "=== 初期表示処理開始 ==="
+        );
 
         updateAuthUI();
 
-        console.log("=== updateAuthUI完了 ===");
+        console.log(
+            "=== updateAuthUI完了 ==="
+        );
 
-        loadSchedule();
+        await loadFacilities();
+
+        await loadSchedule();
+
+        console.log("=== 初期表示処理完了 ===");
+
     });
 
 // ========================================
