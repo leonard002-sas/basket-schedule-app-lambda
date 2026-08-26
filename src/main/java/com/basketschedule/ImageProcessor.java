@@ -130,7 +130,7 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 
 				        .thinkingConfig(
 				                ThinkingConfig.builder()
-				                        .thinkingLevel(new ThinkingLevel("low"))
+				                        .thinkingLevel(new ThinkingLevel("midium"))
 				                        .build()
 				        )
 
