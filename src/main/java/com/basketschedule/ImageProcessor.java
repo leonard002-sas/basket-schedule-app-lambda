@@ -195,7 +195,7 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 
 				// 統合した config を渡す
 				GenerateContentResponse response = geminiClient.models.generateContent(
-						"gemini-2.5-flash",
+						"gemini-3.6-flash",
 				        content,
 				        config);
 
