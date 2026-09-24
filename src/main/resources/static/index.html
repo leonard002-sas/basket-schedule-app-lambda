@@ -9,6 +9,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 	<title>バスケットボール予定表</title>
+	<link rel="icon" type="image/svg+xml" href="favicon.svg">
 
 	<style>
 
@@ -441,46 +442,68 @@
 		}
 
 	</style>
+	<link rel="stylesheet" href="app.css">
 
 </head>
 
 <body>
 
-	<h1>バスケットボール予定表</h1>
+	<div id="imageJobBanner" class="image-job-banner" hidden aria-live="polite">
+		<div id="imageJobList"></div>
+		<button type="button" id="imageJobDismiss" class="image-job-dismiss" hidden>閉じる</button>
+	</div>
 
+	<div class="app-shell">
+		<header class="site-header">
+			<a class="brand-lockup" href="./" aria-label="バスケットボール予定表">
+				<span class="brand-mark" aria-hidden="true">
+					<svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12.2" stroke="currentColor" stroke-width="1.8"/><path d="M5.3 10.1c7.1 1.8 14.3 1.8 21.4 0M5.3 21.9c7.1-1.8 14.3-1.8 21.4 0M16 3.8c-4.1 3.1-6.2 7.2-6.2 12.2S11.9 25.1 16 28.2M16 3.8c4.1 3.1 6.2 7.2 6.2 12.2S20.1 25.1 16 28.2" stroke="currentColor" stroke-width="1.5"/></svg>
+				</span>
+				<span><span class="brand-name">COURTSIDE</span><span class="brand-caption">Basketball schedule</span></span>
+			</a>
+			<nav class="header-actions" aria-label="アカウント">
+				<button id="logoutButton" class="button-light" style="display: none;">ログアウト</button>
+				<button id="registerButton" class="button-accent" style="display: none;">新規登録</button>
+			</nav>
+		</header>
 
-	<button id="loginButton">
-		ログイン
-	</button>
-
-	<button
-		id="logoutButton"
-		style="display: none;"
-	>
-		ログアウト
-	</button>
-
-	<button
-		id="registerButton"
-		style="display: none;"
-	>
-		新規登録
-	</button>
-
-	<p id="loginRequiredMessage">予定表を見るにはログインしてください。</p>
+		<section id="loginRequiredMessage" class="login-gate" aria-labelledby="loginTitle">
+			<div class="login-copy">
+				<span class="eyebrow">Basketball · Schedule</span>
+				<h1 id="loginTitle">コートの予定を、<br>ひと目で。</h1>
+				<p>練習や試合の日程を、チームみんなで見やすく共有。今日のコート予定をすぐに確認できます。</p>
+				<div class="login-highlights" aria-label="主な機能">
+					<span>月ごとの予定を一覧</span>
+					<span>施設と時間をすぐ確認</span>
+				</div>
+			</div>
+			<div class="login-card">
+				<span class="login-card-label">TEAM ACCESS</span>
+				<h2>チームカレンダーへ</h2>
+				<p>アカウントにログインして、最新の予定を確認しましょう。</p>
+				<button id="loginButton" class="button-accent">ログインして予定を見る <span aria-hidden="true">→</span></button>
+				<div class="login-secure">
+					<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+					ログインしたメンバーだけが閲覧できます
+				</div>
+			</div>
+		</section>
 
 	<main id="calendarContent" hidden>
+		<section class="page-intro">
+			<div>
+				<span class="eyebrow">Team calendar</span>
+				<h1>バスケットボール予定表</h1>
+				<p>チームの練習・試合予定を確認できます。</p>
+			</div>
+			<div class="page-intro-actions">
+				<button id="scheduleRegisterButton" class="button-accent" style="display: none;">予定表を登録</button>
+			</div>
+		</section>
 
 	<!-- =========================
          予定表登録
          ========================= -->
-
-	<button
-		id="scheduleRegisterButton"
-		style="display: none;"
-	>
-		予定表登録
-	</button>
 
 
 	<!-- =========================
@@ -886,6 +909,8 @@
 
 	</main>
 
+	</div>
+	<script src="image-jobs.js"></script>
 	<script src="app.js"></script>
 
 </body>

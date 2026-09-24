@@ -2,6 +2,7 @@
 package com.basketschedule;
 
 import java.util.Map;
+import java.util.List;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
@@ -21,6 +22,9 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.PutObjectTaggingRequest;
+import software.amazon.awssdk.services.s3.model.Tag;
+import software.amazon.awssdk.services.s3.model.Tagging;
 
 public class ImageProcessor implements RequestHandler<S3Event, String> {
 
@@ -30,6 +34,10 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 			Context context) {
 
 		String apiKey = System.getenv("GEMINI_API_KEY");
+		String currentBucket = null;
+		String currentKey = null;
+		int completedEntries = 0;
+		int totalEntries = 0;
 
 		try (
 				S3Client s3Client = S3Client.builder()
@@ -49,6 +57,11 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 				String bucketName = record.getS3().getBucket().getName();
 
 				String objectKey = record.getS3().getObject().getUrlDecodedKey();
+				currentBucket = bucketName;
+				currentKey = objectKey;
+				completedEntries = 0;
+				totalEntries = 0;
+				updateJobStatus(s3Client, bucketName, objectKey, "PROCESSING", "ANALYZING", 0, 0, context);
 
 				context.getLogger().log(
 						"Bucket: " + bucketName);
@@ -68,6 +81,12 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 				ResponseBytes<GetObjectResponse> image = s3Client.getObjectAsBytes(request);
 
 				byte[] imageData = image.asByteArray();
+				String mimeType = image.response().contentType();
+				if (mimeType == null || !("image/jpeg".equals(mimeType)
+						|| "image/png".equals(mimeType)
+						|| "image/webp".equals(mimeType))) {
+					throw new IllegalArgumentException("対応していない画像形式です");
+				}
 
 				context.getLogger().log(
 						"Image size: "
@@ -117,7 +136,7 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 				                """),
 				        Part.fromBytes(
 				                imageData,
-				                "image/jpeg")
+				                mimeType)
 				);
 				
 				
@@ -233,6 +252,11 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 				// ⑦ 対象月チェック
 				// ========================================
 				String scheduleMonth = calendarResponse.getScheduleMonth();
+				if (calendarResponse.getEntries() == null) {
+					throw new IllegalArgumentException("解析結果に予定一覧がありません");
+				}
+				totalEntries = calendarResponse.getEntries().size();
+				updateJobStatus(s3Client, bucketName, objectKey, "PROCESSING", "SAVING", 0, totalEntries, context);
 
 				if (scheduleMonth == null
 						|| !scheduleMonth.matches("\\d{4}-\\d{2}")) {
@@ -252,6 +276,16 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 				DynamoDbService dynamoDbService = new DynamoDbService();
 
 				for (CalendarEntry entry : calendarResponse.getEntries()) {
+					String timeZone = entry.getTimeZone();
+					if (!"午前".equals(timeZone)
+					        && !"午後".equals(timeZone)
+					        && !"夜間".equals(timeZone)) {
+					    throw new IllegalArgumentException("時間帯が不正です: " + timeZone);
+					}
+					String date = entry.getDate();
+					if (date == null || !date.matches("([1-9]|[12][0-9]|3[01])日")) {
+					    throw new IllegalArgumentException("日付が不正です: " + date);
+					}
 
 					CalendarEvent event2 = CalendarConverter.convert(
 							entry,
@@ -269,31 +303,19 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 							event2,
 							entry.getTimeZone(),
 							OCHIGO_ID);
-					
-					String timeZone = entry.getTimeZone();
-
-					if (!"午前".equals(timeZone)
-					        && !"午後".equals(timeZone)
-					        && !"夜間".equals(timeZone)) {
-
-					    throw new IllegalArgumentException(
-					            "時間帯が不正です: " + timeZone);
-					}
-					
-					String date = entry.getDate();
-
-					if (date == null || !date.matches("([1-9]|[12][0-9]|3[01])日")) {
-
-					    throw new IllegalArgumentException(
-					            "日付が不正です: " + date);
-					}
+					completedEntries++;
+					updateJobStatus(s3Client, bucketName, objectKey, "PROCESSING", "SAVING", completedEntries, totalEntries, context);
 				
 				}
 
 				dynamoDbService.close();
+				updateJobStatus(s3Client, bucketName, objectKey, "COMPLETED", "COMPLETE", totalEntries, totalEntries, context);
 			}
 
 		} catch (Exception e) {
+			if (currentBucket != null && currentKey != null) {
+				updateJobStatusForFailure(currentBucket, currentKey, completedEntries, totalEntries, context);
+			}
 
 			context.getLogger().log(
 					"ERROR: " + e.getMessage());
@@ -302,5 +324,45 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 		}
 
 		return "OK";
+	}
+
+	private void updateJobStatus(
+			S3Client s3Client,
+			String bucket,
+			String key,
+			String status,
+			String stage,
+			int completed,
+			int total,
+			Context context) {
+		try {
+			s3Client.putObjectTagging(
+					PutObjectTaggingRequest.builder()
+							.bucket(bucket)
+							.key(key)
+							.tagging(Tagging.builder().tagSet(List.of(
+									Tag.builder().key("jobStatus").value(status).build(),
+									Tag.builder().key("jobStage").value(stage).build(),
+									Tag.builder().key("jobCompleted").value(Integer.toString(completed)).build(),
+									Tag.builder().key("jobTotal").value(Integer.toString(total)).build()
+							)).build())
+							.build()
+			);
+		} catch (Exception e) {
+			context.getLogger().log("JOB_STATUS_UPDATE_FAILED: " + e.getClass().getSimpleName());
+		}
+	}
+
+	private void updateJobStatusForFailure(
+			String bucket,
+			String key,
+			int completed,
+			int total,
+			Context context) {
+		try (S3Client s3Client = S3Client.builder().region(Region.AP_NORTHEAST_1).build()) {
+			updateJobStatus(s3Client, bucket, key, "FAILED", "FAILED", completed, total, context);
+		} catch (Exception e) {
+			context.getLogger().log("JOB_STATUS_FAILURE_WRITE_FAILED: " + e.getClass().getSimpleName());
+		}
 	}
 }

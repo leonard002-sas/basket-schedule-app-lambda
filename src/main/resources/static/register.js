@@ -606,6 +606,43 @@ const uploadStatus =
         "uploadStatus"
     );
 
+const uploadDropzone =
+    document.getElementById("uploadDropzone");
+
+const selectedFileName =
+    document.getElementById("selectedFileName");
+
+if (imageInput && selectedFileName) {
+    imageInput.addEventListener("change", () => {
+        selectedFileName.textContent = imageInput.files[0]
+            ? imageInput.files[0].name
+            : "画像を選択、またはここにドロップ";
+    });
+}
+
+if (uploadDropzone && imageInput) {
+    ["dragenter", "dragover"].forEach(type => {
+        uploadDropzone.addEventListener(type, event => {
+            event.preventDefault();
+            uploadDropzone.classList.add("is-dragover");
+        });
+    });
+    ["dragleave", "drop"].forEach(type => {
+        uploadDropzone.addEventListener(type, event => {
+            event.preventDefault();
+            uploadDropzone.classList.remove("is-dragover");
+        });
+    });
+    uploadDropzone.addEventListener("drop", event => {
+        const file = event.dataTransfer.files[0];
+        if (!file || !file.type.startsWith("image/")) return;
+        const transfer = new DataTransfer();
+        transfer.items.add(file);
+        imageInput.files = transfer.files;
+        imageInput.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+}
+
 
 if (uploadButton) {
 
@@ -621,15 +658,17 @@ if (uploadButton) {
             const file =
                 imageInput.files[0];
 
+            let jobId = null;
+
 
             if (!file) {
-
-                alert(
-                    "画像を選択してください。"
-                );
-
+                uploadStatus.textContent = "先に画像を選択してください。";
                 return;
+            }
 
+            if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+                uploadStatus.textContent = "JPG、PNG、WebP形式の画像を選択してください。";
+                return;
             }
 
 
@@ -687,6 +726,11 @@ if (uploadButton) {
                 const data =
                     await response.json();
 
+                jobId = data.fileName;
+                if (window.BasketImageJobs && jobId) {
+                    window.BasketImageJobs.start(jobId, file.name);
+                }
+
 
                 // ====================================
                 // ② S3へ直接アップロード
@@ -696,32 +740,29 @@ if (uploadButton) {
                     "画像をS3へアップロード中...";
 
 
-                const uploadResponse =
-                    await fetch(
-                        data.uploadUrl,
-                        {
-                            method:
-                                "PUT",
-
-                            headers: {
-                                "Content-Type":
-                                    file.type
-                            },
-
-                            body:
-                                file
+                await new Promise((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open("PUT", data.uploadUrl);
+                    xhr.setRequestHeader("Content-Type", file.type || "image/jpeg");
+                    xhr.upload.addEventListener("progress", event => {
+                        if (event.lengthComputable && jobId && window.BasketImageJobs) {
+                            window.BasketImageJobs.uploadProgress(
+                                jobId,
+                                (event.loaded / event.total) * 100
+                            );
                         }
-                    );
-
-
-                if (!uploadResponse.ok) {
-
-                    throw new Error(
-                        "S3アップロードエラー: "
-                        + uploadResponse.status
-                    );
-
-                }
+                    });
+                    xhr.addEventListener("load", () => {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            resolve();
+                        } else {
+                            reject(new Error("S3アップロードエラー: " + xhr.status));
+                        }
+                    });
+                    xhr.addEventListener("error", () => reject(new Error("S3への接続に失敗しました")));
+                    xhr.addEventListener("abort", () => reject(new Error("アップロードを中断しました")));
+                    xhr.send(file);
+                });
 
 
                 // ====================================
@@ -729,13 +770,11 @@ if (uploadButton) {
                 // ====================================
 
                 uploadStatus.textContent =
-                    "アップロード完了！解析中です。";
+                    "画像を送信しました。解析状況は画面上部に表示します。";
 
-
-                alert(
-                    "画像をアップロードしました。\n"
-                    + "Geminiによる予定解析を開始します。"
-                );
+                if (jobId && window.BasketImageJobs) {
+                    window.BasketImageJobs.uploaded(jobId);
+                }
 
 
                 imageInput.value =
@@ -743,6 +782,10 @@ if (uploadButton) {
 
 
             } catch (error) {
+
+                if (jobId && window.BasketImageJobs) {
+                    window.BasketImageJobs.failed(jobId, error.message);
+                }
 
                 console.error(
                     "画像アップロードエラー:",

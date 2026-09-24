@@ -1126,7 +1126,7 @@ function updateAuthUI() {
         }
 
         if (loginRequiredMessage) {
-            loginRequiredMessage.style.display = "block";
+            loginRequiredMessage.hidden = false;
         }
 
         if (loginButton) {
@@ -1165,7 +1165,7 @@ function updateAuthUI() {
     }
 
     if (loginRequiredMessage) {
-        loginRequiredMessage.style.display = "none";
+        loginRequiredMessage.hidden = true;
     }
 
 
