@@ -27,8 +27,8 @@ public final class CognitoAuth {
     private static final String CLIENT_ID = "3mr9ep2rosop9ratlg1l3bta70";
     private static final String ISSUER_PREFIX =
             "https://cognito-idp.ap-northeast-1.amazonaws.com/";
-    private static final URI DISCOVERY_URI = URI.create(
-            "https://ap-northeast-1cd5fxlwj3.auth.ap-northeast-1.amazoncognito.com/.well-known/openid-configuration");
+    private static final String TRUSTED_ISSUER =
+            "https://cognito-idp.ap-northeast-1.amazonaws.com/ap-northeast-1_Cd5fxLwj3";
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final HttpClient HTTP = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(3))
@@ -36,8 +36,6 @@ public final class CognitoAuth {
             .build();
     private static final Map<String, CachedKeys> KEY_CACHE = new HashMap<>();
     private static final Duration KEY_CACHE_TTL = Duration.ofHours(6);
-    private static volatile String expectedIssuer;
-
     private CognitoAuth() {
     }
 
@@ -147,33 +145,8 @@ public final class CognitoAuth {
                 && !poolId.contains("/");
     }
 
-    private static String trustedIssuer() throws Exception {
-        if (expectedIssuer != null) {
-            return expectedIssuer;
-        }
-        synchronized (CognitoAuth.class) {
-            if (expectedIssuer == null) {
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(DISCOVERY_URI)
-                        .timeout(Duration.ofSeconds(4))
-                        .GET()
-                        .build();
-                HttpResponse<String> response = HTTP.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-                if (response.statusCode() != 200) {
-                    throw unauthorized();
-                }
-                String discoveredIssuer = MAPPER.readTree(response.body())
-                        .path("issuer")
-                        .asText();
-                if (!isAllowedIssuer(discoveredIssuer)) {
-                    throw unauthorized();
-                }
-                expectedIssuer = discoveredIssuer;
-            }
-        }
-        return expectedIssuer;
+    private static String trustedIssuer() {
+        return TRUSTED_ISSUER;
     }
 
     private static RSAPublicKey signingKey(String issuer, String kid) throws Exception {
