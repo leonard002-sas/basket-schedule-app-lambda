@@ -44,7 +44,7 @@ public final class CognitoAuth {
     public static User requireUser(Map<String, Object> request) {
         String token = bearerToken(request);
         if (token == null) {
-            throw new AuthException(401, "ログインしてください");
+            throw new AuthException(401, "ログインしてください", "MISSING_BEARER_TOKEN");
         }
         return verify(token);
     }
@@ -80,28 +80,40 @@ public final class CognitoAuth {
         try {
             String[] parts = token.split("\\.", -1);
             if (parts.length != 3) {
-                throw unauthorized();
+                throw unauthorized("MALFORMED_TOKEN");
             }
 
             JsonNode header = MAPPER.readTree(decode(parts[0]));
             JsonNode claims = MAPPER.readTree(decode(parts[1]));
             if (!"RS256".equals(header.path("alg").asText())
                     || header.path("kid").asText().isBlank()) {
-                throw unauthorized();
+                throw unauthorized("INVALID_TOKEN_HEADER");
             }
 
             String issuer = claims.path("iss").asText();
-            String trustedIssuer = trustedIssuer();
+            String trustedIssuer;
+            try {
+                trustedIssuer = trustedIssuer();
+            } catch (Exception e) {
+                throw unauthorized("OIDC_DISCOVERY_FAILED");
+            }
             if (!issuer.equals(trustedIssuer) || !isAllowedIssuer(issuer)) {
-                throw unauthorized();
+                throw unauthorized("ISSUER_MISMATCH");
             }
 
-            RSAPublicKey key = signingKey(issuer, header.path("kid").asText());
+            RSAPublicKey key;
+            try {
+                key = signingKey(issuer, header.path("kid").asText());
+            } catch (AuthException e) {
+                throw e;
+            } catch (Exception e) {
+                throw unauthorized("JWKS_UNAVAILABLE");
+            }
             Signature verifier = Signature.getInstance("SHA256withRSA");
             verifier.initVerify(key);
             verifier.update((parts[0] + "." + parts[1]).getBytes(StandardCharsets.US_ASCII));
             if (!verifier.verify(Base64.getUrlDecoder().decode(parts[2]))) {
-                throw unauthorized();
+                throw unauthorized("SIGNATURE_INVALID");
             }
 
             long now = Instant.now().getEpochSecond();
@@ -110,7 +122,7 @@ public final class CognitoAuth {
                     || !"id".equals(claims.path("token_use").asText())
                     || claims.path("exp").asLong(0) <= now
                     || claims.path("iat").asLong(Long.MAX_VALUE) > now + 60) {
-                throw unauthorized();
+                throw unauthorized("CLAIMS_INVALID");
             }
 
             Set<String> groups = new HashSet<>();
@@ -122,7 +134,7 @@ public final class CognitoAuth {
         } catch (AuthException e) {
             throw e;
         } catch (Exception e) {
-            throw unauthorized();
+            throw unauthorized("TOKEN_VALIDATION_ERROR");
         }
     }
 
@@ -172,7 +184,7 @@ public final class CognitoAuth {
             key = keys.get(kid);
         }
         if (key == null) {
-            throw unauthorized();
+            throw unauthorized("JWKS_KEY_NOT_FOUND");
         }
         return key;
     }
@@ -224,7 +236,11 @@ public final class CognitoAuth {
     }
 
     private static AuthException unauthorized() {
-        return new AuthException(401, "認証情報が無効または期限切れです");
+        return unauthorized("INVALID_TOKEN");
+    }
+
+    private static AuthException unauthorized(String code) {
+        return new AuthException(401, "認証情報が無効または期限切れです", code);
     }
 
     public record User(String subject, Set<String> groups) {
@@ -236,14 +252,24 @@ public final class CognitoAuth {
     public static final class AuthException extends RuntimeException {
         private static final long serialVersionUID = 1L;
         private final int statusCode;
+        private final String code;
 
         public AuthException(int statusCode, String message) {
+            this(statusCode, message, "AUTHORIZATION_FAILED");
+        }
+
+        public AuthException(int statusCode, String message, String code) {
             super(message);
             this.statusCode = statusCode;
+            this.code = code;
         }
 
         public int statusCode() {
             return statusCode;
+        }
+
+        public String code() {
+            return code;
         }
     }
 }
