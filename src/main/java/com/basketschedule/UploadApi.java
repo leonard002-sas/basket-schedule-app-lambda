@@ -12,16 +12,18 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 
-public class UploadApi implements RequestHandler<Map<String, Object>, String> {
+public class UploadApi implements RequestHandler<Map<String, Object>, Map<String, Object>> {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Override
-    public String handleRequest(
+    public Map<String, Object> handleRequest(
             Map<String, Object> input,
             Context context) {
 
         try {
+
+            CognitoAuth.requireAdmin(input);
 
             // S3バケット
             String bucketName =
@@ -51,14 +53,28 @@ public class UploadApi implements RequestHandler<Map<String, Object>, String> {
                                         .putObjectRequest(
                                                 putObjectRequest));
 
-                return mapper.writeValueAsString(
-                        Map.of(
-                                "uploadUrl",
-                                presignedRequest.url().toString(),
+                return response(
+                        200,
+                        mapper.writeValueAsString(
+                                Map.of(
+                                        "uploadUrl",
+                                        presignedRequest.url().toString(),
+                                        "fileName",
+                                        fileName
+                                )
+                        )
+                );
+            }
 
-                                "fileName",
-                                fileName
-                        ));
+        } catch (CognitoAuth.AuthException e) {
+
+            try {
+                return response(
+                        e.statusCode(),
+                        mapper.writeValueAsString(Map.of("message", e.getMessage()))
+                );
+            } catch (Exception serializationError) {
+                throw new RuntimeException(serializationError);
             }
 
         } catch (Exception e) {
@@ -66,7 +82,24 @@ public class UploadApi implements RequestHandler<Map<String, Object>, String> {
             context.getLogger().log(
                     "ERROR: " + e.getMessage());
 
-            throw new RuntimeException(e);
+            try {
+                return response(
+                        500,
+                        mapper.writeValueAsString(
+                                Map.of("message", "アップロードURLを発行できませんでした")
+                        )
+                );
+            } catch (Exception serializationError) {
+                throw new RuntimeException(serializationError);
+            }
         }
+    }
+
+    private Map<String, Object> response(int statusCode, String body) {
+        return Map.of(
+                "statusCode", statusCode,
+                "headers", Map.of("Content-Type", "application/json; charset=UTF-8"),
+                "body", body
+        );
     }
 }

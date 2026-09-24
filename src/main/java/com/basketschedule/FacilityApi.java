@@ -16,7 +16,7 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
 
 public class FacilityApi
-        implements RequestHandler<Map<String, Object>, String> {
+        implements RequestHandler<Map<String, Object>, Map<String, Object>> {
 
     private final DynamoDbClient dynamoDbClient =
             DynamoDbClient.builder()
@@ -27,11 +27,13 @@ public class FacilityApi
             new ObjectMapper();
 
     @Override
-    public String handleRequest(
+    public Map<String, Object> handleRequest(
             Map<String, Object> input,
             Context context) {
 
         try {
+
+            CognitoAuth.requireUser(input);
 
             // ========================================
             // BasketFacilityから施設を取得
@@ -163,9 +165,23 @@ public class FacilityApi
             // JSONへ変換
             // ========================================
 
-            return mapper.writeValueAsString(
-                    facilities
+            return response(
+                    200,
+                    mapper.writeValueAsString(facilities)
             );
+
+        } catch (CognitoAuth.AuthException e) {
+
+            try {
+                return response(
+                        e.statusCode(),
+                        mapper.writeValueAsString(
+                                Map.of("message", e.getMessage())
+                        )
+                );
+            } catch (Exception serializationError) {
+                throw new RuntimeException(serializationError);
+            }
 
         } catch (Exception e) {
 
@@ -173,7 +189,24 @@ public class FacilityApi
                     "ERROR: " + e.getMessage()
             );
 
-            throw new RuntimeException(e);
+            try {
+                return response(
+                        500,
+                        mapper.writeValueAsString(
+                                Map.of("message", "施設情報を取得できませんでした")
+                        )
+                );
+            } catch (Exception serializationError) {
+                throw new RuntimeException(serializationError);
+            }
         }
+    }
+
+    private Map<String, Object> response(int statusCode, String body) {
+        return Map.of(
+                "statusCode", statusCode,
+                "headers", Map.of("Content-Type", "application/json; charset=UTF-8"),
+                "body", body
+        );
     }
 }

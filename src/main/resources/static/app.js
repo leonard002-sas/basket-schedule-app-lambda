@@ -135,7 +135,7 @@ async function loadSchedule() {
     try {
 
         const response =
-            await fetch(API_URL, {
+            await authenticatedFetch(API_URL, {
                 method: "GET"
             });
 
@@ -769,7 +769,7 @@ if (uploadButton) {
                 // ========================================
 
                 const response =
-                    await fetch(
+                    await authenticatedFetch(
                         UPLOAD_API_URL,
                         {
                             method: "POST",
@@ -901,6 +901,55 @@ const clientId =
 const redirectUri =
     "https://d13o4oynf3jxlu.cloudfront.net";
 
+function getValidIdTokenClaims() {
+
+    const token = localStorage.getItem("id_token");
+    if (!token) {
+        return null;
+    }
+
+    try {
+        const encodedPayload = token.split(".")[1];
+        if (!encodedPayload) {
+            throw new Error("IDトークンの形式が不正です");
+        }
+
+        const base64 = encodedPayload
+            .replace(/-/g, "+")
+            .replace(/_/g, "/");
+        const payload = JSON.parse(
+            atob(base64 + "=".repeat((4 - base64.length % 4) % 4))
+        );
+
+        if (!payload.exp || payload.exp * 1000 <= Date.now()) {
+            throw new Error("IDトークンの有効期限が切れています");
+        }
+        return payload;
+    } catch (error) {
+        localStorage.removeItem("id_token");
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        return null;
+    }
+}
+
+async function authenticatedFetch(url, options = {}) {
+
+    const token = localStorage.getItem("id_token");
+    if (!getValidIdTokenClaims() || !token) {
+        updateAuthUI();
+        throw new Error("ログインしてください。");
+    }
+
+    return fetch(url, {
+        ...options,
+        headers: {
+            ...(options.headers || {}),
+            Authorization: `Bearer ${token}`
+        }
+    });
+}
+
 // ========================================
 // Cognito認証コード → トークン
 // ========================================
@@ -957,11 +1006,6 @@ async function handleCognitoCallback() {
         const tokens =
             await response.json();
 
-        console.log(
-            "Cognitoトークン取得結果:",
-            tokens
-        );
-
         if (!response.ok) {
 
             throw new Error(
@@ -972,12 +1016,6 @@ async function handleCognitoCallback() {
         }
 
         // トークンを保存
-        console.log("=== トークン保存開始 ===");
-
-        console.log("id_token:", tokens.id_token);
-        console.log("access_token:", tokens.access_token);
-        console.log("refresh_token:", tokens.refresh_token);
-
         localStorage.setItem("id_token", tokens.id_token);
         localStorage.setItem("access_token", tokens.access_token);
 
@@ -989,29 +1027,7 @@ async function handleCognitoCallback() {
         }
 
         console.log(
-            "保存後 id_token:",
-            localStorage.getItem("id_token")
-        );
-
-        console.log(
-            "保存後 access_token:",
-            localStorage.getItem("access_token")
-        );
-
-        console.log(
-            "保存後 refresh_token:",
-            localStorage.getItem("refresh_token")
-        );
-
-        console.log("=== トークン保存終了 ===");
-
-        console.log(
             "Cognitoログイン成功"
-        );
-
-        console.log(
-            "ログイン直後のid_token:",
-            !!localStorage.getItem("id_token")
         );
 
         updateAuthUI();
@@ -1073,8 +1089,16 @@ if (loginButton) {
 
 function updateAuthUI() {
 
-    const idToken =
-        localStorage.getItem("id_token");
+    const claims = getValidIdTokenClaims();
+    const idToken = claims
+        ? localStorage.getItem("id_token")
+        : null;
+
+    const calendarContent =
+        document.getElementById("calendarContent");
+
+    const loginRequiredMessage =
+        document.getElementById("loginRequiredMessage");
 
     const loginButton =
         document.getElementById("loginButton");
@@ -1096,6 +1120,14 @@ function updateAuthUI() {
     // =========================
 
     if (!idToken) {
+
+        if (calendarContent) {
+            calendarContent.hidden = true;
+        }
+
+        if (loginRequiredMessage) {
+            loginRequiredMessage.style.display = "block";
+        }
 
         if (loginButton) {
 
@@ -1126,6 +1158,14 @@ function updateAuthUI() {
         }
 
         return;
+    }
+
+    if (calendarContent) {
+        calendarContent.hidden = false;
+    }
+
+    if (loginRequiredMessage) {
+        loginRequiredMessage.style.display = "none";
     }
 
 
@@ -1161,31 +1201,8 @@ function updateAuthUI() {
 
     try {
 
-        const payload =
-            JSON.parse(
-                atob(
-                    idToken
-                        .split(".")[1]
-                        .replace(/-/g, "+")
-                        .replace(/_/g, "/")
-                )
-            );
-
-        console.log(
-            "Cognitoユーザー情報:",
-            payload
-        );
-
-        const groups =
-            payload["cognito:groups"] || [];
-
-        console.log(
-            "Cognitoグループ:",
-            groups
-        );
-
-        const isAdmin =
-            groups.includes("admins");
+        const groups = claims["cognito:groups"] || [];
+        const isAdmin = Array.isArray(groups) && groups.includes("admins");
 
 
         // =========================
@@ -1289,9 +1306,9 @@ handleCognitoCallback()
 
         updateAuthUI();
 
-        console.log(
-            "=== updateAuthUI完了 ==="
-        );
+        if (!getValidIdTokenClaims()) {
+            return;
+        }
 
         await loadFacilities();
 
@@ -1386,7 +1403,7 @@ async function showScheduleDetail(
 
 
         const response =
-            await fetch(
+            await authenticatedFetch(
                 `${API_URL}?${params.toString()}`,
                 {
                     method: "GET"
@@ -1671,7 +1688,7 @@ if (deleteScheduleButton) {
                     true;
 
                 const response =
-                    await fetch(
+                    await authenticatedFetch(
                         API_URL,
                         {
                             method: "DELETE",
@@ -1899,7 +1916,7 @@ async function loadFacilities() {
     try {
 
         const response =
-            await fetch(
+            await authenticatedFetch(
                 FACILITY_API_URL
             );
 
@@ -2202,7 +2219,7 @@ if (saveScheduleButton) {
                 // ========================================
 
                 const response =
-                    await fetch(
+                    await authenticatedFetch(
                         API_URL,
                         {
                             method:
