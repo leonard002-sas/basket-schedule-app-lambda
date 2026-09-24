@@ -419,6 +419,9 @@ async function displayCalendar() {
             event.className =
                 "event-dot";
 
+            const eventType = schedule.eventType === "GAME" ? "GAME" : "PRACTICE";
+            event.classList.add(eventType === "GAME" ? "event-game" : "event-practice");
+
             const start =
                 new Date(
                     schedule.startDateTime
@@ -430,7 +433,7 @@ async function displayCalendar() {
                 );
 
             event.textContent =
-                `${formatTime(start)}～${formatTime(end)}`;
+                `${eventType === "GAME" ? "試合" : "練習"} · ${formatTime(start)}～${formatTime(end)}`;
 
 
             // ========================================
@@ -658,8 +661,12 @@ function displaySchedule() {
         eventElement.className =
             "upcoming-schedule";
 
+        const eventType = schedule.eventType === "GAME" ? "GAME" : "PRACTICE";
+        eventElement.classList.add(eventType === "GAME" ? "event-game" : "event-practice");
+
 
         eventElement.innerHTML = `
+            <div class="upcoming-kind">${eventType === "GAME" ? "試合" : "練習"}</div>
             <div class="upcoming-date">
                 ${formatDate(start)}
             </div>
@@ -1069,11 +1076,12 @@ if (loginButton) {
         () => {
 
             const loginUrl =
-                `${cognitoDomain}/login` +
+                `${cognitoDomain}/oauth2/authorize` +
                 `?client_id=${clientId}` +
                 `&response_type=code` +
                 `&scope=openid+email+phone` +
-                `&redirect_uri=${encodeURIComponent(redirectUri)}`;
+                `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+                `&lang=ja`;
 
             window.location.href =
                 loginUrl;
@@ -1453,6 +1461,9 @@ async function showScheduleDetail(
             `${start.getFullYear()}年`
             + `${start.getMonth() + 1}月`
             + `${start.getDate()}日`;
+
+        document.getElementById("detailEventType").textContent =
+            detail.eventType === "GAME" ? "試合" : "練習";
 
 
         document.getElementById(
@@ -2027,6 +2038,9 @@ function enterEditMode() {
     const endDateTime =
         currentScheduleDetail.endDateTime;
 
+    document.getElementById("editEventType").value =
+        currentScheduleDetail.eventType === "GAME" ? "GAME" : "PRACTICE";
+
 
     if (editDate) {
 
@@ -2251,7 +2265,10 @@ if (saveScheduleButton) {
                                         endTime,
 
                                     facilityId:
-                                        facilityId
+                                        facilityId,
+
+                                    eventType:
+                                        document.getElementById("editEventType").value
 
                                 })
                         }

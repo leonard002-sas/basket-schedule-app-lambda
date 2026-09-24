@@ -201,6 +201,11 @@ public class ScheduleApi
                             "timeZone")
             );
 
+            schedule.put(
+                    "eventType",
+                    eventTypeOrDefault(item)
+            );
+
             result.add(schedule);
         }
 
@@ -293,6 +298,10 @@ public class ScheduleApi
         schedule.put(
                 "facilityId",
                 facilityId);
+
+        schedule.put(
+                "eventType",
+                eventTypeOrDefault(item));
 
         // ========================================
         // 曜日
@@ -478,6 +487,13 @@ public class ScheduleApi
             );
         }
 
+        String eventType = body.hasNonNull("eventType")
+                ? body.get("eventType").asText()
+                : eventTypeOrDefault(oldItem.item());
+        if (!"PRACTICE".equals(eventType) && !"GAME".equals(eventType)) {
+            throw new IllegalArgumentException("予定種別が不正です");
+        }
+
         // ========================================
         // 旧データ削除
         // ========================================
@@ -532,6 +548,13 @@ public class ScheduleApi
                                 determineTimeZone(
                                         startTime,
                                         endTime))
+                        .build()
+        );
+
+        newItem.put(
+                "eventType",
+                AttributeValue.builder()
+                        .s(eventType)
                         .build()
         );
 
@@ -847,6 +870,11 @@ public class ScheduleApi
         }
 
         return value.s();
+    }
+
+    private String eventTypeOrDefault(Map<String, AttributeValue> item) {
+        String eventType = getString(item, "eventType");
+        return "GAME".equals(eventType) ? "GAME" : "PRACTICE";
     }
 
 

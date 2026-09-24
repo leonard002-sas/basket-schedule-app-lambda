@@ -22,7 +22,8 @@ public class DynamoDbService {
     public void saveEvent(
             CalendarEvent event,
             String timeZone,
-            String facilityId) {
+            String facilityId,
+            String eventType) {
 
         Map<String, AttributeValue> item = new HashMap<>();
 
@@ -62,6 +63,13 @@ public class DynamoDbService {
                 "facilityId",
                 AttributeValue.builder()
                         .s(facilityId)
+                        .build()
+        );
+
+        item.put(
+                "eventType",
+                AttributeValue.builder()
+                        .s(eventType)
                         .build()
         );
 

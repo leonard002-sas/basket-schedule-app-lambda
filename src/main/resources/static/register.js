@@ -217,6 +217,11 @@ if (addScheduleButton) {
 
 
             row.innerHTML = `
+                <select class="event-type-select" aria-label="予定種別">
+                    <option value="PRACTICE">練習</option>
+                    <option value="GAME">試合</option>
+                </select>
+
                 <input
                     type="date"
                     class="date-input"
@@ -368,6 +373,9 @@ if (registerButton) {
                         const facilityId =
                             facilitySelect.value;
 
+                        const eventType =
+                            row.querySelector(".event-type-select").value;
+
                         const facilityName =
                             facilitySelect
                                 .selectedOptions[0]
@@ -390,7 +398,10 @@ if (registerButton) {
                                 facilityId,
 
                             facilityName:
-                                facilityName
+                                facilityName,
+
+                            eventType:
+                                eventType
 
                         });
 

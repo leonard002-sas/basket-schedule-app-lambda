@@ -193,9 +193,17 @@ input:focus, select:focus, textarea:focus {
 .section-heading p { margin: 0; color: var(--muted); font-size: 12px; }
 .section-icon { display: grid; flex: 0 0 42px; width: 42px; height: 42px; place-items: center; border-radius: 13px; color: #3552ba; background: #eef1ff; }
 .section-icon svg { width: 21px; height: 21px; }
-.schedule-row { display: grid !important; grid-template-columns: minmax(135px, 1.05fr) minmax(90px, .7fr) auto minmax(90px, .7fr) minmax(170px, 1.25fr) auto; gap: 8px !important; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: #fafbfd; }
+.schedule-row { display: grid !important; grid-template-columns: minmax(90px, .72fr) minmax(125px, 1fr) minmax(86px, .68fr) auto minmax(86px, .68fr) minmax(150px, 1.2fr) auto; gap: 8px !important; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: #fafbfd; }
 .schedule-row input, .schedule-row select { width: 100% !important; min-width: 0; }
 .schedule-row > span { color: var(--muted); }
+.event-dot.event-practice { color: #263c5b; background: #eff8dc !important; }
+.event-dot.event-game { color: #8b4525; background: #fff0e8 !important; border-left: 3px solid #ff8a4c; }
+.event-dot.event-practice:hover { background: #e4f3c5 !important; }
+.event-dot.event-game:hover { background: #ffe3d3 !important; }
+.upcoming-schedule.event-practice { border-left: 4px solid #c9f36b; padding-left: 14px; }
+.upcoming-schedule.event-game { border-left: 4px solid #ff8a4c; padding-left: 14px; }
+.upcoming-kind { display: inline-flex; margin-bottom: 6px; padding: 3px 9px; border-radius: 99px; color: #263c5b; background: #eff8dc; font-size: 11px; font-weight: 800; }
+.upcoming-schedule.event-game .upcoming-kind { color: #8b4525; background: #fff0e8; }
 .delete-button { min-height: 38px; padding: 7px 10px !important; color: #9c3e35; background: #fff; border-color: #f0d6d3; box-shadow: none; font-size: 12px; }
 #addScheduleButton { margin: 4px 0 17px; color: #41537a; background: #f1f4fa; border-color: #e3e9f1; box-shadow: none; }
 .registration-grid #registerButton { min-width: 150px; }

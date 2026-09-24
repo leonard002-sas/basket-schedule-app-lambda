@@ -302,7 +302,8 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 					dynamoDbService.saveEvent(
 							event2,
 							entry.getTimeZone(),
-							OCHIGO_ID);
+							OCHIGO_ID,
+							"PRACTICE");
 					completedEntries++;
 					updateJobStatus(s3Client, bucketName, objectKey, "PROCESSING", "SAVING", completedEntries, totalEntries, context);
 				

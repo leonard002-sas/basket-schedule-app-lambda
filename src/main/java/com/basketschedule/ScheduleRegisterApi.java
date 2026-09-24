@@ -97,6 +97,13 @@ public class ScheduleRegisterApi
                                 "facilityId"
                         );
 
+                String eventType = schedule.hasNonNull("eventType")
+                        ? schedule.get("eventType").asText()
+                        : "PRACTICE";
+                if (!"PRACTICE".equals(eventType) && !"GAME".equals(eventType)) {
+                    throw new IllegalArgumentException("予定種別が不正です");
+                }
+
                 // ------------------------------------
                 // 日付・時刻チェック
                 // ------------------------------------
@@ -194,6 +201,13 @@ public class ScheduleRegisterApi
                         "facilityId",
                         AttributeValue.builder()
                                 .s(facilityId)
+                                .build()
+                );
+
+                item.put(
+                        "eventType",
+                        AttributeValue.builder()
+                                .s(eventType)
                                 .build()
                 );
 
