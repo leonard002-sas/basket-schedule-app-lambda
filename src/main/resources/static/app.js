@@ -49,8 +49,9 @@ let currentScheduleDetail = null;
 // 現在表示している月
 // ========================================
 
-let currentYear = 2026;
-let currentMonth = 8;
+const initialToday = new Date();
+let currentYear = initialToday.getFullYear();
+let currentMonth = initialToday.getMonth() + 1;
 
 
 // ========================================
@@ -2459,3 +2460,4 @@ function exitEditMode() {
     }
 
 }
+

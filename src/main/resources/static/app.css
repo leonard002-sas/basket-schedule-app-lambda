@@ -193,6 +193,12 @@ input:focus, select:focus, textarea:focus {
 .section-heading p { margin: 0; color: var(--muted); font-size: 12px; }
 .section-icon { display: grid; flex: 0 0 42px; width: 42px; height: 42px; place-items: center; border-radius: 13px; color: #3552ba; background: #eef1ff; }
 .section-icon svg { width: 21px; height: 21px; }
+.facility-register-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+.facility-register-form label { display: grid; gap: 6px; color: #526177; font-size: 12px; font-weight: 700; }
+.facility-register-form label:nth-child(3) { grid-column: 1 / -1; }
+.facility-register-form input { width: 100%; }
+.facility-register-form button { justify-self: start; min-width: 140px; color: var(--navy); background: var(--lime); }
+#facilityStatus { min-height: 22px; margin-top: 10px; color: #4b607c; font-size: 13px; }
 .schedule-row { display: grid !important; grid-template-columns: minmax(90px, .72fr) minmax(125px, 1fr) minmax(86px, .68fr) auto minmax(86px, .68fr) minmax(150px, 1.2fr) auto; gap: 8px !important; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: #fafbfd; }
 .schedule-row input, .schedule-row select { width: 100% !important; min-width: 0; }
 .schedule-row > span { color: var(--muted); }
@@ -298,6 +304,8 @@ input:focus, select:focus, textarea:focus {
     .calendar-day { min-height: 66px; }
     .section { padding: 18px !important; border-radius: 16px !important; }
     .registration-grid { gap: 14px; }
+    .facility-register-form { grid-template-columns: 1fr; }
+    .facility-register-form label:nth-child(3) { grid-column: auto; }
     .schedule-row { grid-template-columns: 1fr 1fr; gap: 8px !important; }
     .schedule-row input[type="date"], .schedule-row select { grid-column: 1 / -1; }
     .schedule-row > span { display: none; }
@@ -310,3 +318,4 @@ input:focus, select:focus, textarea:focus {
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+

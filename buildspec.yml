@@ -27,7 +27,7 @@ phases:
 
       - aws lambda update-function-url-config --region ap-northeast-1 --function-name basket-schedule-get --cors '{"AllowOrigins":["https://d13o4oynf3jxlu.cloudfront.net"],"AllowMethods":["GET","PUT","DELETE"],"AllowHeaders":["authorization","content-type"],"MaxAge":86400}'
 
-      - aws lambda update-function-url-config --region ap-northeast-1 --function-name FacilityApi --cors '{"AllowOrigins":["https://d13o4oynf3jxlu.cloudfront.net"],"AllowMethods":["GET"],"AllowHeaders":["authorization"],"MaxAge":86400}'
+      - aws lambda update-function-url-config --region ap-northeast-1 --function-name FacilityApi --cors '{"AllowOrigins":["https://d13o4oynf3jxlu.cloudfront.net"],"AllowMethods":["GET","POST"],"AllowHeaders":["authorization","content-type"],"MaxAge":86400}'
 
       - aws lambda update-function-url-config --region ap-northeast-1 --function-name basket-schedule-upload --cors '{"AllowOrigins":["https://d13o4oynf3jxlu.cloudfront.net"],"AllowMethods":["GET","POST"],"AllowHeaders":["authorization","content-type"],"MaxAge":86400}'
 
@@ -66,3 +66,4 @@ phases:
       - aws cloudfront create-invalidation --distribution-id EMBH1RVLQTXDG --paths "/*"
 
       - echo "=== CloudFront invalidation complete ==="
+

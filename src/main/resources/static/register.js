@@ -75,6 +75,42 @@ async function adminFetch(url, options = {}) {
 
 let facilities = [];
 
+const facilityRegisterForm = document.getElementById("facilityRegisterForm");
+const facilityRegisterButton = document.getElementById("facilityRegisterButton");
+const facilityStatus = document.getElementById("facilityStatus");
+
+if (facilityRegisterForm) {
+    facilityRegisterForm.addEventListener("submit", async event => {
+        event.preventDefault();
+        const form = new FormData(facilityRegisterForm);
+        const payload = {
+            facilityName: String(form.get("facilityName") || "").trim(),
+            address: String(form.get("address") || "").trim(),
+            url: String(form.get("url") || "").trim()
+        };
+        facilityRegisterButton.disabled = true;
+        facilityStatus.textContent = "施設を登録しています...";
+        try {
+            const response = await adminFetch(FACILITY_API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || "施設を登録できませんでした");
+            }
+            facilityRegisterForm.reset();
+            await loadFacilities();
+            facilityStatus.textContent = `${result.facilityName}を登録しました。`;
+        } catch (error) {
+            facilityStatus.textContent = `登録エラー: ${error.message}`;
+        } finally {
+            facilityRegisterButton.disabled = false;
+        }
+    });
+}
+
 
 // ========================================
 // 施設マスタ取得
@@ -837,3 +873,4 @@ if (getAdminIdToken()) {
 } else {
     window.location.replace("index.html");
 }
+

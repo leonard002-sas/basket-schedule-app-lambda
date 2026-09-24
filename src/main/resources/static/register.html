@@ -34,6 +34,22 @@
         </section>
 
         <main class="registration-grid">
+            <section class="section" aria-labelledby="facilityHeading">
+                <div class="section-heading">
+                    <span class="section-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none"><path d="M4 20V6.5L12 3l8 3.5V20M8 20v-5h8v5M8 9h.01M12 9h.01M16 9h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                    <div><h2 id="facilityHeading">施設を登録</h2><p>施設を追加すると、予定登録の候補にすぐ反映されます。</p></div>
+                </div>
+                <form id="facilityRegisterForm" class="facility-register-form">
+                    <label>施設名<input id="facilityNameInput" name="facilityName" type="text" maxlength="120" placeholder="例：落合第五小学校" required></label>
+                    <label>住所<input id="facilityAddressInput" name="address" type="text" maxlength="300" placeholder="例：東京都新宿区上落合３丁目１−６" required></label>
+                    <label>施設URL（任意）<input id="facilityUrlInput" name="url" type="url" maxlength="1000" placeholder="https://example.jp/施設案内"></label>
+                    <button id="facilityRegisterButton" type="submit">施設を登録</button>
+                </form>
+                <div id="facilityStatus" role="status" aria-live="polite"></div>
+            </section>
+
             <section class="section" aria-labelledby="manualHeading">
                 <div class="section-heading">
                     <span class="section-icon" aria-hidden="true">
@@ -92,3 +108,4 @@
 </body>
 
 </html>
+
