@@ -239,7 +239,7 @@ public class ScheduleRegisterApi
                 return response(
                         e.statusCode(),
                         mapper.writeValueAsString(
-                                Map.of("message", e.getMessage())
+                                Map.of("message", e.getMessage(), "code", e.code())
                         )
                 );
             } catch (Exception serializationError) {

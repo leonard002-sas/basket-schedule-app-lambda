@@ -71,7 +71,9 @@ public class UploadApi implements RequestHandler<Map<String, Object>, Map<String
             try {
                 return response(
                         e.statusCode(),
-                        mapper.writeValueAsString(Map.of("message", e.getMessage()))
+                        mapper.writeValueAsString(
+                                Map.of("message", e.getMessage(), "code", e.code())
+                        )
                 );
             } catch (Exception serializationError) {
                 throw new RuntimeException(serializationError);

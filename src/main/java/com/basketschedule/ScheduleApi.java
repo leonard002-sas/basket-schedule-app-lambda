@@ -121,7 +121,7 @@ public class ScheduleApi
 
             return response(
                     e.statusCode(),
-                    Map.of("message", e.getMessage())
+                    Map.of("message", e.getMessage(), "code", e.code())
             );
 
         } catch (Exception e) {
