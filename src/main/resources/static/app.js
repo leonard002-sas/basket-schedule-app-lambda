@@ -434,7 +434,7 @@ async function displayCalendar() {
                 );
 
             event.textContent =
-                `${eventType === "GAME" ? "試合" : "練習"} · ${formatTime(start)}～${formatTime(end)}`;
+                `${formatTime(start)}～${formatTime(end)}`;
 
 
             // ========================================

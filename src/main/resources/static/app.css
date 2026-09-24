@@ -176,6 +176,11 @@ input:focus, select:focus, textarea:focus {
 .calendar-area { padding: 23px !important; }
 .calendar-header { gap: 14px; margin-bottom: 18px !important; }
 .calendar-header h2 { font-size: 20px; letter-spacing: -.03em; }
+.event-legend { display: flex; flex-wrap: wrap; gap: 15px; margin: -5px 0 12px; color: var(--muted); font-size: 12px; }
+.event-legend-item { display: inline-flex; align-items: center; gap: 7px; }
+.event-legend-swatch { width: 16px; height: 13px; border-radius: 4px; }
+.event-legend-swatch.event-practice { border: 1px solid #c9f36b; background: #eff8dc; }
+.event-legend-swatch.event-game { border-left: 3px solid #ff8a4c; background: #fff0e8; }
 .month-button { min-width: 43px; color: #44536a; background: #f5f7fa; border-color: var(--line); box-shadow: none; }
 .month-button:hover:not(:disabled) { color: var(--ink); background: #eaf0f6; }
 .calendar { overflow: hidden; border-color: #e4eaf0 !important; border-radius: 13px 13px 0 0; }
