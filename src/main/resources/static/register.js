@@ -21,6 +21,53 @@ const SCHEDULE_REGISTER_API_URL =
 const UPLOAD_API_URL =
     "https://gg5d4xxwdpfjdesh2n5vyxqm5q0mnwii.lambda-url.ap-northeast-1.on.aws/";
 
+function getAdminIdToken() {
+
+    const token = localStorage.getItem("id_token");
+    if (!token) {
+        return null;
+    }
+
+    try {
+        const encodedPayload = token.split(".")[1];
+        const base64 = encodedPayload
+            .replace(/-/g, "+")
+            .replace(/_/g, "/");
+        const payload = JSON.parse(
+            atob(base64 + "=".repeat((4 - base64.length % 4) % 4))
+        );
+
+        if (!payload.exp || payload.exp * 1000 <= Date.now()
+                || !Array.isArray(payload["cognito:groups"])
+                || !payload["cognito:groups"].includes("admins")) {
+            throw new Error("管理者ログインが必要です");
+        }
+        return token;
+    } catch (error) {
+        localStorage.removeItem("id_token");
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        return null;
+    }
+}
+
+async function adminFetch(url, options = {}) {
+
+    const token = getAdminIdToken();
+    if (!token) {
+        window.location.replace("index.html");
+        throw new Error("管理者ログインが必要です。");
+    }
+
+    return fetch(url, {
+        ...options,
+        headers: {
+            ...(options.headers || {}),
+            Authorization: `Bearer ${token}`
+        }
+    });
+}
+
 
 // ========================================
 // 施設マスタ
@@ -38,7 +85,7 @@ async function loadFacilities() {
     try {
 
         const response =
-            await fetch(
+            await adminFetch(
                 FACILITY_API_URL
             );
 
@@ -433,7 +480,7 @@ if (registerButton) {
                 // ====================================
 
                 const response =
-                    await fetch(
+                    await adminFetch(
                         SCHEDULE_REGISTER_API_URL,
                         {
                             method:
@@ -601,7 +648,7 @@ if (uploadButton) {
                 // ====================================
 
                 const response =
-                    await fetch(
+                    await adminFetch(
                         UPLOAD_API_URL,
                         {
                             method:
@@ -730,4 +777,9 @@ if (uploadButton) {
 // 初期処理
 // ========================================
 
-loadFacilities();
+if (getAdminIdToken()) {
+    document.body.style.display = "";
+    loadFacilities();
+} else {
+    window.location.replace("index.html");
+}

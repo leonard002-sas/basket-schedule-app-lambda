@@ -45,8 +45,19 @@ public class ScheduleApi
 
         try {
 
+            CognitoAuth.User user = CognitoAuth.requireUser(input);
+
             String method =
                     getHttpMethod(input);
+
+            if (("PUT".equalsIgnoreCase(method)
+                    || "DELETE".equalsIgnoreCase(method))
+                    && !user.groups().contains("admins")) {
+                return response(
+                        403,
+                        Map.of("message", "管理者権限が必要です")
+                );
+            }
 
             context.getLogger().log(
                     "HTTP Method: " + method);
@@ -104,6 +115,13 @@ public class ScheduleApi
                             "message",
                             "Method Not Allowed"
                     )
+            );
+
+        } catch (CognitoAuth.AuthException e) {
+
+            return response(
+                    e.statusCode(),
+                    Map.of("message", e.getMessage())
             );
 
         } catch (Exception e) {

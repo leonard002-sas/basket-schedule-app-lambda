@@ -36,6 +36,8 @@ public class ScheduleRegisterApi
 
         try {
 
+            CognitoAuth.requireAdmin(input);
+
             // ========================================
             // リクエストボディ取得
             // ========================================
@@ -230,6 +232,19 @@ public class ScheduleRegisterApi
                     );
 
             return response(200, result);
+
+        } catch (CognitoAuth.AuthException e) {
+
+            try {
+                return response(
+                        e.statusCode(),
+                        mapper.writeValueAsString(
+                                Map.of("message", e.getMessage())
+                        )
+                );
+            } catch (Exception serializationError) {
+                throw new RuntimeException(serializationError);
+            }
 
         } catch (Exception e) {
 
