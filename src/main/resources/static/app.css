@@ -181,6 +181,10 @@ input:focus, select:focus, textarea:focus {
 .event-legend-swatch { width: 16px; height: 13px; border-radius: 4px; }
 .event-legend-swatch.event-practice { border: 1px solid #c9f36b; background: #eff8dc; }
 .event-legend-swatch.event-game { border-left: 3px solid #ff8a4c; background: #fff0e8; }
+.calendar-export-area { display: flex; flex-wrap: wrap; align-items: center; gap: 9px 12px; margin: 0 0 13px; }
+.calendar-export-area button { min-height: 36px; padding: 7px 12px; font-size: 12px; }
+.calendar-export-area p { flex-basis: 100%; margin: 0; color: var(--muted); font-size: 11px; }
+#calendarExportStatus { color: #4b607c; font-size: 12px; }
 .month-button { min-width: 43px; color: #44536a; background: #f5f7fa; border-color: var(--line); box-shadow: none; }
 .month-button:hover:not(:disabled) { color: var(--ink); background: #eaf0f6; }
 .calendar { overflow: hidden; border-color: #e4eaf0 !important; border-radius: 13px 13px 0 0; }

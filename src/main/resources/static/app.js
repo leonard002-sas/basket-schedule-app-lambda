@@ -35,6 +35,12 @@ const prevMonthButton =
 const nextMonthButton =
     document.getElementById("nextMonth");
 
+const exportMonthCalendarButton =
+    document.getElementById("exportMonthCalendar");
+
+const calendarExportStatus =
+    document.getElementById("calendarExportStatus");
+
 
 let schedules = [];
 
@@ -149,6 +155,10 @@ async function loadSchedule() {
                 new Date(a.startDateTime) -
                 new Date(b.startDateTime)
         );
+
+        if (exportMonthCalendarButton) {
+            exportMonthCalendarButton.disabled = false;
+        }
 
         displayCalendar();
         displaySchedule();
@@ -926,6 +936,129 @@ function getValidIdTokenClaims() {
         localStorage.removeItem("refresh_token");
         return null;
     }
+}
+
+function escapeIcsText(value) {
+    return String(value || "")
+        .replace(/\\/g, "\\\\")
+        .replace(/\r\n|\r|\n/g, "\\n")
+        .replace(/;/g, "\\;")
+        .replace(/,/g, "\\,");
+}
+
+function foldIcsLine(line) {
+    const folded = [];
+    let current = "";
+    let byteLength = 0;
+
+    for (const character of line) {
+        const characterBytes = new TextEncoder().encode(character).length;
+        if (byteLength + characterBytes > 75) {
+            folded.push(current);
+            current = " " + character;
+            byteLength = 1 + characterBytes;
+        } else {
+            current += character;
+            byteLength += characterBytes;
+        }
+    }
+
+    folded.push(current);
+    return folded.join("\r\n");
+}
+
+function toIcsUtcDateTime(value) {
+    return new Date(value)
+        .toISOString()
+        .replace(/[-:]/g, "")
+        .replace(/\.\d{3}Z$/, "Z");
+}
+
+async function exportCurrentMonthToIcs() {
+    const monthKey = `${currentYear}-${String(currentMonth).padStart(2, "0")}`;
+    const monthSchedules = schedules
+        .filter(schedule => schedule.scheduleMonth === monthKey)
+        .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
+
+    if (monthSchedules.length === 0) {
+        throw new Error(`${currentMonth}月の予定はありません。`);
+    }
+
+    if (facilities.length === 0) {
+        await loadFacilities();
+    }
+
+    if (facilities.length === 0 && monthSchedules.some(schedule => schedule.facilityId)) {
+        throw new Error("施設情報を取得できませんでした。時間をおいて再度お試しください。");
+    }
+
+    const lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//COURTSIDE//Basketball Schedule//JA",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH"
+    ];
+
+    monthSchedules.forEach(schedule => {
+        const start = new Date(schedule.startDateTime);
+        const end = new Date(schedule.endDateTime);
+        const facility = facilities.find(item => item.facilityId === schedule.facilityId);
+        const title = schedule.eventType === "GAME" ? "試合" : "練習";
+        const location = [facility?.facilityName, facility?.address]
+            .filter(Boolean)
+            .join(" ");
+        const uidDate = `${schedule.scheduleMonth}-${schedule.startDateTime}`
+            .replace(/[^0-9]/g, "");
+
+        lines.push(
+            "BEGIN:VEVENT",
+            `UID:${uidDate}@courtside`,
+            `DTSTAMP:${toIcsUtcDateTime(new Date())}`,
+            `DTSTART:${toIcsUtcDateTime(start)}`,
+            `DTEND:${toIcsUtcDateTime(end)}`,
+            `SUMMARY:${escapeIcsText(title)}`
+        );
+
+        if (location) {
+            lines.push(`LOCATION:${escapeIcsText(location)}`);
+        }
+        if (facility?.url) {
+            lines.push(`URL:${String(facility.url).replace(/[\r\n]/g, "")}`);
+        }
+
+        lines.push("END:VEVENT");
+    });
+
+    lines.push("END:VCALENDAR");
+    const content = lines.map(foldIcsLine).join("\r\n") + "\r\n";
+    const file = new Blob([content], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `courtside-${monthKey}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    return monthSchedules.length;
+}
+
+if (exportMonthCalendarButton) {
+    exportMonthCalendarButton.disabled = true;
+    exportMonthCalendarButton.addEventListener("click", async () => {
+        exportMonthCalendarButton.disabled = true;
+        calendarExportStatus.textContent = "カレンダーファイルを作成しています...";
+        try {
+            const count = await exportCurrentMonthToIcs();
+            calendarExportStatus.textContent = `${currentMonth}月の予定${count}件を保存しました。Googleカレンダーへ取り込んでください。`;
+        } catch (error) {
+            calendarExportStatus.textContent = error.message;
+        } finally {
+            exportMonthCalendarButton.disabled = false;
+        }
+    });
 }
 
 async function authenticatedFetch(url, options = {}) {
