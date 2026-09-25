@@ -196,7 +196,10 @@ input:focus, select:focus, textarea:focus {
 .section { padding: 25px !important; margin: 0 !important; }
 .section h2 { margin: 0 0 19px; font-size: 19px; letter-spacing: -.03em; }
 .section > p, .section .helper-text { color: var(--muted); font-size: 13px; }
-.registration-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); gap: 20px; align-items: start; }
+.registration-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); grid-template-areas: "facility image" "manual manual"; gap: 20px; align-items: start; }
+#facilityRegistrationCard { grid-area: facility; }
+#manualRegistrationCard { grid-area: manual; }
+#imageUploadCard { grid-area: image; }
 .section-heading { display: flex; align-items: flex-start; gap: 13px; margin-bottom: 21px; }
 .section-heading h2 { margin: 0 0 4px; }
 .section-heading p { margin: 0; color: var(--muted); font-size: 12px; }
@@ -208,7 +211,8 @@ input:focus, select:focus, textarea:focus {
 .facility-register-form input { width: 100%; }
 .facility-register-form button { justify-self: start; min-width: 140px; color: var(--navy); background: var(--lime); }
 #facilityStatus { min-height: 22px; margin-top: 10px; color: #4b607c; font-size: 13px; }
-.schedule-row { display: grid !important; grid-template-columns: minmax(90px, .72fr) minmax(125px, 1fr) minmax(86px, .68fr) auto minmax(86px, .68fr) minmax(150px, 1.2fr) auto; gap: 8px !important; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: #fafbfd; }
+#scheduleRows { min-width: 0; max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+.schedule-row { display: grid !important; grid-template-columns: minmax(96px, .7fr) minmax(140px, 1fr) minmax(105px, .75fr) 16px minmax(105px, .75fr) minmax(190px, 1.2fr) auto; gap: 8px !important; min-width: 790px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: #fafbfd; }
 .schedule-row input, .schedule-row select { width: 100% !important; min-width: 0; }
 .schedule-row > span { color: var(--muted); }
 .event-dot.event-practice { color: #263c5b; background: #eff8dc !important; }
@@ -289,6 +293,7 @@ input:focus, select:focus, textarea:focus {
     body { padding-right: 18px !important; padding-left: 18px !important; }
     .login-gate { grid-template-columns: minmax(0, 1fr) minmax(255px, .8fr); gap: 16px; padding: 34px; }
     .registration-grid { grid-template-columns: 1fr; }
+    .registration-grid { grid-template-areas: "facility" "manual" "image"; }
 }
 
 @media (max-width: 620px) {
@@ -315,10 +320,9 @@ input:focus, select:focus, textarea:focus {
     .registration-grid { gap: 14px; }
     .facility-register-form { grid-template-columns: 1fr; }
     .facility-register-form label:nth-child(3) { grid-column: auto; }
-    .schedule-row { grid-template-columns: 1fr 1fr; gap: 8px !important; }
-    .schedule-row input[type="date"], .schedule-row select { grid-column: 1 / -1; }
-    .schedule-row > span { display: none; }
-    .schedule-row .delete-button { justify-self: start; }
+    .schedule-row { grid-template-columns: 96px 140px 105px 16px 105px 190px 62px; gap: 8px !important; min-width: 790px; }
+    .schedule-row > span { display: block; }
+    .schedule-row .delete-button { justify-self: stretch; }
     .registration-grid #registerButton { width: 100%; }
     .admin-page-heading { margin: 17px 0 18px; }
     .admin-page-heading h1 { font-size: 26px; }
