@@ -86,7 +86,8 @@ if (facilityRegisterForm) {
         const payload = {
             facilityName: String(form.get("facilityName") || "").trim(),
             address: String(form.get("address") || "").trim(),
-            url: String(form.get("url") || "").trim()
+            url: String(form.get("url") || "").trim(),
+            note: String(form.get("note") || "").trim()
         };
         facilityRegisterButton.disabled = true;
         facilityStatus.textContent = "施設を登録しています...";
@@ -873,4 +874,3 @@ if (getAdminIdToken()) {
 } else {
     window.location.replace("index.html");
 }
-

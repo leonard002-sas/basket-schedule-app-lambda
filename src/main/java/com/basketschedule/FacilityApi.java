@@ -116,6 +116,8 @@ public class FacilityApi
                                 : ""
                 );
 
+                facility.put("note", item.containsKey("note") ? item.get("note").s() : "");
+
                 facility.put(
                         "imageUrl",
                         item.containsKey("imageUrl")
@@ -228,6 +230,10 @@ public class FacilityApi
         String name = body.path("facilityName").asText("").trim();
         String address = body.path("address").asText("").trim();
         String url = body.path("url").asText("").trim();
+        String note = body.path("note").asText("").trim();
+        if (note.length() > 1000) {
+            throw new IllegalArgumentException("備考は1000文字以内で入力してください");
+        }
         if (name.isBlank()) {
             throw new IllegalArgumentException("施設名を入力してください");
         }
@@ -265,6 +271,7 @@ public class FacilityApi
         item.put("facilityName", AttributeValue.builder().s(name).build());
         item.put("address", AttributeValue.builder().s(address).build());
         item.put("url", AttributeValue.builder().s(url).build());
+        item.put("note", AttributeValue.builder().s(note).build());
         item.put("imageUrl", AttributeValue.builder().s("").build());
         item.put("enabled", AttributeValue.builder().bool(true).build());
         item.put("sortOrder", AttributeValue.builder().s(Integer.toString(maxSortOrder + 1)).build());
@@ -275,6 +282,7 @@ public class FacilityApi
                 "facilityName", name,
                 "address", address,
                 "url", url,
+                "note", note,
                 "enabled", true,
                 "sortOrder", maxSortOrder + 1
         )));
@@ -300,4 +308,3 @@ public class FacilityApi
         );
     }
 }
-

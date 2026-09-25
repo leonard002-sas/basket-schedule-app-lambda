@@ -216,4 +216,3 @@
     render();
     window.setInterval(poll, 2500);
 })();
-

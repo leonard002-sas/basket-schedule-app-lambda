@@ -45,6 +45,7 @@
                     <label>施設名<input id="facilityNameInput" name="facilityName" type="text" maxlength="120" placeholder="例：落合第五小学校" required></label>
                     <label>住所<input id="facilityAddressInput" name="address" type="text" maxlength="300" placeholder="例：東京都新宿区上落合３丁目１−６" required></label>
                     <label>施設URL（任意）<input id="facilityUrlInput" name="url" type="url" maxlength="1000" placeholder="https://example.jp/施設案内"></label>
+                    <label class="facility-note-field">備考（任意）<textarea id="facilityNoteInput" name="note" maxlength="1000" rows="3" placeholder="例：正面玄関から入館／室内シューズ必須"></textarea><span class="field-hint">駐車場、入口、持ち物などチーム向けのメモ</span></label>
                     <button id="facilityRegisterButton" type="submit">施設を登録</button>
                 </form>
                 <div id="facilityStatus" role="status" aria-live="polite"></div>
@@ -108,4 +109,3 @@
 </body>
 
 </html>
-

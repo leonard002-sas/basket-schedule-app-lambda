@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <linearGradient id="court" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101D31"/>
+      <stop offset="0.58" stop-color="#182B45"/>
+      <stop offset="1" stop-color="#203E4A"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="76%" cy="43%" r="55%">
+      <stop offset="0" stop-color="#C9F36B" stop-opacity=".2"/>
+      <stop offset="1" stop-color="#C9F36B" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="belly" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#DCE7E9"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#court)"/>
+  <rect width="1600" height="1000" fill="url(#glow)"/>
+  <g fill="none" stroke="#C9F36B" stroke-opacity=".12" stroke-width="3">
+    <path d="M800 0v1000M0 500h1600"/>
+    <circle cx="800" cy="500" r="210"/>
+    <path d="M0 115h190v770H0M1600 115h-190v770h190"/>
+    <path d="M0 300c245 0 390 80 390 200S245 700 0 700M1600 300c-245 0-390 80-390 200s145 200 390 200"/>
+    <path d="M190 0v115m0 770v115m1220-1000v115m0 770v115"/>
+  </g>
+  <g fill="none" stroke="#FFFFFF" stroke-opacity=".055" stroke-width="2">
+    <path d="M0 80h1600M0 920h1600"/>
+    <circle cx="800" cy="500" r="280"/>
+  </g>
+  <!-- Friendly penguin teammate with a basketball; kept to the right so the login form stays clear. -->
+  <g transform="translate(1090 215)">
+    <ellipse cx="208" cy="618" rx="230" ry="34" fill="#07111F" fill-opacity=".38"/>
+    <path d="M110 550c-18 65-9 95 36 99 40 3 69-23 79-62m99-34c12 58 39 88 77 76 34-11 39-39 15-91" fill="#C9F36B"/>
+    <path d="M128 246c0-135 53-221 164-221s164 86 164 221v216c0 114-67 176-164 176s-164-62-164-176z" fill="#091321" stroke="#78909B" stroke-opacity=".38" stroke-width="8"/>
+    <path d="M165 318c0-88 50-143 127-143s127 55 127 143v132c0 91-46 141-127 141s-127-50-127-141z" fill="url(#belly)"/>
+    <ellipse cx="222" cy="186" rx="20" ry="27" fill="#FFFFFF"/>
+    <ellipse cx="362" cy="186" rx="20" ry="27" fill="#FFFFFF"/>
+    <circle cx="229" cy="190" r="10" fill="#101D31"/>
+    <circle cx="355" cy="190" r="10" fill="#101D31"/>
+    <path d="m268 222 34 0-17 26z" fill="#FF8A4C"/>
+    <path d="M129 298c-64 36-93 92-76 137 13 35 50 39 97 6m306-143c66 34 96 89 80 135-13 36-49 41-97 9" fill="#091321" stroke="#78909B" stroke-opacity=".38" stroke-width="8" stroke-linecap="round"/>
+    <path d="M48 438c30 12 64 9 94-10m387 7c-30 12-64 9-94-10" fill="none" stroke="#C9F36B" stroke-width="14" stroke-linecap="round"/>
+    <!-- basketball -->
+    <circle cx="508" cy="370" r="103" fill="#FF8A4C" stroke="#FFD1AF" stroke-opacity=".65" stroke-width="5"/>
+    <path d="M408 370h200M508 267c-36 56-36 150 0 206m0-206c36 56 36 150 0 206M437 299c45 29 97 29 142 0m-142 142c45-29 97-29 142 0" fill="none" stroke="#6B3528" stroke-width="7" stroke-linecap="round"/>
+    <path d="M179 572c51 24 116 31 174 13" fill="none" stroke="#FFFFFF" stroke-opacity=".48" stroke-width="7" stroke-linecap="round"/>
+  </g>
+  <circle cx="1325" cy="128" r="9" fill="#C9F36B" fill-opacity=".8"/>
+  <circle cx="1455" cy="215" r="5" fill="#FFFFFF" fill-opacity=".45"/>
+  <circle cx="1030" cy="760" r="7" fill="#FF8A4C" fill-opacity=".8"/>
+</svg>

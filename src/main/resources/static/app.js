@@ -1023,6 +1023,9 @@ async function exportCurrentMonthToIcs() {
         if (location) {
             lines.push(`LOCATION:${escapeIcsText(location)}`);
         }
+        if (facility?.note) {
+            lines.push(`DESCRIPTION:${escapeIcsText(facility.note)}`);
+        }
         if (facility?.url) {
             lines.push(`URL:${String(facility.url).replace(/[\r\n]/g, "")}`);
         }
@@ -1619,6 +1622,14 @@ async function showScheduleDetail(
             detail.facilityName
             || "未設定";
 
+        const detailFacility = facilities.find(item => item.facilityId === detail.facilityId);
+        const facilityNoteRow = document.getElementById("detailFacilityNoteRow");
+        const facilityNote = document.getElementById("detailFacilityNote");
+        if (facilityNoteRow && facilityNote) {
+            facilityNote.textContent = detailFacility?.note || "";
+            facilityNoteRow.hidden = !detailFacility?.note;
+        }
+
 
         document.getElementById(
             "detailAddress"
@@ -1987,6 +1998,9 @@ function updateEditFacilityInfo() {
 
     if (!selectedFacility) {
 
+        const editFacilityNote = document.getElementById("editFacilityNote");
+        if (editFacilityNote) editFacilityNote.textContent = "";
+
         if (editAddress) {
             editAddress.textContent =
                 "未設定";
@@ -2003,6 +2017,9 @@ function updateEditFacilityInfo() {
 
         return;
     }
+
+    const editFacilityNote = document.getElementById("editFacilityNote");
+    if (editFacilityNote) editFacilityNote.textContent = selectedFacility.note || "";
 
 
     // ========================================
@@ -2588,4 +2605,3 @@ function exitEditMode() {
     }
 
 }
-

@@ -27,6 +27,7 @@ body {
     background:
         radial-gradient(ellipse at 8% 0%, rgba(201, 243, 107, .17), transparent 27rem),
         radial-gradient(ellipse at 96% 5%, rgba(64, 105, 234, .08), transparent 29rem),
+        radial-gradient(ellipse at 93% 31%, transparent 0 84px, rgba(255, 138, 76, .045) 85px 87px, transparent 88px),
         var(--canvas);
     font-family: Inter, "Aptos", "Yu Gothic UI", "Meiryo", system-ui, sans-serif !important;
     line-height: 1.6;
@@ -208,6 +209,9 @@ input:focus, select:focus, textarea:focus {
 .facility-register-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
 .facility-register-form label { display: grid; gap: 6px; color: #526177; font-size: 12px; font-weight: 700; }
 .facility-register-form label:nth-child(3) { grid-column: 1 / -1; }
+.facility-register-form .facility-note-field { grid-column: 1 / -1; }
+.facility-note-field textarea { width: 100%; min-height: 82px; resize: vertical; }
+.field-hint { color: var(--muted); font-size: 11px; font-weight: 500; }
 .facility-register-form input { width: 100%; }
 .facility-register-form button { justify-self: start; min-width: 140px; color: var(--navy); background: var(--lime); }
 #facilityStatus { min-height: 22px; margin-top: 10px; color: #4b607c; font-size: 13px; }
@@ -331,4 +335,3 @@ input:focus, select:focus, textarea:focus {
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
-
