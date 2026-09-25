@@ -27,6 +27,7 @@ body {
     background:
         radial-gradient(ellipse at 8% 0%, rgba(201, 243, 107, .17), transparent 27rem),
         radial-gradient(ellipse at 96% 5%, rgba(64, 105, 234, .08), transparent 29rem),
+        radial-gradient(ellipse at 93% 31%, transparent 0 84px, rgba(255, 138, 76, .045) 85px 87px, transparent 88px),
         var(--canvas);
     font-family: Inter, "Aptos", "Yu Gothic UI", "Meiryo", system-ui, sans-serif !important;
     line-height: 1.6;
@@ -176,6 +177,15 @@ input:focus, select:focus, textarea:focus {
 .calendar-area { padding: 23px !important; }
 .calendar-header { gap: 14px; margin-bottom: 18px !important; }
 .calendar-header h2 { font-size: 20px; letter-spacing: -.03em; }
+.event-legend { display: flex; flex-wrap: wrap; gap: 15px; margin: -5px 0 12px; color: var(--muted); font-size: 12px; }
+.event-legend-item { display: inline-flex; align-items: center; gap: 7px; }
+.event-legend-swatch { width: 16px; height: 13px; border-radius: 4px; }
+.event-legend-swatch.event-practice { border: 1px solid #c9f36b; background: #eff8dc; }
+.event-legend-swatch.event-game { border-left: 3px solid #ff8a4c; background: #fff0e8; }
+.calendar-export-area { display: flex; flex-wrap: wrap; align-items: center; gap: 9px 12px; margin: 0 0 13px; }
+.calendar-export-area button { min-height: 36px; padding: 7px 12px; font-size: 12px; }
+.calendar-export-area p { flex-basis: 100%; margin: 0; color: var(--muted); font-size: 11px; }
+#calendarExportStatus { color: #4b607c; font-size: 12px; }
 .month-button { min-width: 43px; color: #44536a; background: #f5f7fa; border-color: var(--line); box-shadow: none; }
 .month-button:hover:not(:disabled) { color: var(--ink); background: #eaf0f6; }
 .calendar { overflow: hidden; border-color: #e4eaf0 !important; border-radius: 13px 13px 0 0; }
@@ -187,15 +197,36 @@ input:focus, select:focus, textarea:focus {
 .section { padding: 25px !important; margin: 0 !important; }
 .section h2 { margin: 0 0 19px; font-size: 19px; letter-spacing: -.03em; }
 .section > p, .section .helper-text { color: var(--muted); font-size: 13px; }
-.registration-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); gap: 20px; align-items: start; }
+.registration-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); grid-template-areas: "facility image" "manual manual"; gap: 20px; align-items: start; }
+#facilityRegistrationCard { grid-area: facility; }
+#manualRegistrationCard { grid-area: manual; }
+#imageUploadCard { grid-area: image; }
 .section-heading { display: flex; align-items: flex-start; gap: 13px; margin-bottom: 21px; }
 .section-heading h2 { margin: 0 0 4px; }
 .section-heading p { margin: 0; color: var(--muted); font-size: 12px; }
 .section-icon { display: grid; flex: 0 0 42px; width: 42px; height: 42px; place-items: center; border-radius: 13px; color: #3552ba; background: #eef1ff; }
 .section-icon svg { width: 21px; height: 21px; }
-.schedule-row { display: grid !important; grid-template-columns: minmax(135px, 1.05fr) minmax(90px, .7fr) auto minmax(90px, .7fr) minmax(170px, 1.25fr) auto; gap: 8px !important; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: #fafbfd; }
+.facility-register-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+.facility-register-form label { display: grid; gap: 6px; color: #526177; font-size: 12px; font-weight: 700; }
+.facility-register-form label:nth-child(3) { grid-column: 1 / -1; }
+.facility-register-form .facility-note-field { grid-column: 1 / -1; }
+.facility-note-field textarea { width: 100%; min-height: 82px; resize: vertical; }
+.field-hint { color: var(--muted); font-size: 11px; font-weight: 500; }
+.facility-register-form input { width: 100%; }
+.facility-register-form button { justify-self: start; min-width: 140px; color: var(--navy); background: var(--lime); }
+#facilityStatus { min-height: 22px; margin-top: 10px; color: #4b607c; font-size: 13px; }
+#scheduleRows { min-width: 0; max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+.schedule-row { display: grid !important; grid-template-columns: minmax(96px, .7fr) minmax(140px, 1fr) minmax(105px, .75fr) 16px minmax(105px, .75fr) minmax(190px, 1.2fr) auto; gap: 8px !important; min-width: 790px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: #fafbfd; }
 .schedule-row input, .schedule-row select { width: 100% !important; min-width: 0; }
 .schedule-row > span { color: var(--muted); }
+.event-dot.event-practice { color: #263c5b; background: #eff8dc !important; }
+.event-dot.event-game { color: #8b4525; background: #fff0e8 !important; border-left: 3px solid #ff8a4c; }
+.event-dot.event-practice:hover { background: #e4f3c5 !important; }
+.event-dot.event-game:hover { background: #ffe3d3 !important; }
+.upcoming-schedule.event-practice { border-left: 4px solid #c9f36b; padding-left: 14px; }
+.upcoming-schedule.event-game { border-left: 4px solid #ff8a4c; padding-left: 14px; }
+.upcoming-kind { display: inline-flex; margin-bottom: 6px; padding: 3px 9px; border-radius: 99px; color: #263c5b; background: #eff8dc; font-size: 11px; font-weight: 800; }
+.upcoming-schedule.event-game .upcoming-kind { color: #8b4525; background: #fff0e8; }
 .delete-button { min-height: 38px; padding: 7px 10px !important; color: #9c3e35; background: #fff; border-color: #f0d6d3; box-shadow: none; font-size: 12px; }
 #addScheduleButton { margin: 4px 0 17px; color: #41537a; background: #f1f4fa; border-color: #e3e9f1; box-shadow: none; }
 .registration-grid #registerButton { min-width: 150px; }
@@ -266,6 +297,7 @@ input:focus, select:focus, textarea:focus {
     body { padding-right: 18px !important; padding-left: 18px !important; }
     .login-gate { grid-template-columns: minmax(0, 1fr) minmax(255px, .8fr); gap: 16px; padding: 34px; }
     .registration-grid { grid-template-columns: 1fr; }
+    .registration-grid { grid-template-areas: "facility" "manual" "image"; }
 }
 
 @media (max-width: 620px) {
@@ -290,10 +322,11 @@ input:focus, select:focus, textarea:focus {
     .calendar-day { min-height: 66px; }
     .section { padding: 18px !important; border-radius: 16px !important; }
     .registration-grid { gap: 14px; }
-    .schedule-row { grid-template-columns: 1fr 1fr; gap: 8px !important; }
-    .schedule-row input[type="date"], .schedule-row select { grid-column: 1 / -1; }
-    .schedule-row > span { display: none; }
-    .schedule-row .delete-button { justify-self: start; }
+    .facility-register-form { grid-template-columns: 1fr; }
+    .facility-register-form label:nth-child(3) { grid-column: auto; }
+    .schedule-row { grid-template-columns: 96px 140px 105px 16px 105px 190px 62px; gap: 8px !important; min-width: 790px; }
+    .schedule-row > span { display: block; }
+    .schedule-row .delete-button { justify-self: stretch; }
     .registration-grid #registerButton { width: 100%; }
     .admin-page-heading { margin: 17px 0 18px; }
     .admin-page-heading h1 { font-size: 26px; }

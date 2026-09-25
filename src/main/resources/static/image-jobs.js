@@ -121,8 +121,8 @@
             list.append(track);
         }
 
-        const hasActiveJob = jobs.some(job => !terminalStates.has(job.status));
-        if (dismissButton) dismissButton.hidden = hasActiveJob;
+        const hasDismissibleJob = jobs.some(job => terminalStates.has(job.status));
+        if (dismissButton) dismissButton.hidden = !hasDismissibleJob;
     }
 
     function readAdminToken() {

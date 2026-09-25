@@ -35,6 +35,12 @@ const prevMonthButton =
 const nextMonthButton =
     document.getElementById("nextMonth");
 
+const exportMonthCalendarButton =
+    document.getElementById("exportMonthCalendar");
+
+const calendarExportStatus =
+    document.getElementById("calendarExportStatus");
+
 
 let schedules = [];
 
@@ -49,8 +55,9 @@ let currentScheduleDetail = null;
 // 現在表示している月
 // ========================================
 
-let currentYear = 2026;
-let currentMonth = 8;
+const initialToday = new Date();
+let currentYear = initialToday.getFullYear();
+let currentMonth = initialToday.getMonth() + 1;
 
 
 // ========================================
@@ -60,6 +67,7 @@ let currentMonth = 8;
 // 年ごとに取得した祝日を保存
 // 一度取得した年は再度APIを呼ばない
 const holidayCache = {};
+const holidayRequests = {};
 
 
 // ========================================
@@ -73,45 +81,38 @@ async function loadHolidays(year) {
         return;
     }
 
-    try {
-
-        const response = await fetch(
-            `https://holidays-jp.shogo82148.com/${year}`
-        );
-
-        if (!response.ok) {
-            throw new Error(
-                "祝日APIエラー: " + response.status
-            );
-        }
-
-        const data = await response.json();
-
-        holidayCache[year] = {};
-
-        data.holidays.forEach(holiday => {
-
-            holidayCache[year][holiday.date] =
-                holiday.name;
-
-        });
-
-        console.log(
-            `${year}年の祝日を取得しました`,
-            holidayCache[year]
-        );
-
-    } catch (error) {
-
-        console.error(
-            `${year}年の祝日取得に失敗しました`,
-            error
-        );
-
-        // API取得に失敗しても
-        // カレンダー自体は表示できるようにする
-        holidayCache[year] = {};
+    if (holidayRequests[year]) {
+        return holidayRequests[year];
     }
+
+    holidayRequests[year] = (async () => {
+        try {
+            const response = await fetch(
+                `https://holidays-jp.shogo82148.com/${year}`
+            );
+
+            if (!response.ok) {
+                throw new Error("祝日APIエラー: " + response.status);
+            }
+
+            const data = await response.json();
+            holidayCache[year] = {};
+            data.holidays.forEach(holiday => {
+                holidayCache[year][holiday.date] = holiday.name;
+            });
+
+            console.log(
+                `${year}年の祝日を取得しました`,
+                holidayCache[year]
+            );
+        } catch (error) {
+            console.error(`${year}年の祝日取得に失敗しました`, error);
+            // API取得に失敗してもカレンダー自体は表示できるようにする
+            holidayCache[year] = {};
+        }
+    })();
+
+    return holidayRequests[year];
 }
 
 
@@ -155,7 +156,9 @@ async function loadSchedule() {
                 new Date(b.startDateTime)
         );
 
-        await loadHolidays(currentYear);
+        if (exportMonthCalendarButton) {
+            exportMonthCalendarButton.disabled = false;
+        }
 
         displayCalendar();
         displaySchedule();
@@ -174,12 +177,7 @@ async function loadSchedule() {
 // カレンダー表示
 // ========================================
 
-async function displayCalendar() {
-
-    // 現在の年の祝日を取得
-
-    await loadHolidays(currentYear);
-
+function displayCalendar() {
 
     calendarElement.innerHTML = "";
 
@@ -419,6 +417,9 @@ async function displayCalendar() {
             event.className =
                 "event-dot";
 
+            const eventType = schedule.eventType === "GAME" ? "GAME" : "PRACTICE";
+            event.classList.add(eventType === "GAME" ? "event-game" : "event-practice");
+
             const start =
                 new Date(
                     schedule.startDateTime
@@ -549,11 +550,11 @@ prevMonthButton.addEventListener(
 
         }
 
-        // 移動先の年の祝日を取得
-
-        await loadHolidays(currentYear);
-
         displayCalendar();
+        const yearToLoad = currentYear;
+        loadHolidays(yearToLoad).then(() => {
+            if (currentYear === yearToLoad) displayCalendar();
+        });
 
     }
 );
@@ -572,11 +573,11 @@ nextMonthButton.addEventListener(
 
         }
 
-        // 移動先の年の祝日を取得
-
-        await loadHolidays(currentYear);
-
         displayCalendar();
+        const yearToLoad = currentYear;
+        loadHolidays(yearToLoad).then(() => {
+            if (currentYear === yearToLoad) displayCalendar();
+        });
 
     }
 );
@@ -658,8 +659,12 @@ function displaySchedule() {
         eventElement.className =
             "upcoming-schedule";
 
+        const eventType = schedule.eventType === "GAME" ? "GAME" : "PRACTICE";
+        eventElement.classList.add(eventType === "GAME" ? "event-game" : "event-practice");
+
 
         eventElement.innerHTML = `
+            <div class="upcoming-kind">${eventType === "GAME" ? "試合" : "練習"}</div>
             <div class="upcoming-date">
                 ${formatDate(start)}
             </div>
@@ -933,6 +938,132 @@ function getValidIdTokenClaims() {
     }
 }
 
+function escapeIcsText(value) {
+    return String(value || "")
+        .replace(/\\/g, "\\\\")
+        .replace(/\r\n|\r|\n/g, "\\n")
+        .replace(/;/g, "\\;")
+        .replace(/,/g, "\\,");
+}
+
+function foldIcsLine(line) {
+    const folded = [];
+    let current = "";
+    let byteLength = 0;
+
+    for (const character of line) {
+        const characterBytes = new TextEncoder().encode(character).length;
+        if (byteLength + characterBytes > 75) {
+            folded.push(current);
+            current = " " + character;
+            byteLength = 1 + characterBytes;
+        } else {
+            current += character;
+            byteLength += characterBytes;
+        }
+    }
+
+    folded.push(current);
+    return folded.join("\r\n");
+}
+
+function toIcsUtcDateTime(value) {
+    return new Date(value)
+        .toISOString()
+        .replace(/[-:]/g, "")
+        .replace(/\.\d{3}Z$/, "Z");
+}
+
+async function exportCurrentMonthToIcs() {
+    const monthKey = `${currentYear}-${String(currentMonth).padStart(2, "0")}`;
+    const monthSchedules = schedules
+        .filter(schedule => schedule.scheduleMonth === monthKey)
+        .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
+
+    if (monthSchedules.length === 0) {
+        throw new Error(`${currentMonth}月の予定はありません。`);
+    }
+
+    if (facilities.length === 0) {
+        await loadFacilities();
+    }
+
+    if (facilities.length === 0 && monthSchedules.some(schedule => schedule.facilityId)) {
+        throw new Error("施設情報を取得できませんでした。時間をおいて再度お試しください。");
+    }
+
+    const lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//COURTSIDE//Basketball Schedule//JA",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH"
+    ];
+
+    monthSchedules.forEach(schedule => {
+        const start = new Date(schedule.startDateTime);
+        const end = new Date(schedule.endDateTime);
+        const facility = facilities.find(item => item.facilityId === schedule.facilityId);
+        const title = schedule.eventType === "GAME" ? "試合" : "練習";
+        const location = [facility?.facilityName, facility?.address]
+            .filter(Boolean)
+            .join(" ");
+        const uidDate = `${schedule.scheduleMonth}-${schedule.startDateTime}`
+            .replace(/[^0-9]/g, "");
+
+        lines.push(
+            "BEGIN:VEVENT",
+            `UID:${uidDate}@courtside`,
+            `DTSTAMP:${toIcsUtcDateTime(new Date())}`,
+            `DTSTART:${toIcsUtcDateTime(start)}`,
+            `DTEND:${toIcsUtcDateTime(end)}`,
+            `SUMMARY:${escapeIcsText(title)}`
+        );
+
+        if (location) {
+            lines.push(`LOCATION:${escapeIcsText(location)}`);
+        }
+        if (facility?.note) {
+            lines.push(`DESCRIPTION:${escapeIcsText(facility.note)}`);
+        }
+        if (facility?.url) {
+            lines.push(`URL:${String(facility.url).replace(/[\r\n]/g, "")}`);
+        }
+
+        lines.push("END:VEVENT");
+    });
+
+    lines.push("END:VCALENDAR");
+    const content = lines.map(foldIcsLine).join("\r\n") + "\r\n";
+    const file = new Blob([content], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `courtside-${monthKey}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    return monthSchedules.length;
+}
+
+if (exportMonthCalendarButton) {
+    exportMonthCalendarButton.disabled = true;
+    exportMonthCalendarButton.addEventListener("click", async () => {
+        exportMonthCalendarButton.disabled = true;
+        calendarExportStatus.textContent = "カレンダーファイルを作成しています...";
+        try {
+            const count = await exportCurrentMonthToIcs();
+            calendarExportStatus.textContent = `${currentMonth}月の予定${count}件を保存しました。Googleカレンダーへ取り込んでください。`;
+        } catch (error) {
+            calendarExportStatus.textContent = error.message;
+        } finally {
+            exportMonthCalendarButton.disabled = false;
+        }
+    });
+}
+
 async function authenticatedFetch(url, options = {}) {
 
     const token = localStorage.getItem("id_token");
@@ -1069,11 +1200,12 @@ if (loginButton) {
         () => {
 
             const loginUrl =
-                `${cognitoDomain}/login` +
+                `${cognitoDomain}/oauth2/authorize` +
                 `?client_id=${clientId}` +
                 `&response_type=code` +
                 `&scope=openid+email+phone` +
-                `&redirect_uri=${encodeURIComponent(redirectUri)}`;
+                `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+                `&lang=ja`;
 
             window.location.href =
                 loginUrl;
@@ -1310,7 +1442,11 @@ handleCognitoCallback()
             return;
         }
 
-        await loadFacilities();
+        displayCalendar();
+        const yearToLoad = currentYear;
+        loadHolidays(yearToLoad).then(() => {
+            if (currentYear === yearToLoad) displayCalendar();
+        });
 
         await loadSchedule();
 
@@ -1454,6 +1590,9 @@ async function showScheduleDetail(
             + `${start.getMonth() + 1}月`
             + `${start.getDate()}日`;
 
+        document.getElementById("detailEventType").textContent =
+            detail.eventType === "GAME" ? "試合" : "練習";
+
 
         document.getElementById(
             "detailDayOfWeek"
@@ -1482,6 +1621,14 @@ async function showScheduleDetail(
         ).textContent =
             detail.facilityName
             || "未設定";
+
+        const detailFacility = facilities.find(item => item.facilityId === detail.facilityId);
+        const facilityNoteRow = document.getElementById("detailFacilityNoteRow");
+        const facilityNote = document.getElementById("detailFacilityNote");
+        if (facilityNoteRow && facilityNote) {
+            facilityNote.textContent = detailFacility?.note || "";
+            facilityNoteRow.hidden = !detailFacility?.note;
+        }
 
 
         document.getElementById(
@@ -1765,10 +1912,14 @@ if (editScheduleButton) {
 
     editScheduleButton.addEventListener(
         "click",
-        () => {
+        async () => {
 
             if (!currentScheduleDetail) {
                 return;
+            }
+
+            if (facilities.length === 0) {
+                await loadFacilities();
             }
 
             enterEditMode();
@@ -1847,6 +1998,9 @@ function updateEditFacilityInfo() {
 
     if (!selectedFacility) {
 
+        const editFacilityNote = document.getElementById("editFacilityNote");
+        if (editFacilityNote) editFacilityNote.textContent = "";
+
         if (editAddress) {
             editAddress.textContent =
                 "未設定";
@@ -1863,6 +2017,9 @@ function updateEditFacilityInfo() {
 
         return;
     }
+
+    const editFacilityNote = document.getElementById("editFacilityNote");
+    if (editFacilityNote) editFacilityNote.textContent = selectedFacility.note || "";
 
 
     // ========================================
@@ -2026,6 +2183,9 @@ function enterEditMode() {
 
     const endDateTime =
         currentScheduleDetail.endDateTime;
+
+    document.getElementById("editEventType").value =
+        currentScheduleDetail.eventType === "GAME" ? "GAME" : "PRACTICE";
 
 
     if (editDate) {
@@ -2251,7 +2411,10 @@ if (saveScheduleButton) {
                                         endTime,
 
                                     facilityId:
-                                        facilityId
+                                        facilityId,
+
+                                    eventType:
+                                        document.getElementById("editEventType").value
 
                                 })
                         }

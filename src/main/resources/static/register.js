@@ -75,6 +75,43 @@ async function adminFetch(url, options = {}) {
 
 let facilities = [];
 
+const facilityRegisterForm = document.getElementById("facilityRegisterForm");
+const facilityRegisterButton = document.getElementById("facilityRegisterButton");
+const facilityStatus = document.getElementById("facilityStatus");
+
+if (facilityRegisterForm) {
+    facilityRegisterForm.addEventListener("submit", async event => {
+        event.preventDefault();
+        const form = new FormData(facilityRegisterForm);
+        const payload = {
+            facilityName: String(form.get("facilityName") || "").trim(),
+            address: String(form.get("address") || "").trim(),
+            url: String(form.get("url") || "").trim(),
+            note: String(form.get("note") || "").trim()
+        };
+        facilityRegisterButton.disabled = true;
+        facilityStatus.textContent = "施設を登録しています...";
+        try {
+            const response = await adminFetch(FACILITY_API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || "施設を登録できませんでした");
+            }
+            facilityRegisterForm.reset();
+            await loadFacilities();
+            facilityStatus.textContent = `${result.facilityName}を登録しました。`;
+        } catch (error) {
+            facilityStatus.textContent = `登録エラー: ${error.message}`;
+        } finally {
+            facilityRegisterButton.disabled = false;
+        }
+    });
+}
+
 
 // ========================================
 // 施設マスタ取得
@@ -217,6 +254,11 @@ if (addScheduleButton) {
 
 
             row.innerHTML = `
+                <select class="event-type-select" aria-label="予定種別">
+                    <option value="PRACTICE">練習</option>
+                    <option value="GAME">試合</option>
+                </select>
+
                 <input
                     type="date"
                     class="date-input"
@@ -368,6 +410,9 @@ if (registerButton) {
                         const facilityId =
                             facilitySelect.value;
 
+                        const eventType =
+                            row.querySelector(".event-type-select").value;
+
                         const facilityName =
                             facilitySelect
                                 .selectedOptions[0]
@@ -390,7 +435,10 @@ if (registerButton) {
                                 facilityId,
 
                             facilityName:
-                                facilityName
+                                facilityName,
+
+                            eventType:
+                                eventType
 
                         });
 
