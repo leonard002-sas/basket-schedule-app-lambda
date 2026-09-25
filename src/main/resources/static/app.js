@@ -61,6 +61,7 @@ let currentMonth = initialToday.getMonth() + 1;
 // 年ごとに取得した祝日を保存
 // 一度取得した年は再度APIを呼ばない
 const holidayCache = {};
+const holidayRequests = {};
 
 
 // ========================================
@@ -74,45 +75,38 @@ async function loadHolidays(year) {
         return;
     }
 
-    try {
-
-        const response = await fetch(
-            `https://holidays-jp.shogo82148.com/${year}`
-        );
-
-        if (!response.ok) {
-            throw new Error(
-                "祝日APIエラー: " + response.status
-            );
-        }
-
-        const data = await response.json();
-
-        holidayCache[year] = {};
-
-        data.holidays.forEach(holiday => {
-
-            holidayCache[year][holiday.date] =
-                holiday.name;
-
-        });
-
-        console.log(
-            `${year}年の祝日を取得しました`,
-            holidayCache[year]
-        );
-
-    } catch (error) {
-
-        console.error(
-            `${year}年の祝日取得に失敗しました`,
-            error
-        );
-
-        // API取得に失敗しても
-        // カレンダー自体は表示できるようにする
-        holidayCache[year] = {};
+    if (holidayRequests[year]) {
+        return holidayRequests[year];
     }
+
+    holidayRequests[year] = (async () => {
+        try {
+            const response = await fetch(
+                `https://holidays-jp.shogo82148.com/${year}`
+            );
+
+            if (!response.ok) {
+                throw new Error("祝日APIエラー: " + response.status);
+            }
+
+            const data = await response.json();
+            holidayCache[year] = {};
+            data.holidays.forEach(holiday => {
+                holidayCache[year][holiday.date] = holiday.name;
+            });
+
+            console.log(
+                `${year}年の祝日を取得しました`,
+                holidayCache[year]
+            );
+        } catch (error) {
+            console.error(`${year}年の祝日取得に失敗しました`, error);
+            // API取得に失敗してもカレンダー自体は表示できるようにする
+            holidayCache[year] = {};
+        }
+    })();
+
+    return holidayRequests[year];
 }
 
 
@@ -156,8 +150,6 @@ async function loadSchedule() {
                 new Date(b.startDateTime)
         );
 
-        await loadHolidays(currentYear);
-
         displayCalendar();
         displaySchedule();
 
@@ -175,12 +167,7 @@ async function loadSchedule() {
 // カレンダー表示
 // ========================================
 
-async function displayCalendar() {
-
-    // 現在の年の祝日を取得
-
-    await loadHolidays(currentYear);
-
+function displayCalendar() {
 
     calendarElement.innerHTML = "";
 
@@ -553,11 +540,11 @@ prevMonthButton.addEventListener(
 
         }
 
-        // 移動先の年の祝日を取得
-
-        await loadHolidays(currentYear);
-
         displayCalendar();
+        const yearToLoad = currentYear;
+        loadHolidays(yearToLoad).then(() => {
+            if (currentYear === yearToLoad) displayCalendar();
+        });
 
     }
 );
@@ -576,11 +563,11 @@ nextMonthButton.addEventListener(
 
         }
 
-        // 移動先の年の祝日を取得
-
-        await loadHolidays(currentYear);
-
         displayCalendar();
+        const yearToLoad = currentYear;
+        loadHolidays(yearToLoad).then(() => {
+            if (currentYear === yearToLoad) displayCalendar();
+        });
 
     }
 );
@@ -1319,7 +1306,11 @@ handleCognitoCallback()
             return;
         }
 
-        await loadFacilities();
+        displayCalendar();
+        const yearToLoad = currentYear;
+        loadHolidays(yearToLoad).then(() => {
+            if (currentYear === yearToLoad) displayCalendar();
+        });
 
         await loadSchedule();
 
@@ -1777,10 +1768,14 @@ if (editScheduleButton) {
 
     editScheduleButton.addEventListener(
         "click",
-        () => {
+        async () => {
 
             if (!currentScheduleDetail) {
                 return;
+            }
+
+            if (facilities.length === 0) {
+                await loadFacilities();
             }
 
             enterEditMode();
