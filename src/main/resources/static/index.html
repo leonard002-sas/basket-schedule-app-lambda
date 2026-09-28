@@ -882,7 +882,11 @@
                             <p>緊急度と表示期限を設定して、チームにお知らせします。</p>
                         </div>
                     </div>
-                    <div id="announcementManager" class="announcement-manager" hidden>
+                    <div
+                        id="announcementManager"
+                        class="announcement-manager workspace-content-card"
+                        hidden
+                    >
                         <form id="announcementForm" class="announcement-form">
                             <input id="announcementId" type="hidden" /><label
                                 >見出し<input
@@ -935,15 +939,17 @@
                     class="workspace-screen"
                     data-workspace-screen
                     hidden
-                    aria-label="練習動画"
+                    aria-labelledby="videoScreenHeading"
                 >
-                    <section class="video-archive" aria-label="練習動画">
+                    <div class="workspace-screen-heading">
+                        <div>
+                            <span class="eyebrow">FILM ROOM</span>
+                            <h2 id="videoScreenHeading">練習動画</h2>
+                            <p>予定に登録した動画をタグで探せます。</p>
+                        </div>
+                    </div>
+                    <section class="video-archive workspace-content-card" aria-label="練習動画一覧">
                         <div class="video-archive-heading">
-                            <div>
-                                <span class="eyebrow">FILM ROOM</span>
-                                <h2>練習動画</h2>
-                                <p>予定に登録した動画をタグで探せます。</p>
-                            </div>
                             <label
                                 >タグで絞り込む<select id="videoTagFilter">
                                     <option value="">すべて</option>

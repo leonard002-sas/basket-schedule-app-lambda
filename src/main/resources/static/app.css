@@ -674,6 +674,22 @@ textarea:focus {
     gap: 5px;
     min-width: 180px;
 }
+.workspace-content-card {
+    margin: 0;
+    padding: clamp(20px, 3vw, 30px);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    background: var(--paper);
+    box-shadow: var(--shadow);
+}
+.video-archive-heading {
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.video-archive-heading label {
+    width: min(100%, 280px);
+}
 .video-archive-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
@@ -743,6 +759,10 @@ textarea:focus {
     .video-archive {
         margin: 16px 0;
         padding: 16px;
+        border-radius: 18px;
+    }
+    .workspace-content-card {
+        padding: 18px;
         border-radius: 18px;
     }
     .home-agenda-heading,
@@ -1413,17 +1433,17 @@ textarea:focus {
 }
 #announcementScreen .announcement-manager {
     display: grid;
-    gap: 26px;
+    gap: 22px;
 }
 #announcementScreen .announcement-form {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 17px 20px;
-    padding: clamp(20px, 4vw, 32px);
-    border: 1px solid var(--line);
-    border-radius: 22px;
-    background: var(--paper);
-    box-shadow: var(--shadow);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
 }
 #announcementScreen .announcement-form > label {
     display: grid;
@@ -1484,7 +1504,7 @@ textarea:focus {
     gap: 8px;
 }
 #announcementScreen h3 {
-    margin: 0;
+    margin: 8px 0 0;
 }
 #announcementScreen .announcement-empty {
     color: var(--muted);
@@ -1511,7 +1531,7 @@ textarea:focus {
 @media (max-width: 620px) {
     #announcementScreen .announcement-form {
         grid-template-columns: 1fr;
-        padding: 18px;
+        padding: 0;
     }
     #announcementScreen .announcement-content-label,
     #announcementScreen .announcement-form-actions {

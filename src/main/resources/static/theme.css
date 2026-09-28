@@ -400,3 +400,18 @@
 :root[data-theme="dark"] .workspace-screen-heading p {
     color: var(--muted);
 }
+:root[data-theme="dark"] .workspace-content-card {
+    color: var(--ink);
+    border-color: var(--line);
+    background: var(--paper);
+}
+:root[data-theme="dark"] #announcementScreen .announcement-form {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+:root[data-theme="dark"] #videoScreen .video-archive {
+    color: var(--ink);
+    border-color: var(--line);
+    background: var(--paper);
+}
