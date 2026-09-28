@@ -1,4 +1,3 @@
-/** 施設、予定、画像の登録を行う管理者向け画面の処理です。 */
 // ========================================
 // 施設API
 // ========================================
@@ -20,6 +19,8 @@ const EXISTING_SCHEDULES_API_URL =
 // 画像アップロードAPI
 // ========================================
 
+const UPLOAD_API_URL = "https://gg5d4xxwdpfjdesh2n5vyxqm5q0mnwii.lambda-url.ap-northeast-1.on.aws/";
+
 function getAdminIdToken() {
     const token = localStorage.getItem("id_token");
     if (!token) {
@@ -31,14 +32,14 @@ function getAdminIdToken() {
         const base64 = encodedPayload.replace(/-/g, "+").replace(/_/g, "/");
         const payload = JSON.parse(atob(base64 + "=".repeat((4 - (base64.length % 4)) % 4)));
 
-        if (!payload.exp || payload.exp * 1000 <= Date.now()) {
-            throw new Error("ログインの有効期限が切れています");
-        }
         if (
+            !payload.exp ||
+            payload.exp * 1000 <= Date.now() ||
             !Array.isArray(payload["cognito:groups"]) ||
             !payload["cognito:groups"].includes("admins")
-        )
-            return null;
+        ) {
+            throw new Error("管理者ログインが必要です");
+        }
         return token;
     } catch (error) {
         localStorage.removeItem("id_token");
@@ -48,7 +49,6 @@ function getAdminIdToken() {
     }
 }
 
-/** 管理者用APIへIDトークンを付けて送信し、期限切れも共通処理します。 */
 async function adminFetch(url, options = {}) {
     const token = getAdminIdToken();
     if (!token) {
@@ -64,46 +64,6 @@ async function adminFetch(url, options = {}) {
         },
     });
 }
-
-/** 施設編集または予定登録の作業画面を表示します。 */
-function showRegistrationScreen(screen, updateUrl = true) {
-    const showingFacility = screen === "facility";
-    document.getElementById("facilityRegistrationCard").hidden = !showingFacility;
-    document.getElementById("manualRegistrationCard").hidden = showingFacility;
-    document.getElementById("imageUploadCard").hidden = showingFacility;
-    document.querySelector(".admin-page-heading h1").textContent = showingFacility
-        ? "施設を登録"
-        : "予定を登録";
-
-    document
-        .querySelectorAll(
-            '.site-navigation [data-app-nav="schedule"], .site-navigation [data-app-nav="facility"]',
-        )
-        .forEach((link) => {
-            if (link.dataset.appNav === screen) link.setAttribute("aria-current", "page");
-            else link.removeAttribute("aria-current");
-        });
-
-    if (updateUrl) {
-        const params = new URLSearchParams(location.search);
-        params.set("screen", showingFacility ? "facility" : "schedule");
-        history.pushState({ screen: params.get("screen") }, "", `register.html?${params}`);
-    }
-}
-
-document.querySelectorAll(".site-navigation [data-registration-screen]").forEach((link) => {
-    link.addEventListener("click", (event) => {
-        event.preventDefault();
-        showRegistrationScreen(link.dataset.registrationScreen);
-    });
-});
-
-window.addEventListener("popstate", () => {
-    showRegistrationScreen(
-        new URLSearchParams(location.search).get("screen") === "facility" ? "facility" : "schedule",
-        false,
-    );
-});
 
 // ========================================
 // 施設マスタ
@@ -172,7 +132,6 @@ async function loadFacilities() {
     }
 }
 
-/** 既存の大会名をAPIから読み、予定登録欄の候補へ反映します。 */
 async function loadCompetitionNames() {
     const list = document.getElementById("competitionNames");
     if (!list) return;
@@ -233,6 +192,44 @@ function setFacilityOptions(select) {
 
 const scheduleRows = document.getElementById("scheduleRows");
 
+const registrationMenuButton = document.getElementById("registrationMenuButton");
+const registrationMenu = document.getElementById("registrationMenu");
+const scheduleRegistrationScreen = document.getElementById("scheduleRegistrationScreen");
+const facilityRegistrationScreen = document.getElementById("facilityRegistrationScreen");
+
+function showRegistrationScreen(screen, updateUrl = true) {
+    scheduleRegistrationScreen.hidden = screen !== "schedule";
+    facilityRegistrationScreen.hidden = screen !== "facility";
+    document.querySelector(".admin-page-heading h1").textContent =
+        screen === "facility" ? "施設を登録" : "予定を登録";
+    document.querySelectorAll(".site-navigation [data-app-nav]").forEach((link) => {
+        if (link.dataset.appNav === screen) link.setAttribute("aria-current", "page");
+        else link.removeAttribute("aria-current");
+    });
+    if (updateUrl) {
+        const params = new URLSearchParams(window.location.search);
+        const date = params.get("date");
+        params.set("screen", screen);
+        if (date) params.set("date", date);
+        history.pushState({ screen }, "", `register.html?${params.toString()}`);
+    }
+}
+document.querySelectorAll(".site-navigation [data-registration-screen]").forEach((link) => {
+    link.addEventListener("click", (event) => {
+        event.preventDefault();
+        showRegistrationScreen(link.dataset.registrationScreen);
+    });
+});
+window.addEventListener("popstate", () => {
+    const screen =
+        new URLSearchParams(window.location.search).get("screen") === "facility"
+            ? "facility"
+            : "schedule";
+    showRegistrationScreen(screen, false);
+});
+document.querySelector(".admin-page-heading p").textContent =
+    "予定や施設の登録・管理画面を切り替えられます。";
+
 const addScheduleButton = document.getElementById("addScheduleButton");
 
 // ========================================
@@ -259,14 +256,14 @@ if (addScheduleButton) {
 
                 <input
                     type="time"
-                    class="time-input"
+                    class="time-input start-time-input"
                 >
 
-                <span>～</span>
+                <span class="time-separator">～</span>
 
                 <input
                     type="time"
-                    class="time-input"
+                    class="time-input end-time-input"
                 >
 
                 <select
@@ -279,13 +276,14 @@ if (addScheduleButton) {
 
                 <div class="schedule-row-actions"><button type="button" class="duplicate-button button-light">複製</button><button type="button" class="delete-button">削除</button></div>
 
-                <label class="schedule-video-field">動画URL（任意）<input type="url" class="video-url-input" maxlength="2048" placeholder="YouTubeなどの共有リンク"></label>
-                <label class="schedule-video-field">動画タグ（任意）<input type="text" class="video-tags-input" maxlength="120" list="videoTagOptions" placeholder="例：シュート、練習全体"></label>
+                <label class="schedule-video-field schedule-video-url">動画URL（任意）<input type="url" class="video-url-input" maxlength="2048" placeholder="YouTubeなどの共有リンク"></label>
+                <label class="schedule-video-field schedule-video-tags">動画タグ（任意）<input type="text" class="video-tags-input" maxlength="120" list="videoTagOptions" placeholder="例：シュート、練習全体"></label>
 
                 <div class="schedule-game-fields" hidden>
                     <label>大会名（登録済みから選択・新規入力）<input type="text" class="competition-name-input" maxlength="80" list="competitionNames" placeholder="例：2026秋北区大会"></label>
                     <label>ラウンド（任意）<input type="text" class="round-input" maxlength="40" list="basketballRoundOptions" placeholder="例：1回戦"></label>
                 </div>
+
             `;
 
         scheduleRows.appendChild(row);
@@ -301,13 +299,6 @@ if (addScheduleButton) {
 // ========================================
 
 if (scheduleRows) {
-    const repeatCheckbox = document.getElementById("repeatWeekly"),
-        repeatUntil = document.getElementById("repeatUntilDate");
-    repeatCheckbox?.addEventListener("change", () => {
-        repeatUntil.disabled = !repeatCheckbox.checked;
-        if (repeatCheckbox.checked) repeatUntil.focus();
-    });
-
     scheduleRows.addEventListener("change", (event) => {
         if (!event.target.matches(".event-type-select")) return;
         const row = event.target.closest(".schedule-row");
@@ -393,7 +384,8 @@ if (registerButton) {
                         ?.value.split(",")
                         .map((tag) => tag.trim())
                         .filter(Boolean)
-                        .slice(0, 6) || [];
+                        .slice(0, 6)
+                        .join(", ") || "";
 
                 const facilityName = facilitySelect.selectedOptions[0]?.textContent || "";
 
@@ -522,15 +514,188 @@ if (registerButton) {
 }
 
 // ========================================
+// カレンダーに戻る
+// ========================================
+
+const backButton = document.getElementById("backButton");
+
+if (backButton) {
+    backButton.addEventListener("click", () => {
+        window.location.href = "index.html";
+    });
+}
+
+// ========================================
+// 画像アップロード
+// ========================================
+
+const uploadButton = document.getElementById("uploadButton");
+
+const imageInput = document.getElementById("imageFile");
+
+const uploadStatus = document.getElementById("uploadStatus");
+
+const uploadDropzone = document.getElementById("uploadDropzone");
+
+const selectedFileName = document.getElementById("selectedFileName");
+
+if (imageInput && selectedFileName) {
+    imageInput.addEventListener("change", () => {
+        selectedFileName.textContent = imageInput.files[0]
+            ? imageInput.files[0].name
+            : "画像を選択、またはここにドロップ";
+    });
+}
+
+if (uploadDropzone && imageInput) {
+    ["dragenter", "dragover"].forEach((type) => {
+        uploadDropzone.addEventListener(type, (event) => {
+            event.preventDefault();
+            uploadDropzone.classList.add("is-dragover");
+        });
+    });
+    ["dragleave", "drop"].forEach((type) => {
+        uploadDropzone.addEventListener(type, (event) => {
+            event.preventDefault();
+            uploadDropzone.classList.remove("is-dragover");
+        });
+    });
+    uploadDropzone.addEventListener("drop", (event) => {
+        const file = event.dataTransfer.files[0];
+        if (!file || !file.type.startsWith("image/")) return;
+        const transfer = new DataTransfer();
+        transfer.items.add(file);
+        imageInput.files = transfer.files;
+        imageInput.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+}
+
+if (uploadButton) {
+    uploadButton.addEventListener("click", async () => {
+        console.log("=== 画像アップロードボタン押下 ===");
+
+        const file = imageInput.files[0];
+
+        let jobId = null;
+
+        if (!file) {
+            uploadStatus.textContent = "先に画像を選択してください。";
+            return;
+        }
+
+        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+            uploadStatus.textContent = "JPG、PNG、WebP形式の画像を選択してください。";
+            return;
+        }
+
+        try {
+            uploadButton.disabled = true;
+
+            uploadStatus.textContent = "アップロード準備中...";
+
+            // ====================================
+            // ① Presigned URL取得
+            // ====================================
+
+            const response = await adminFetch(UPLOAD_API_URL, {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json",
+                },
+
+                body: JSON.stringify({
+                    fileName: file.name,
+
+                    contentType: file.type,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Upload APIエラー: " + response.status);
+            }
+
+            const data = await response.json();
+
+            jobId = data.fileName;
+            if (window.BasketImageJobs && jobId) {
+                window.BasketImageJobs.start(jobId, file.name);
+            }
+
+            // ====================================
+            // ② S3へ直接アップロード
+            // ====================================
+
+            uploadStatus.textContent = "画像をS3へアップロード中...";
+
+            await new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open("PUT", data.uploadUrl);
+                xhr.setRequestHeader("Content-Type", file.type || "image/jpeg");
+                xhr.upload.addEventListener("progress", (event) => {
+                    if (event.lengthComputable && jobId && window.BasketImageJobs) {
+                        window.BasketImageJobs.uploadProgress(
+                            jobId,
+                            (event.loaded / event.total) * 100,
+                        );
+                    }
+                });
+                xhr.addEventListener("load", () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve();
+                    } else {
+                        reject(new Error("S3アップロードエラー: " + xhr.status));
+                    }
+                });
+                xhr.addEventListener("error", () => reject(new Error("S3への接続に失敗しました")));
+                xhr.addEventListener("abort", () =>
+                    reject(new Error("アップロードを中断しました")),
+                );
+                xhr.send(file);
+            });
+
+            // ====================================
+            // ③ 完了
+            // ====================================
+
+            uploadStatus.textContent = "画像を送信しました。解析状況は画面上部に表示します。";
+
+            if (jobId && window.BasketImageJobs) {
+                window.BasketImageJobs.uploaded(jobId);
+            }
+
+            imageInput.value = "";
+        } catch (error) {
+            if (jobId && window.BasketImageJobs) {
+                window.BasketImageJobs.failed(jobId, error.message);
+            }
+
+            console.error("画像アップロードエラー:", error);
+
+            uploadStatus.textContent = "アップロードに失敗しました。";
+
+            alert("アップロードに失敗しました。\n" + error.message);
+        } finally {
+            uploadButton.disabled = false;
+        }
+    });
+}
+
+// ========================================
 // 初期処理
 // ========================================
 
 if (getAdminIdToken()) {
-    document.body.classList.remove("auth-pending");
-    const initialScreen =
-        new URLSearchParams(location.search).get("screen") === "facility" ? "facility" : "schedule";
-    showRegistrationScreen(initialScreen, false);
-    loadFacilities();
+    document.body.style.display = "";
+    loadFacilities().then(() => {
+        const params = new URLSearchParams(window.location.search);
+        const requestedDate = params.get("date");
+        const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate || "");
+        const dateInput = scheduleRows?.querySelector(".date-input");
+        if (isValidDate && dateInput) dateInput.value = requestedDate;
+        const requestedScreen = params.get("screen") === "facility" ? "facility" : "schedule";
+        showRegistrationScreen(requestedScreen, false);
+    });
     loadCompetitionNames();
 } else {
     window.location.replace("index.html");

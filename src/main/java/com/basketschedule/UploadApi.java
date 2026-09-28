@@ -15,24 +15,10 @@ import software.amazon.awssdk.services.s3.model.Tag;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 
-/** 有効期限付きのS3アップロードURLを発行し、管理者向けに画像処理状況を返します。 */
 public class UploadApi implements RequestHandler<Map<String, Object>, Map<String, Object>> {
 
-  /** Lambdaの再利用時にスレッドセーフなAWS SDKクライアントを共有するハンドラーを作成します。 */
-  public UploadApi() {}
-
   private final ObjectMapper mapper = new ObjectMapper();
-  private final S3Client s3Client = S3Client.builder().region(Region.AP_NORTHEAST_1).build();
-  private final S3Presigner s3Presigner =
-      S3Presigner.builder().region(Region.AP_NORTHEAST_1).build();
 
-  /**
-   * 管理者からのアップロードURL発行依頼、または画像処理状況の照会を扱います。
-   *
-   * @param input Lambda Function URLから受け取ったリクエスト
-   * @param context Lambdaの実行コンテキスト
-   * @return HTTP形式の応答マップ
-   */
   @Override
   public Map<String, Object> handleRequest(Map<String, Object> input, Context context) {
 
@@ -56,24 +42,27 @@ public class UploadApi implements RequestHandler<Map<String, Object>, Map<String
 
       String contentType = requestedContentType(input);
 
-      PutObjectRequest putObjectRequest =
-          PutObjectRequest.builder()
-              .bucket(bucketName)
-              .key(fileName)
-              .contentType(contentType)
-              .build();
+      try (S3Presigner presigner = S3Presigner.builder().region(Region.AP_NORTHEAST_1).build()) {
 
-      PresignedPutObjectRequest presignedRequest =
-          s3Presigner.presignPutObject(
-              request ->
-                  request
-                      .signatureDuration(Duration.ofMinutes(5))
-                      .putObjectRequest(putObjectRequest));
+        PutObjectRequest putObjectRequest =
+            PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(fileName)
+                .contentType(contentType)
+                .build();
 
-      return response(
-          200,
-          mapper.writeValueAsString(
-              Map.of("uploadUrl", presignedRequest.url().toString(), "fileName", fileName)));
+        PresignedPutObjectRequest presignedRequest =
+            presigner.presignPutObject(
+                request ->
+                    request
+                        .signatureDuration(Duration.ofMinutes(5))
+                        .putObjectRequest(putObjectRequest));
+
+        return response(
+            200,
+            mapper.writeValueAsString(
+                Map.of("uploadUrl", presignedRequest.url().toString(), "fileName", fileName)));
+      }
 
     } catch (IllegalArgumentException e) {
 
@@ -118,9 +107,9 @@ public class UploadApi implements RequestHandler<Map<String, Object>, Map<String
     }
 
     GetObjectTaggingResponse tagging;
-    try {
+    try (S3Client s3 = S3Client.builder().region(Region.AP_NORTHEAST_1).build()) {
       tagging =
-          s3Client.getObjectTagging(
+          s3.getObjectTagging(
               GetObjectTaggingRequest.builder()
                   .bucket("basket-schedule-app-images-002")
                   .key(jobId)

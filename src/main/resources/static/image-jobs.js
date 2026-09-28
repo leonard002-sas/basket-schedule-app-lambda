@@ -1,4 +1,3 @@
-/** 画像アップロードの進捗を端末内に保存し、管理者用APIから処理状況を取得します。 */
 (() => {
     const API_URL = "https://gg5d4xxwdpfjdesh2n5vyxqm5q0mnwii.lambda-url.ap-northeast-1.on.aws/";
     const STORAGE_KEY = "basketScheduleImageJobs";
@@ -8,7 +7,6 @@
     const terminalStates = new Set(["COMPLETED", "FAILED", "UNAVAILABLE"]);
     let polling = false;
 
-    /** 最近の処理情報を復元します。保存データがない場合や壊れている場合も継続します。 */
     function getJobs() {
         try {
             const jobs = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
@@ -18,13 +16,11 @@
         }
     }
 
-    /** 解析中の画像一覧をブラウザーへ保存し、画面更新後も復元できるようにします。 */
     function saveJobs(jobs) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(jobs.slice(-6)));
         render();
     }
 
-    /** 指定した画像ジョブの状態だけを更新し、一覧と保存内容を同期します。 */
     function updateJob(jobId, changes) {
         const jobs = getJobs();
         const index = jobs.findIndex((job) => job.jobId === jobId);
@@ -33,7 +29,6 @@
         saveJobs(jobs);
     }
 
-    /** 前回の画面終了時に処理中だった画像を、再試行できる状態へ戻します。 */
     function restoreInterruptedUploads() {
         const jobs = getJobs();
         let changed = false;
@@ -48,7 +43,6 @@
         if (changed) saveJobs(jobs);
     }
 
-    /** 内部状態コードを利用者向けの短い日本語へ変換します。 */
     function stateText(job) {
         if (job.status === "UPLOADING")
             return `画像をアップロード中 · ${Math.round(job.percent || 0)}%`;
@@ -63,7 +57,6 @@
         return "画像を処理しています";
     }
 
-    /** 画像解析結果の状態を、一覧カードのバッジ表示用テキストへ変換します。 */
     function badgeText(status) {
         return (
             {
@@ -77,7 +70,6 @@
         );
     }
 
-    /** ファイル名をHTMLとして実行しないよう、テキストノードで進捗を表示します。 */
     function render() {
         if (!banner || !list) return;
         const jobs = getJobs();
@@ -138,7 +130,6 @@
         if (dismissButton) dismissButton.hidden = !hasDismissibleJob;
     }
 
-    /** 画面表示用の定期取得に使う有効な管理者トークンを読みます。API側でも検証します。 */
     function readAdminToken() {
         const token = localStorage.getItem("id_token");
         if (!token) return null;
@@ -158,7 +149,6 @@
         }
     }
 
-    /** 前回の取得が終わってから、処理中のジョブ情報を更新します。 */
     async function poll() {
         if (polling) return;
         let jobs = getJobs().filter(

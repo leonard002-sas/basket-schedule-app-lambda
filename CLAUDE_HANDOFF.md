@@ -87,8 +87,7 @@ CodeBuildの実行ロールとLambdaの実行ロールは別物です。CodeBuil
 
 ## 主要ファイル
 
-- `src/main/java/com/basketschedule/ScheduleApi.java`: 予定API。認証とルーティングを行い、予定・施設のDB操作は`ScheduleRepository`へ委譲します。`feature=basketball`は`BasketballApi`へルーティングします。
-- `src/main/java/com/basketschedule/LambdaRequestParser.java`: Lambda/API GatewayイベントからHTTPメソッド、クエリ、本文を取り出します。
+- `src/main/java/com/basketschedule/ScheduleApi.java`: 予定API。`feature=basketball`を`BasketballApi`へルーティングします。
 - `src/main/java/com/basketschedule/BasketballApi.java`: スコアブックのREST風GET/PUT、DynamoDB処理、Cognito認可、スタッツ集計。
 - `src/main/java/com/basketschedule/CognitoAuth.java`: Cognito ID token検証と`admins`グループ検証。
 - `src/main/resources/static/index.html`, `app.js`, `app.css`: カレンダー画面、認証UI、予定登録・施設・ICS。

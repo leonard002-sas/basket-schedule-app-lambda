@@ -1,7 +1,6 @@
 package com.basketschedule;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Map;
@@ -23,15 +22,14 @@ class CognitoAuthTest {
   }
 
   @Test
-  void allowsOnlyVerifiedAdminsToUseAdminOperations() {
-    CognitoAuth.User admin = new CognitoAuth.User("admin-sub", Set.of("admins"));
-    CognitoAuth.User guest = new CognitoAuth.User("guest-sub", Set.of());
-
-    assertSame(admin, CognitoAuth.requireAdmin(admin));
+  void rejectsAdminOperationsWithoutAnAuthenticatedRequest() {
     CognitoAuth.AuthException error =
-        assertThrows(CognitoAuth.AuthException.class, () -> CognitoAuth.requireAdmin(guest));
+        assertThrows(
+            CognitoAuth.AuthException.class,
+            () -> CognitoAuth.requireAdmin(Map.of("httpMethod", "POST")));
 
-    assertEquals(403, error.statusCode());
+    assertEquals(401, error.statusCode());
+    assertEquals("MISSING_BEARER_TOKEN", error.code());
   }
 
   @Test

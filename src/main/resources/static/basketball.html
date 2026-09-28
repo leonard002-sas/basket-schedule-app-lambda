@@ -11,7 +11,7 @@
         <link rel="stylesheet" href="theme.css" />
         <script src="theme.js"></script>
     </head>
-    <body class="scorebook-body auth-pending">
+    <body class="scorebook-body" style="display: none">
         <div class="app-shell scorebook-shell">
             <header class="site-header">
                 <a class="brand-lockup" href="index.html"
@@ -34,41 +34,17 @@
                         ><span class="brand-caption">Team scorebook</span></span
                     ></a
                 >
-                <nav class="header-actions" aria-label="アカウント操作">
-                    <button type="button" class="theme-toggle" data-theme-toggle></button>
-                    <details class="account-menu" id="accountMenu" hidden>
-                        <summary id="accountMenuTrigger" aria-label="アカウントメニューを開く">
-                            <span class="account-avatar" aria-hidden="true">🏀</span
-                            ><span class="account-menu-identity"
-                                ><strong id="accountDisplayName">アカウント</strong
-                                ><small id="accountRoleLabel">メンバー</small></span
-                            ><span class="account-menu-chevron" aria-hidden="true">⌄</span>
-                        </summary>
-                        <div class="account-menu-panel" aria-label="アカウント操作">
-                            <div class="account-profile">
-                                <strong id="accountEmail"></strong
-                                ><span id="accountAccessDescription"></span>
-                            </div>
-                            <button
-                                type="button"
-                                class="account-delete-button"
-                                id="deleteAccountButton"
-                            >
-                                アカウントを削除</button
-                            ><button type="button" class="account-logout-button" id="logoutButton">
-                                ログアウト
-                            </button>
-                        </div>
-                    </details>
-                </nav>
+                <div class="scorebook-header-actions">
+                    <button type="button" class="theme-toggle" data-theme-toggle></button
+                    ><a class="button-light scorebook-back" href="index.html">← カレンダー</a>
+                </div>
             </header>
-
             <nav class="site-navigation" aria-label="メインナビゲーション">
-                <a href="index.html#calendarArea" data-app-nav="calendar">予定表</a>
+                <a href="index.html" data-app-nav="calendar">カレンダー</a>
                 <a href="register.html?screen=schedule" data-app-nav="schedule">予定登録</a>
                 <a href="register.html?screen=facility" data-app-nav="facility">施設登録</a>
-                <a href="index.html#announcementsArea" data-app-nav="announcements">周知事項</a>
-                <a href="index.html#videoArchive" data-app-nav="videos">練習動画</a>
+                <a href="index.html?screen=announcements" data-app-nav="announcements">周知事項</a>
+                <a href="index.html?screen=videos" data-app-nav="videos">練習動画</a>
                 <a href="basketball.html?view=teams" data-app-nav="teams">チーム</a>
                 <a href="basketball.html?view=games" data-app-nav="games">試合</a>
                 <a href="basketball.html?view=rankings" data-app-nav="rankings">ランキング</a>
@@ -83,6 +59,12 @@
                 </p>
             </section>
 
+            <nav class="scorebook-nav" aria-label="スコアブックメニュー">
+                <a href="basketball.html?view=teams" data-view-link="teams">チーム管理</a>
+                <a href="basketball.html?view=games" data-view-link="games">試合管理</a>
+                <a href="basketball.html?view=rankings" data-view-link="rankings">ランキング</a>
+            </nav>
+
             <div class="team-select-row global-team-select">
                 <label
                     >管理するチーム<select id="teamSelect">
@@ -91,7 +73,6 @@
                 >
             </div>
 
-            <!-- ゲストには閲覧画面を表示し、書き込み権限はJava APIで検証します。 -->
             <main class="scorebook-grid">
                 <section class="section score-card" id="teamCard">
                     <div class="score-section-title">
@@ -221,55 +202,6 @@
                         </div>
                     </div>
                     <div id="gamesList" class="games-list"></div>
-                    <p class="autosave-note">
-                        試合中のスコアや記録は操作ごとにアカウントへ自動保存されます。画面を閉じても、一覧の「記録を再開」から続けられます。
-                    </p>
-                    <details class="csv-import-panel">
-                        <summary>Googleスプレッドシートから過去試合を取り込む</summary>
-                        <p>
-                            複数試合をまとめて移行できます。テンプレートCSVは1選手につき1行で、DATE
-                            と OPPONENT
-                            を試合ごとに繰り返してください。旧形式の1試合CSVは、日付と対戦相手を下に入力すれば取り込めます。選手名が登録済みメンバーと一致すると、その選手に紐づきます。
-                        </p>
-                        <div class="csv-import-actions">
-                            <button
-                                id="downloadImportTemplateButton"
-                                type="button"
-                                class="button-light"
-                            >
-                                CSVテンプレート
-                            </button>
-                        </div>
-                        <form id="csvImportForm" class="csv-import-form">
-                            <label
-                                >試合日（旧形式用）<input id="importGameDate" type="date" /></label
-                            ><label
-                                >対戦相手（旧形式用）<input
-                                    id="importOpponent"
-                                    maxlength="100" /></label
-                            ><label
-                                >大会名（任意）<input
-                                    id="importCompetition"
-                                    maxlength="80"
-                                    list="basketballCompetitionNames"
-                                    placeholder="例：2026秋北区大会" /></label
-                            ><datalist id="basketballCompetitionNames"></datalist
-                            ><label
-                                >相手得点（旧形式用）<input
-                                    id="importOpponentScore"
-                                    type="number"
-                                    min="0"
-                                    placeholder="不明なら空欄" /></label
-                            ><label class="csv-file-label"
-                                >CSVファイル<input
-                                    id="statsCsvFile"
-                                    type="file"
-                                    accept=".csv,text/csv"
-                                    required /></label
-                            ><button class="button-accent">過去試合を取り込む</button>
-                        </form>
-                        <div id="csvImportStatus" class="score-status" role="status"></div>
-                    </details>
                 </section>
 
                 <section class="section score-card scorekeeper-card" id="scorekeeperCard" hidden>
@@ -524,6 +456,34 @@
                         <div id="playerTrendChart" class="player-trend-chart"></div>
                         <div id="playerTrendGames" class="player-trend-games"></div>
                     </section>
+                    <details class="csv-import-panel">
+                        <summary>Googleスプレッドシートから過去試合を取り込む</summary>
+                        <p>
+                            1試合分のCSVを選び、試合日と対戦相手を入力してください。PLAYER、PTS、REB、AST、STL、BLK、FGM、FGA、2PM、2PA、3PM、3PA、FTM、FTA、OREB、DREB、TO、PF列に対応します。選手名が一致すれば、このチームのメンバーに紐づきます。相手得点が不明なら空欄にしてください。
+                        </p>
+                        <form id="csvImportForm" class="csv-import-form">
+                            <label>試合日<input id="importGameDate" type="date" required /></label
+                            ><label
+                                >対戦相手<input
+                                    id="importOpponent"
+                                    maxlength="100"
+                                    required /></label
+                            ><label
+                                >相手得点（任意）<input
+                                    id="importOpponentScore"
+                                    type="number"
+                                    min="0"
+                                    placeholder="不明なら空欄" /></label
+                            ><label class="csv-file-label"
+                                >CSVファイル<input
+                                    id="statsCsvFile"
+                                    type="file"
+                                    accept=".csv,text/csv"
+                                    required /></label
+                            ><button class="button-accent">過去試合を取り込む</button>
+                        </form>
+                        <div id="csvImportStatus" class="score-status" role="status"></div>
+                    </details>
                 </section>
             </main>
             <div id="scorebookToast" class="scorebook-toast" role="status" aria-live="polite"></div>
@@ -556,38 +516,6 @@
                 </div>
             </form>
         </dialog>
-        <dialog
-            id="accountDeleteDialog"
-            class="account-delete-dialog"
-            aria-labelledby="accountDeleteTitle"
-        >
-            <form id="accountDeleteForm">
-                <span class="eyebrow">ACCOUNT CONTROL</span>
-                <h2 id="accountDeleteTitle">アカウントを削除しますか？</h2>
-                <p>
-                    この操作は取り消せません。Cognitoのログインアカウントを削除します。共有の予定・チーム・試合データは削除されません。
-                </p>
-                <p id="adminDeletionWarning" hidden>
-                    管理者の場合、削除前に別の管理者を追加してください。管理者がいなくなると、登録や編集を行えなくなります。
-                </p>
-                <label
-                    >確認のため「削除する」と入力してください<input
-                        id="accountDeleteConfirmation"
-                        autocomplete="off"
-                        required
-                /></label>
-                <p id="accountDeleteStatus" role="status" aria-live="polite"></p>
-                <div class="account-delete-actions">
-                    <button type="button" class="button-light" id="cancelAccountDelete">
-                        キャンセル</button
-                    ><button type="submit" class="button-danger" id="confirmAccountDelete" disabled>
-                        アカウントを削除
-                    </button>
-                </div>
-            </form>
-        </dialog>
-        <script src="account-menu.js"></script>
-        <script src="basketball-data-utils.js"></script>
         <script src="basketball.js"></script>
     </body>
 </html>

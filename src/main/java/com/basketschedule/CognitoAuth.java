@@ -20,13 +20,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Lambdaが保護対象のデータへアクセスする前に、Amazon CognitoのIDトークンを検証します。
- *
- * <p>ブラウザーは {@code Authorization: Bearer} ヘッダーでトークンを送信します。このクラスはCognitoの公開鍵で署名を検証し、
- * 発行元、アプリクライアント、トークン用途、有効期限を確認します。権限判定には必ず検証済みの結果を使います。
- * ブラウザー側のグループ確認は画面の表示制御に限り、APIへのアクセス権を与えるものではありません。
- */
+/** Validates Cognito ID tokens before protected handlers access AWS services. */
 public final class CognitoAuth {
 
   private static final String CLIENT_ID = "3mr9ep2rosop9ratlg1l3bta70";
@@ -44,13 +38,6 @@ public final class CognitoAuth {
 
   private CognitoAuth() {}
 
-  /**
-   * リクエストのBearerトークンを検証し、Cognitoで認証された利用者情報を返します。
-   *
-   * @param request リクエストヘッダーを含むLambda Function URLイベント
-   * @return Cognitoで検証済みの利用者IDとグループ一覧
-   * @throws AuthException 有効なトークンがない場合
-   */
   public static User requireUser(Map<String, Object> request) {
     String token = bearerToken(request);
     if (token == null) {
@@ -59,27 +46,8 @@ public final class CognitoAuth {
     return verify(token);
   }
 
-  /**
-   * Bearerトークンを検証し、ユーザープールの {@code admins} グループへの所属を要求します。
-   *
-   * @param request リクエストヘッダーを含むLambda Function URLイベント
-   * @return 管理者権限が確認された利用者情報
-   * @throws AuthException トークンがない、無効、または管理者ではない場合
-   */
   public static User requireAdmin(Map<String, Object> request) {
-    return requireAdmin(requireUser(request));
-  }
-
-  /**
-   * 検証済みの利用者に対して、指定された権限ルールを適用します。
-   *
-   * <p>パッケージ内からテストできる可視性にし、Cognitoへ接続せず認可ルールを検証できるようにします。
-   *
-   * @param user トークン検証に成功して特定された利用者
-   * @return 管理者グループに所属している場合は同じ利用者情報
-   * @throws AuthException 利用者が管理者ではない場合
-   */
-  static User requireAdmin(User user) {
+    User user = requireUser(request);
     if (!user.groups().contains("admins")) {
       throw new AuthException(403, "管理者権限が必要です");
     }
@@ -244,19 +212,8 @@ public final class CognitoAuth {
     return new AuthException(401, "認証情報が無効または期限切れです", code);
   }
 
-  /**
-   * 検証済みCognito IDトークンから取り出した、変更できない利用者情報です。
-   *
-   * @param subject Cognitoが利用者に割り当てた一意の識別子
-   * @param groups Cognitoで検証済みのグループ名
-   */
+  /** Cognito が確認した利用者 ID とユーザーグループを表します。 */
   public record User(String subject, Set<String> groups) {
-    /**
-     * 検証済み利用者の変更できない情報を作成します。
-     *
-     * @param subject Cognitoが利用者に割り当てた一意の識別子
-     * @param groups Cognitoで検証済みのグループ名
-     */
     public User {
       groups = Set.copyOf(groups);
     }
@@ -264,53 +221,25 @@ public final class CognitoAuth {
 
   private record CachedKeys(Map<String, RSAPublicKey> keys, Instant expiresAt) {}
 
-  /** APIハンドラーが安全な応答へ変換できる認証または認可エラーです。 */
   public static final class AuthException extends RuntimeException {
     private static final long serialVersionUID = 1L;
-
-    /** 認証または権限エラーを表すHTTPステータスです。 */
     private final int statusCode;
-
-    /** クライアントへ返す固定の診断コードです。 */
     private final String code;
 
-    /**
-     * APIの既定エラーコードを持つ認可エラーを作成します。
-     *
-     * @param statusCode APIから返すHTTPステータス
-     * @param message APIの呼び出し元へ返してよいメッセージ
-     */
     public AuthException(int statusCode, String message) {
       this(statusCode, message, "AUTHORIZATION_FAILED");
     }
 
-    /**
-     * APIで安全に返せる、固定の診断コードを持つ認可エラーを作成します。
-     *
-     * @param statusCode APIから返すHTTPステータス
-     * @param message APIの呼び出し元へ返してよいメッセージ
-     * @param code 内部情報を漏らさない固定のエラーコード
-     */
     public AuthException(int statusCode, String message, String code) {
       super(message);
       this.statusCode = statusCode;
       this.code = code;
     }
 
-    /**
-     * 呼び出し元へ返すHTTPステータスを返します。
-     *
-     * @return HTTPステータス
-     */
     public int statusCode() {
       return statusCode;
     }
 
-    /**
-     * クライアントへ返しても安全な固定の診断コードを返します。
-     *
-     * @return APIエラーコード
-     */
     public String code() {
       return code;
     }

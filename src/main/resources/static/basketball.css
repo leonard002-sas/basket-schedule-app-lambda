@@ -1,4 +1,3 @@
-/* チーム管理、試合記録、ランキング画面の配置と共通部品を定義します。 */
 .scorebook-body {
     background:
         radial-gradient(ellipse at 100% 0%, rgba(255, 138, 76, 0.1), transparent 27rem),
@@ -95,44 +94,6 @@
 }
 .scorebook-panel[hidden] {
     display: none !important;
-}
-.scorebook-panel:not([hidden]) {
-    animation: scorebook-panel-enter 0.24s ease-out both;
-}
-.scorebook-nav a,
-.roster-member,
-.game-item,
-.player-select-button,
-.stat-button {
-    transition:
-        transform 0.16s ease,
-        box-shadow 0.16s ease,
-        border-color 0.16s ease,
-        background-color 0.16s ease;
-}
-.scorebook-nav a.is-active {
-    box-shadow: 0 5px 14px rgba(162, 203, 81, 0.22);
-}
-.roster-member:hover,
-.game-item:hover {
-    transform: translateY(-2px);
-    border-color: #cbd9c0;
-    box-shadow: 0 10px 24px rgba(30, 48, 72, 0.08);
-}
-.player-select-button:hover:not(:disabled),
-.stat-button:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 18px rgba(30, 48, 72, 0.12);
-}
-@keyframes scorebook-panel-enter {
-    from {
-        opacity: 0;
-        transform: translateY(6px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
 .scorebook-hero {
     position: relative;
@@ -324,24 +285,24 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 14px;
-    padding: 16px 17px;
+    gap: 10px;
+    padding: 11px 12px;
     border: 1px solid var(--line);
-    border-radius: 15px;
+    border-radius: 13px;
     background: #fbfcfd;
 }
 .game-item strong {
     display: block;
-    font-size: 15px;
+    font-size: 13px;
 }
 .game-item span {
     color: var(--muted);
-    font-size: 13px;
+    font-size: 11px;
 }
 .game-item button {
-    min-height: 40px;
-    padding: 7px 13px;
-    font-size: 12px;
+    min-height: 34px;
+    padding: 6px 11px;
+    font-size: 11px;
 }
 .game-item-actions {
     display: flex;
@@ -779,26 +740,6 @@
     color: var(--navy);
     background: var(--lime);
 }
-.csv-import-actions {
-    display: flex;
-    justify-content: flex-end;
-    margin: 10px 0;
-}
-.autosave-note {
-    margin: 14px 0 0;
-    padding: 12px 14px;
-    border: 1px solid #dce8c9;
-    border-radius: 12px;
-    color: #526543;
-    background: #f5f9ec;
-    font-size: 12px;
-    line-height: 1.6;
-}
-:root[data-theme="dark"] .autosave-note {
-    color: #d4e6bd;
-    border-color: #52663c;
-    background: #263321;
-}
 .scorebook-dialog {
     width: min(460px, calc(100vw - 30px));
     padding: 22px;
@@ -892,12 +833,7 @@
     box-shadow: 0 9px 24px rgba(16, 29, 49, 0.2);
     opacity: 0;
     pointer-events: none;
-    transition:
-        color 0.2s ease,
-        background-color 0.2s ease,
-        border-color 0.2s ease,
-        box-shadow 0.2s ease,
-        transform 0.2s ease;
+    transition: all 0.2s ease;
     font-size: 12px;
 }
 .scorebook-toast.is-visible {
@@ -993,102 +929,6 @@
     background: #f5faeb;
     font-size: 12px;
 }
-.trend-player-button {
-    padding: 0;
-    border: 0;
-    background: transparent;
-    color: #2f7142;
-    font: inherit;
-    font-weight: 800;
-    cursor: pointer;
-}
-.trend-player-button:hover {
-    text-decoration: underline;
-}
-.player-trend-panel {
-    margin-top: 22px;
-    padding: 18px;
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    background: #f7faf5;
-}
-.player-trend-heading {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-}
-.player-trend-heading h3 {
-    margin: 4px 0;
-}
-.player-trend-controls {
-    display: flex;
-    align-items: end;
-    gap: 8px;
-}
-.player-trend-controls label {
-    display: grid;
-    gap: 4px;
-    color: var(--muted);
-    font-size: 11px;
-}
-.player-trend-controls select,
-.player-trend-controls button {
-    min-height: 38px;
-}
-.trend-chart-scroll {
-    width: 100%;
-    overflow-x: auto;
-}
-.trend-chart-scroll svg {
-    display: block;
-    width: 100%;
-    min-width: 380px;
-    max-height: 230px;
-}
-.trend-axis {
-    stroke: var(--line);
-    stroke-width: 2;
-}
-.trend-line {
-    fill: none;
-    stroke: #5b9a54;
-    stroke-width: 4;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-}
-.trend-point {
-    fill: #fff;
-    stroke: #5b9a54;
-    stroke-width: 4;
-}
-.trend-chart-caption {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    color: var(--muted);
-    font-size: 10px;
-}
-.trend-chart-caption strong {
-    color: var(--ink);
-}
-.player-trend-games {
-    display: flex;
-    gap: 7px;
-    overflow-x: auto;
-    padding: 12px 2px 3px;
-}
-.player-trend-games span {
-    flex: 0 0 auto;
-    padding: 7px 10px;
-    border-radius: 10px;
-    background: #fff;
-    color: #536177;
-    font-size: 10px;
-}
-.player-trend-games strong {
-    color: var(--ink);
-}
 @media (max-width: 760px) {
     .scorebook-grid {
         grid-template-columns: 1fr;
@@ -1099,24 +939,6 @@
     }
 }
 @media (max-width: 560px) {
-    .player-trend-heading,
-    .player-trend-controls {
-        align-items: stretch;
-        flex-direction: column;
-    }
-    .player-trend-panel {
-        padding: 13px;
-    }
-    .player-trend-controls {
-        display: grid;
-        grid-template-columns: 1fr auto;
-    }
-    .player-trend-controls button {
-        align-self: end;
-    }
-    .trend-chart-caption {
-        font-size: 9px;
-    }
     .scorebook-hero {
         padding: 20px;
     }
@@ -1233,5 +1055,122 @@
     }
     #newTeamButton {
         align-self: flex-start;
+    }
+}
+
+.trend-player-button {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #2f7142;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+}
+.trend-player-button:hover {
+    text-decoration: underline;
+}
+.player-trend-panel {
+    margin-top: 22px;
+    padding: 18px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: #f7faf5;
+}
+.player-trend-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+.player-trend-heading h3 {
+    margin: 4px 0;
+}
+.player-trend-controls {
+    display: flex;
+    align-items: end;
+    gap: 8px;
+}
+.player-trend-controls label {
+    display: grid;
+    gap: 4px;
+    color: var(--muted);
+    font-size: 11px;
+}
+.player-trend-controls select,
+.player-trend-controls button {
+    min-height: 38px;
+}
+.trend-chart-scroll {
+    width: 100%;
+    overflow-x: auto;
+}
+.trend-chart-scroll svg {
+    display: block;
+    width: 100%;
+    min-width: 380px;
+    max-height: 230px;
+}
+.trend-axis {
+    stroke: var(--line);
+    stroke-width: 2;
+}
+.trend-line {
+    fill: none;
+    stroke: #5b9a54;
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.trend-point {
+    fill: #fff;
+    stroke: #5b9a54;
+    stroke-width: 4;
+}
+.trend-chart-caption {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 10px;
+}
+.trend-chart-caption strong {
+    color: var(--ink);
+}
+.player-trend-games {
+    display: flex;
+    gap: 7px;
+    overflow-x: auto;
+    padding: 12px 2px 3px;
+}
+.player-trend-games span {
+    flex: 0 0 auto;
+    padding: 7px 10px;
+    border-radius: 10px;
+    background: #fff;
+    color: #536177;
+    font-size: 10px;
+}
+.player-trend-games strong {
+    color: var(--ink);
+}
+@media (max-width: 560px) {
+    .player-trend-heading,
+    .player-trend-controls {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .player-trend-panel {
+        padding: 13px;
+    }
+    .player-trend-controls {
+        display: grid;
+        grid-template-columns: 1fr auto;
+    }
+    .player-trend-controls button {
+        align-self: end;
+    }
+    .trend-chart-caption {
+        font-size: 9px;
     }
 }

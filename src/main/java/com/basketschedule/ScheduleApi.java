@@ -13,79 +13,56 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.UUID;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
 
-/**
- * ログイン利用者向けの予定取得と、管理者向けの予定変更を扱うLambda APIです。
- *
- * <p>クエリにスコアブック機能が指定された場合は、処理を {@link BasketballApi} へ渡します。 クエリに {@code feature=basketball}
- * が含まれる場合はスコアブックAPIへ処理を渡します。 予定と周知事項は {@code BasketSchedule} DynamoDBテーブルへ保存します。
- */
 public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<String, Object>> {
 
-  private final ScheduleRepository scheduleRepository;
+  private static final String SCHEDULE_TABLE = "BasketSchedule";
+
+  private static final String FACILITY_TABLE = "BasketFacility";
+
+  private final DynamoDbClient dynamoDbClient =
+      DynamoDbClient.builder().region(Region.AP_NORTHEAST_1).build();
 
   private final ObjectMapper mapper = new ObjectMapper();
 
-  private final AnnouncementService announcementService;
-
-  // Lambdaの再利用時も安全なDynamoDBクライアントを、リクエスト間で共有します。
-  private final BasketballApi basketballApi = new BasketballApi();
-
-  /** 再利用可能な予定ハンドラーとAWS SDKクライアントを作成します。 */
-  public ScheduleApi() {
-    this(DynamoDbClient.builder().region(Region.AP_NORTHEAST_1).build());
-  }
-
-  /**
-   * 指定されたAWS SDKクライアントを使う予定APIを作成します。
-   *
-   * @param dynamoDbClient 予定と周知事項の保存先へ接続するクライアント
-   */
-  ScheduleApi(DynamoDbClient dynamoDbClient) {
-    DynamoDbClient client = Objects.requireNonNull(dynamoDbClient, "dynamoDbClient");
-    this.scheduleRepository = new ScheduleRepository(client);
-    this.announcementService = new AnnouncementService(client);
-  }
-
-  /**
-   * Cognitoの権限要件を確認し、Function URLのリクエストを該当する処理へ振り分けます。
-   *
-   * @param input 解析済みのAPI Gatewayイベント
-   * @param context 運用ログに使うLambda実行コンテキスト
-   * @return ステータス、ヘッダー、本文を含むAPI Gateway応答マップ
-   */
   @Override
   public Map<String, Object> handleRequest(Map<String, Object> input, Context context) {
 
     try {
 
-      Map<String, String> routeQuery = LambdaRequestParser.queryParameters(input);
+      Map<String, String> routeQuery = getQueryParameters(input);
       if ("basketball".equals(routeQuery.get("feature"))) {
-        return basketballApi.handleRequest(input, context);
+        return new BasketballApi().handleRequest(input, context);
       }
 
-      String method = LambdaRequestParser.httpMethod(input);
+      CognitoAuth.User user = CognitoAuth.requireUser(input);
 
-      CognitoAuth.User user =
-          "GET".equalsIgnoreCase(method)
-              ? CognitoAuth.requireUser(input)
-              : CognitoAuth.requireAdmin(input);
+      String method = getHttpMethod(input);
 
       String resource = routeQuery.get("resource");
+
+      if (("PUT".equalsIgnoreCase(method) || "DELETE".equalsIgnoreCase(method))
+          && !user.groups().contains("admins")) {
+        return response(403, Map.of("message", "管理者権限が必要です"));
+      }
 
       context.getLogger().log("HTTP Method: " + method);
 
       // ========================================
-      // GETリクエストを読み取り処理へ振り分けます。
+      // GET
       // ========================================
 
       if ("GET".equalsIgnoreCase(method)) {
 
-        Map<String, String> query = LambdaRequestParser.queryParameters(input);
+        Map<String, String> query = getQueryParameters(input);
 
         // /schedule
         if (query.containsKey("scheduleMonth") && query.containsKey("startDateTime")) {
@@ -98,36 +75,28 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
       }
 
       // ========================================
-      // PUTリクエストを更新処理へ振り分けます。
+      // PUT
       // ========================================
 
       if ("PUT".equalsIgnoreCase(method)) {
 
-        if ("announcement".equals(resource)) {
-          JsonNode body = mapper.readTree(LambdaRequestParser.body(input));
-          return response(200, announcementService.save(body));
-        }
+        if ("announcement".equals(resource)) return saveAnnouncement(input);
 
         return updateSchedule(input, context);
       }
 
       // ========================================
-      // DELETEリクエストを削除処理へ振り分けます。
+      // DELETE
       // ========================================
 
       if ("DELETE".equalsIgnoreCase(method)) {
 
-        if ("announcement".equals(resource)) {
-          return response(200, announcementService.delete(routeQuery.get("id")));
-        }
+        if ("announcement".equals(resource)) return deleteAnnouncement(routeQuery.get("id"));
 
         return deleteSchedule(input, context);
       }
 
       return response(405, Map.of("message", "Method Not Allowed"));
-
-    } catch (IllegalArgumentException e) {
-      return response(400, Map.of("message", e.getMessage()));
 
     } catch (CognitoAuth.AuthException e) {
 
@@ -135,25 +104,27 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
 
     } catch (Exception e) {
 
-      context
-          .getLogger()
-          .log("Schedule API failed: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+      context.getLogger().log("ERROR: " + e.getMessage());
 
-      return response(500, Map.of("message", "サーバーエラー", "code", "INTERNAL_ERROR"));
+      return response(500, Map.of("message", "サーバーエラー", "error", e.getMessage()));
     }
   }
 
   // ========================================
-  // GET /schedules の一覧取得です。
+  // GET /schedules
   // ========================================
 
   private Map<String, Object> getSchedules(boolean includeExpired) throws Exception {
+
+    ScanRequest request = ScanRequest.builder().tableName(SCHEDULE_TABLE).build();
+
+    var dynamoResponse = dynamoDbClient.scan(request);
 
     List<Map<String, String>> result = new ArrayList<>();
     List<Map<String, Object>> announcements = new ArrayList<>();
     LocalDate today = LocalDate.now(ZoneId.of("Asia/Tokyo"));
 
-    for (Map<String, AttributeValue> item : scheduleRepository.listSchedules()) {
+    for (Map<String, AttributeValue> item : dynamoResponse.items()) {
 
       if ("ANNOUNCEMENT".equals(getString(item, "recordType"))) {
         String visibleUntil = getString(item, "visibleUntil");
@@ -200,6 +171,55 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
     return response(200, Map.of("items", result, "announcements", announcements));
   }
 
+  private Map<String, Object> saveAnnouncement(Map<String, Object> input) throws Exception {
+    JsonNode body = mapper.readTree(getBody(input));
+    String id = body.path("id").asText("").trim();
+    if (id.isBlank()) id = UUID.randomUUID().toString();
+    String title = required(body, "title").trim(), content = required(body, "content").trim();
+    String urgency = body.path("urgency").asText("NORMAL");
+    String visibleUntil = required(body, "visibleUntil");
+    if (title.length() > 100 || content.length() > 2000)
+      throw new IllegalArgumentException("見出しは100文字、本文は2000文字以内で入力してください");
+    if (!List.of("NORMAL", "IMPORTANT", "URGENT").contains(urgency))
+      throw new IllegalArgumentException("緊急度が不正です");
+    try {
+      LocalDate.parse(visibleUntil);
+    } catch (Exception e) {
+      throw new IllegalArgumentException("表示期限を確認してください（YYYY-MM-DD）");
+    }
+    Map<String, AttributeValue> key = new HashMap<>();
+    key.put("scheduleMonth", AttributeValue.builder().s("ANNOUNCEMENTS").build());
+    key.put("startDateTime", AttributeValue.builder().s(id).build());
+    var old =
+        dynamoDbClient.getItem(GetItemRequest.builder().tableName(SCHEDULE_TABLE).key(key).build());
+    long createdAt =
+        old.hasItem() && old.item().containsKey("createdAt")
+            ? Long.parseLong(old.item().get("createdAt").n())
+            : System.currentTimeMillis();
+    Map<String, AttributeValue> item = new HashMap<>(key);
+    item.put("recordType", AttributeValue.builder().s("ANNOUNCEMENT").build());
+    item.put("announcementId", AttributeValue.builder().s(id).build());
+    item.put("title", AttributeValue.builder().s(title).build());
+    item.put("content", AttributeValue.builder().s(content).build());
+    item.put("urgency", AttributeValue.builder().s(urgency).build());
+    item.put("visibleUntil", AttributeValue.builder().s(visibleUntil).build());
+    item.put("createdAt", AttributeValue.builder().n(Long.toString(createdAt)).build());
+    item.put(
+        "updatedAt", AttributeValue.builder().n(Long.toString(System.currentTimeMillis())).build());
+    dynamoDbClient.putItem(PutItemRequest.builder().tableName(SCHEDULE_TABLE).item(item).build());
+    return response(200, Map.of("message", "周知事項を保存しました", "id", id));
+  }
+
+  private Map<String, Object> deleteAnnouncement(String id) {
+    if (id == null || id.isBlank()) throw new IllegalArgumentException("お知らせIDがありません");
+    Map<String, AttributeValue> key = new HashMap<>();
+    key.put("scheduleMonth", AttributeValue.builder().s("ANNOUNCEMENTS").build());
+    key.put("startDateTime", AttributeValue.builder().s(id).build());
+    dynamoDbClient.deleteItem(
+        DeleteItemRequest.builder().tableName(SCHEDULE_TABLE).key(key).build());
+    return response(200, Map.of("message", "周知事項を削除しました"));
+  }
+
   private int announcementPriority(String urgency) {
     return switch (urgency) {
       case "URGENT" -> 3;
@@ -209,7 +229,7 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
   }
 
   // ========================================
-  // GET /schedule の詳細取得です。
+  // GET /schedule
   //
   // ?scheduleMonth=2026-09
   // &startDateTime=2026-09-05T13:00
@@ -218,13 +238,22 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
   private Map<String, Object> getScheduleDetail(String scheduleMonth, String startDateTime)
       throws Exception {
 
-    Map<String, AttributeValue> item =
-        scheduleRepository.findSchedule(scheduleMonth, startDateTime);
+    Map<String, AttributeValue> key = new HashMap<>();
 
-    if (item.isEmpty()) {
+    key.put("scheduleMonth", AttributeValue.builder().s(scheduleMonth).build());
+
+    key.put("startDateTime", AttributeValue.builder().s(startDateTime).build());
+
+    GetItemRequest request = GetItemRequest.builder().tableName(SCHEDULE_TABLE).key(key).build();
+
+    var result = dynamoDbClient.getItem(request);
+
+    if (!result.hasItem()) {
 
       return response(404, Map.of("message", "予定が見つかりません"));
     }
+
+    Map<String, AttributeValue> item = result.item();
 
     Map<String, Object> schedule = new HashMap<>();
 
@@ -278,10 +307,10 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
   }
 
   // ========================================
-  // PUT /schedule の予定更新です。
+  // PUT /schedule
   // ========================================
   //
-  // リクエスト本文の例:
+  // Body:
   //
   // {
   //   "oldScheduleMonth": "2026-09",
@@ -297,7 +326,7 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
   private Map<String, Object> updateSchedule(Map<String, Object> input, Context context)
       throws Exception {
 
-    JsonNode body = mapper.readTree(LambdaRequestParser.body(input));
+    JsonNode body = mapper.readTree(getBody(input));
 
     // ========================================
     // 旧キー
@@ -335,19 +364,25 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
     // 旧データを確認
     // ========================================
 
-    Map<String, AttributeValue> oldKey =
-        scheduleRepository.scheduleKey(oldScheduleMonth, oldStartDateTime);
+    Map<String, AttributeValue> oldKey = new HashMap<>();
 
-    Map<String, AttributeValue> oldItem =
-        scheduleRepository.findSchedule(oldScheduleMonth, oldStartDateTime);
+    oldKey.put("scheduleMonth", AttributeValue.builder().s(oldScheduleMonth).build());
 
-    if (oldItem.isEmpty()) {
+    oldKey.put("startDateTime", AttributeValue.builder().s(oldStartDateTime).build());
+
+    var oldItem =
+        dynamoDbClient.getItem(
+            GetItemRequest.builder().tableName(SCHEDULE_TABLE).key(oldKey).build());
+
+    if (!oldItem.hasItem()) {
 
       return response(404, Map.of("message", "編集対象の予定が見つかりません"));
     }
 
     String eventType =
-        body.hasNonNull("eventType") ? body.get("eventType").asText() : eventTypeOrDefault(oldItem);
+        body.hasNonNull("eventType")
+            ? body.get("eventType").asText()
+            : eventTypeOrDefault(oldItem.item());
     if (!"PRACTICE".equals(eventType)
         && !"GAME".equals(eventType)
         && !"MEETING".equals(eventType)) {
@@ -356,21 +391,34 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
     String competitionName =
         body.hasNonNull("competitionName")
             ? body.get("competitionName").asText().trim()
-            : getString(oldItem, "competitionName");
+            : getString(oldItem.item(), "competitionName");
     String round =
-        body.hasNonNull("round") ? body.get("round").asText().trim() : getString(oldItem, "round");
+        body.hasNonNull("round")
+            ? body.get("round").asText().trim()
+            : getString(oldItem.item(), "round");
     String videoUrl =
         body.hasNonNull("videoUrl")
             ? body.get("videoUrl").asText().trim()
-            : getString(oldItem, "videoUrl");
+            : getString(oldItem.item(), "videoUrl");
     String videoTags =
         body.hasNonNull("videoTags")
             ? body.get("videoTags").asText().trim()
-            : getString(oldItem, "videoTags");
+            : getString(oldItem.item(), "videoTags");
     if (competitionName.length() > 80 || round.length() > 40)
       throw new IllegalArgumentException("大会名は80文字、ラウンドは40文字以内で入力してください");
-    if (videoTags.length() > 120) throw new IllegalArgumentException("動画タグは120文字以内で入力してください");
-    validateVideoUrl(videoUrl);
+    if (videoUrl.length() > 2048 || videoTags.length() > 120)
+      throw new IllegalArgumentException("動画URLは2048文字、タグは120文字以内で入力してください");
+    if (!videoUrl.isBlank()) {
+      try {
+        URI parsedVideoUrl = URI.create(videoUrl);
+        if (!"https".equalsIgnoreCase(parsedVideoUrl.getScheme())
+            || parsedVideoUrl.getHost() == null) {
+          throw new IllegalArgumentException("動画URLにはHTTPSの共有リンクを入力してください");
+        }
+      } catch (IllegalArgumentException e) {
+        throw new IllegalArgumentException("動画URLを確認してください。YouTubeの共有リンクを入力できます");
+      }
+    }
     if (!"GAME".equals(eventType)) {
       competitionName = "";
       round = "";
@@ -380,7 +428,8 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
     // 旧データ削除
     // ========================================
 
-    scheduleRepository.deleteSchedule(oldKey);
+    dynamoDbClient.deleteItem(
+        DeleteItemRequest.builder().tableName(SCHEDULE_TABLE).key(oldKey).build());
 
     // ========================================
     // 新データ登録
@@ -407,7 +456,8 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
     if (!videoTags.isBlank())
       newItem.put("videoTags", AttributeValue.builder().s(videoTags).build());
 
-    scheduleRepository.saveSchedule(newItem);
+    dynamoDbClient.putItem(
+        PutItemRequest.builder().tableName(SCHEDULE_TABLE).item(newItem).build());
 
     context.getLogger().log("予定更新完了: " + newScheduleMonth + " " + newStart);
 
@@ -415,10 +465,10 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
   }
 
   // ========================================
-  // DELETE /schedule の予定削除です。
+  // DELETE /schedule
   // ========================================
   //
-  // リクエスト本文の例:
+  // Body:
   //
   // {
   //   "scheduleMonth": "2026-09",
@@ -430,20 +480,28 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
   private Map<String, Object> deleteSchedule(Map<String, Object> input, Context context)
       throws Exception {
 
-    JsonNode body = mapper.readTree(LambdaRequestParser.body(input));
+    JsonNode body = mapper.readTree(getBody(input));
 
     String scheduleMonth = required(body, "scheduleMonth");
 
     String startDateTime = required(body, "startDateTime");
 
-    Map<String, AttributeValue> key = scheduleRepository.scheduleKey(scheduleMonth, startDateTime);
+    Map<String, AttributeValue> key = new HashMap<>();
 
-    if (scheduleRepository.findSchedule(scheduleMonth, startDateTime).isEmpty()) {
+    key.put("scheduleMonth", AttributeValue.builder().s(scheduleMonth).build());
+
+    key.put("startDateTime", AttributeValue.builder().s(startDateTime).build());
+
+    var existing =
+        dynamoDbClient.getItem(GetItemRequest.builder().tableName(SCHEDULE_TABLE).key(key).build());
+
+    if (!existing.hasItem()) {
 
       return response(404, Map.of("message", "削除対象の予定が見つかりません"));
     }
 
-    scheduleRepository.deleteSchedule(key);
+    dynamoDbClient.deleteItem(
+        DeleteItemRequest.builder().tableName(SCHEDULE_TABLE).key(key).build());
 
     context.getLogger().log("予定削除: " + scheduleMonth + " " + startDateTime);
 
@@ -456,8 +514,17 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
 
   private Map<String, AttributeValue> getFacility(String facilityId) {
 
-    Map<String, AttributeValue> facility = scheduleRepository.findFacility(facilityId);
-    return facility.isEmpty() ? null : facility;
+    Map<String, AttributeValue> key =
+        Map.of("facilityId", AttributeValue.builder().s(facilityId).build());
+
+    var result =
+        dynamoDbClient.getItem(GetItemRequest.builder().tableName(FACILITY_TABLE).key(key).build());
+
+    if (!result.hasItem()) {
+      return null;
+    }
+
+    return result.item();
   }
 
   // ========================================
@@ -485,6 +552,76 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
   }
 
   // ========================================
+  // HTTP Method
+  // ========================================
+
+  @SuppressWarnings("unchecked")
+  private String getHttpMethod(Map<String, Object> input) {
+
+    Object requestContext = input.get("requestContext");
+
+    if (requestContext instanceof Map<?, ?> context) {
+
+      Object http = context.get("http");
+
+      if (http instanceof Map<?, ?> httpMap) {
+
+        Object method = httpMap.get("method");
+
+        if (method != null) {
+          return method.toString();
+        }
+      }
+
+      Object method = context.get("httpMethod");
+
+      if (method != null) {
+        return method.toString();
+      }
+    }
+
+    // Function URLから単純に呼ばれた場合など
+    return "GET";
+  }
+
+  // ========================================
+  // Query Parameters
+  // ========================================
+
+  @SuppressWarnings("unchecked")
+  private Map<String, String> getQueryParameters(Map<String, Object> input) {
+
+    Object value = input.get("queryStringParameters");
+
+    if (value instanceof Map<?, ?> map) {
+
+      Map<String, String> result = new HashMap<>();
+
+      map.forEach(
+          (key, val) -> result.put(String.valueOf(key), val == null ? null : String.valueOf(val)));
+
+      return result;
+    }
+
+    return Map.of();
+  }
+
+  // ========================================
+  // Body
+  // ========================================
+
+  private String getBody(Map<String, Object> input) {
+
+    Object body = input.get("body");
+
+    if (body == null) {
+      return "";
+    }
+
+    return body.toString();
+  }
+
+  // ========================================
   // 必須項目
   // ========================================
 
@@ -501,7 +638,7 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
   }
 
   // ========================================
-  // DynamoDBの属性値を文字列に変換します。
+  // AttributeValue → String
   // ========================================
 
   private String getString(Map<String, AttributeValue> item, String name) {
@@ -549,7 +686,7 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
   }
 
   // ========================================
-  // Lambda Function URL向けのレスポンスを作成します。
+  // Response
   // ========================================
 
   private Map<String, Object> response(int statusCode, Object body) {

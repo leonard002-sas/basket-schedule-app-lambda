@@ -15,24 +15,13 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
 
-/** ログイン利用者への施設一覧表示と、管理者による施設登録を扱います。 */
 public class FacilityApi implements RequestHandler<Map<String, Object>, Map<String, Object>> {
-
-  /** Lambdaの実行環境で再利用されるハンドラーを作成します。 */
-  public FacilityApi() {}
 
   private final DynamoDbClient dynamoDbClient =
       DynamoDbClient.builder().region(Region.AP_NORTHEAST_1).build();
 
   private final ObjectMapper mapper = new ObjectMapper();
 
-  /**
-   * 施設の一覧取得、または管理者だけが実行できる新規登録へ振り分けます。
-   *
-   * @param input Lambda Function URLから受け取ったリクエスト
-   * @param context 運用ログに使うLambda実行コンテキスト
-   * @return 施設情報または固定のエラー情報を含むHTTP応答
-   */
   @Override
   public Map<String, Object> handleRequest(Map<String, Object> input, Context context) {
 
@@ -198,7 +187,7 @@ public class FacilityApi implements RequestHandler<Map<String, Object>, Map<Stri
         try {
           maxSortOrder = Math.max(maxSortOrder, Integer.parseInt(value.s()));
         } catch (NumberFormatException ignored) {
-          // 並び順を持たない既存施設は、新しく登録する施設より前に表示します。
+          // Existing entries without a numeric order are placed before new facilities.
         }
       }
     }

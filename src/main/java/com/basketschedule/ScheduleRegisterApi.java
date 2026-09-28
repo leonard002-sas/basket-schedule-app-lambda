@@ -17,25 +17,14 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 
-/** 練習、試合、会議の予定を検証してDynamoDBへ登録します。 */
 public class ScheduleRegisterApi
     implements RequestHandler<Map<String, Object>, Map<String, Object>> {
-
-  /** 管理者だけが使う予定登録ハンドラーを作成します。 */
-  public ScheduleRegisterApi() {}
 
   private final DynamoDbClient dynamoDbClient =
       DynamoDbClient.builder().region(Region.AP_NORTHEAST_1).build();
 
   private final ObjectMapper mapper = new ObjectMapper();
 
-  /**
-   * 管理者から送られた複数の予定を受け取り、検証して登録します。
-   *
-   * @param input 予定一覧のJSON本文を含むLambda Function URLイベント
-   * @param context Lambdaの実行コンテキスト
-   * @return 登録結果を含むHTTP形式の応答マップ
-   */
   @Override
   public Map<String, Object> handleRequest(Map<String, Object> input, Context context) {
 
@@ -86,9 +75,6 @@ public class ScheduleRegisterApi
         }
         String competitionName = optionalText(schedule, "competitionName", 80);
         String round = optionalText(schedule, "round", 40);
-        String videoUrl = optionalText(schedule, "videoUrl", 2048);
-        String videoTags = optionalText(schedule, "videoTags", 120);
-        validateVideoUrl(videoUrl);
         if (!"GAME".equals(eventType)) {
           competitionName = "";
           round = "";
@@ -147,6 +133,19 @@ public class ScheduleRegisterApi
         if (!competitionName.isBlank())
           item.put("competitionName", AttributeValue.builder().s(competitionName).build());
         if (!round.isBlank()) item.put("round", AttributeValue.builder().s(round).build());
+        String videoUrl = optionalText(schedule, "videoUrl", 2048);
+        String videoTags = optionalText(schedule, "videoTags", 120);
+        if (!videoUrl.isBlank()) {
+          try {
+            URI parsedVideoUrl = URI.create(videoUrl);
+            if (!"https".equalsIgnoreCase(parsedVideoUrl.getScheme())
+                || parsedVideoUrl.getHost() == null) {
+              throw new IllegalArgumentException("HTTPSの動画共有リンクを入力してください");
+            }
+          } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("動画URLを確認してください。YouTubeの共有リンクを入力できます");
+          }
+        }
         if (!videoUrl.isBlank()) item.put("videoUrl", AttributeValue.builder().s(videoUrl).build());
         if (!videoTags.isBlank())
           item.put("videoTags", AttributeValue.builder().s(videoTags).build());
@@ -176,13 +175,6 @@ public class ScheduleRegisterApi
 
       return response(200, result);
 
-    } catch (IllegalArgumentException e) {
-      try {
-        return response(400, mapper.writeValueAsString(Map.of("message", e.getMessage())));
-      } catch (Exception serializationError) {
-        throw new RuntimeException(serializationError);
-      }
-
     } catch (CognitoAuth.AuthException e) {
 
       try {
@@ -195,22 +187,12 @@ public class ScheduleRegisterApi
 
     } catch (Exception e) {
 
-      context
-          .getLogger()
-          .log(
-              "Schedule registration failed: "
-                  + e.getClass().getSimpleName()
-                  + ": "
-                  + e.getMessage());
+      context.getLogger().log("ERROR: " + e.getMessage());
 
       String result;
 
       try {
-        result =
-            mapper.writeValueAsString(
-                Map.of(
-                    "message", "登録に失敗しました",
-                    "code", "INTERNAL_ERROR"));
+        result = mapper.writeValueAsString(Map.of("message", "登録に失敗しました", "error", e.getMessage()));
       } catch (Exception jsonException) {
         result = "{\"message\":\"登録に失敗しました\"}";
       }
@@ -242,17 +224,6 @@ public class ScheduleRegisterApi
     if (text.length() > maxLength)
       throw new IllegalArgumentException(fieldName + "は" + maxLength + "文字以内で入力してください");
     return text;
-  }
-
-  private void validateVideoUrl(String value) {
-    if (value.isBlank()) return;
-    try {
-      URI uri = URI.create(value);
-      if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null)
-        throw new IllegalArgumentException();
-    } catch (Exception e) {
-      throw new IllegalArgumentException("動画URLはhttps://から始まるURLを入力してください");
-    }
   }
 
   // ========================================

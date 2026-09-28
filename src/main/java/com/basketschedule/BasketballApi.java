@@ -13,32 +13,26 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.Put;
+import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
 import software.amazon.awssdk.services.dynamodb.model.TransactWriteItem;
+import software.amazon.awssdk.services.dynamodb.model.TransactWriteItemsRequest;
 import software.amazon.awssdk.services.dynamodb.model.Update;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 
-/**
- * チームと選手の管理、試合中の記録、試合結果、シーズン集計を扱います。
- *
- * <p>ログイン済みのゲストはスコア情報を閲覧できます。GET以外の操作は、認証済みの Cognito利用者が {@code admins} グループに所属していることを確認してから実行します。
- */
+/** Team roster, live basketball scorekeeping, and season totals. */
 public class BasketballApi implements RequestHandler<Map<String, Object>, Map<String, Object>> {
+  private static final String TABLE = "BasketballData";
   private static final String TEAM_INDEX_PK = "BASKETBALL";
   private static final ObjectMapper JSON = new ObjectMapper();
-  private final BasketballRepository repository = new BasketballRepository();
+  private final DynamoDbClient db = DynamoDbClient.builder().region(Region.AP_NORTHEAST_1).build();
 
-  /** 再利用可能なスコアブックハンドラーとDynamoDBクライアントを作成します。 */
-  public BasketballApi() {}
-
-  /**
-   * 呼び出し元の権限を確認し、スコアブックの対象操作へ処理を振り分けます。
-   *
-   * @param input クエリと任意のJSON本文を含むLambda Function URLイベント
-   * @param context 運用エラーを記録するLambda実行コンテキスト
-   * @return HTTP形式の応答マップ
-   */
   @Override
   public Map<String, Object> handleRequest(Map<String, Object> input, Context context) {
     try {
@@ -82,7 +76,6 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     }
   }
 
-  /** 読み取りリクエストを選択されたスコアブック機能へ振り分けます。 */
   private Object read(String resource, Map<String, String> q) {
     return switch (resource) {
       case "teams" -> teams();
@@ -99,7 +92,6 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     };
   }
 
-  /** 登録済みチームの一覧を返し、移行期間中は旧形式の既定チームも表示します。 */
   private Object teams() {
     List<Map<String, AttributeValue>> registered = new ArrayList<>(rows(TEAM_INDEX_PK, "TEAM#"));
     Map<String, AttributeValue> legacy = item("TEAM#MAIN", "PROFILE");
@@ -112,7 +104,6 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     return plainList(registered);
   }
 
-  /** チーム画面に必要なチーム情報と選手一覧を読み込みます。 */
   private Map<String, Object> teamData(String teamId) {
     return Map.of(
         "team",
@@ -121,7 +112,6 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
         plainList(rows(teamPk(teamId), "PLAYER#")));
   }
 
-  /** 選手の推移グラフに表示する最近の試合記録をまとめます。 */
   private Map<String, Object> playerTrend(String teamId, String playerId, String year) {
     List<Map<String, AttributeValue>> completed =
         rows(teamPk(teamId), "GAME#").stream()
@@ -132,23 +122,22 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     if (completed.isEmpty()) return Map.of("items", List.of());
     List<Map<String, Object>> out = new ArrayList<>();
     for (var game : completed) {
-      String gameId = str(game, "gameId");
-      var playerStats = item("GAME#" + gameId, "PLAYER#" + playerId);
+      String id = str(game, "gameId");
+      var stat = item("GAME#" + id, "PLAYER#" + playerId);
       Map<String, Object> row = new HashMap<>();
-      row.put("gameId", gameId);
+      row.put("gameId", id);
       row.put("date", str(game, "date"));
       row.put("opponent", str(game, "opponent"));
       row.put("result", str(game, "result"));
-      row.put("points", longValue(playerStats, "points", 0));
-      row.put("REB", longValue(playerStats, "REB", 0));
-      row.put("AST", longValue(playerStats, "AST", 0));
-      row.put("minutesSeconds", longValue(playerStats, "minutesSeconds", 0));
+      row.put("points", longValue(stat, "points", 0));
+      row.put("REB", longValue(stat, "REB", 0));
+      row.put("AST", longValue(stat, "AST", 0));
+      row.put("minutesSeconds", longValue(stat, "minutesSeconds", 0));
       out.add(row);
     }
     return Map.of("items", out);
   }
 
-  /** 管理者の書き込みリクエストを検証し、該当する保存処理へ振り分けます。 */
   private Object write(String resource, JsonNode b, Map<String, String> query) {
     return switch (resource) {
       case "team" -> saveTeam(b);
@@ -158,7 +147,6 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
               ? createGame(b, required(query, "teamId"))
               : updateGame(b, required(query, "teamId"));
       case "import-game" -> importGame(b, required(query, "teamId"));
-      case "import-games" -> importGames(b, required(query, "teamId"));
       case "action" -> recordAction(b);
       case "undo" -> undoAction(b);
       case "clock" -> updateClock(b);
@@ -168,7 +156,6 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     };
   }
 
-  /** 対応している管理者専用の削除リクエストへ振り分けます。 */
   private Object delete(String resource, Map<String, String> query) {
     return switch (resource) {
       case "player" -> deactivatePlayer(required(query, "teamId"), required(query, "playerId"));
@@ -177,7 +164,6 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     };
   }
 
-  /** チーム情報とチーム検索用インデックスを保存します。 */
   private Map<String, Object> saveTeam(JsonNode b) {
     String name = required(b, "name");
     String id =
@@ -188,15 +174,14 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     item.put("teamId", s(id));
     item.put("name", s(name));
     item.put("updatedAt", s(Instant.now().toString()));
-    repository.save(item);
+    db.putItem(PutItemRequest.builder().tableName(TABLE).item(item).build());
     Map<String, AttributeValue> index = key(TEAM_INDEX_PK, "TEAM#" + id);
     index.put("teamId", s(id));
     index.put("name", s(name));
-    repository.save(index);
+    db.putItem(PutItemRequest.builder().tableName(TABLE).item(index).build());
     return Map.of("teamId", id, "name", name);
   }
 
-  /** 入力を検証し、選択中チームの選手一覧へ選手を保存します。 */
   private Map<String, Object> savePlayer(JsonNode b, String teamId) {
     String id =
         b.path("playerId").asText("").isBlank()
@@ -213,7 +198,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     item.put("number", n(number));
     item.put("position", s(position));
     item.put("active", AttributeValue.builder().bool(true).build());
-    repository.save(item);
+    db.putItem(PutItemRequest.builder().tableName(TABLE).item(item).build());
     return Map.of("playerId", id, "name", name, "number", number, "position", position);
   }
 
@@ -236,14 +221,29 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
       if (id.isBlank()) continue;
       String date = str(game, "date");
       if (date.length() >= 4) seasons.add(date.substring(0, 4));
-      for (var child : allRows("GAME#" + id)) repository.delete("GAME#" + id, str(child, "sk"));
+      for (var child : allRows("GAME#" + id))
+        db.deleteItem(
+            DeleteItemRequest.builder()
+                .tableName(TABLE)
+                .key(key("GAME#" + id, str(child, "sk")))
+                .build());
     }
     for (String year : seasons)
       for (var row : allRows(seasonPk(year, teamId)))
         if (str(row, "sk").startsWith("PLAYER#"))
-          repository.delete(seasonPk(year, teamId), str(row, "sk"));
-    for (var row : teamRows) repository.delete(pk, str(row, "sk"));
-    repository.delete(TEAM_INDEX_PK, "TEAM#" + teamId);
+          db.deleteItem(
+              DeleteItemRequest.builder()
+                  .tableName(TABLE)
+                  .key(key(seasonPk(year, teamId), str(row, "sk")))
+                  .build());
+    for (var row : teamRows)
+      db.deleteItem(
+          DeleteItemRequest.builder().tableName(TABLE).key(key(pk, str(row, "sk"))).build());
+    db.deleteItem(
+        DeleteItemRequest.builder()
+            .tableName(TABLE)
+            .key(key(TEAM_INDEX_PK, "TEAM#" + teamId))
+            .build());
     return Map.of("teamId", teamId, "deleted", true);
   }
 
@@ -292,11 +292,11 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     if (!linkedStart.isBlank()) game.put("startDateTime", s(linkedStart));
     if (!competitionName.isBlank()) game.put("competitionName", s(competitionName));
     if (!round.isBlank()) game.put("round", s(round));
-    repository.save(game);
+    db.putItem(PutItemRequest.builder().tableName(TABLE).item(game).build());
     Map<String, AttributeValue> meta = new HashMap<>(game);
     meta.put("pk", s("GAME#" + id));
     meta.put("sk", s("META"));
-    repository.save(meta);
+    db.putItem(PutItemRequest.builder().tableName(TABLE).item(meta).build());
     return Map.of("gameId", id, "date", date, "opponent", opponent, "status", "READY");
   }
 
@@ -343,7 +343,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
       updated.put("result", s(result));
     }
     if (ready) updated.put("remainingSeconds", n(quarter * 60L));
-    repository.save(updated);
+    db.putItem(PutItemRequest.builder().tableName(TABLE).item(updated).build());
     Map<String, AttributeValue> changes = new HashMap<>();
     changes.put("date", s(date));
     changes.put("teamGameSk", s(newSk));
@@ -355,7 +355,9 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     }
     if (ready) changes.put("remainingSeconds", n(quarter * 60L));
     set("GAME#" + id, "META", changes);
-    if (!oldSk.equals(newSk)) repository.delete(partition, oldSk);
+    if (!oldSk.equals(newSk))
+      db.deleteItem(
+          DeleteItemRequest.builder().tableName(TABLE).key(key(partition, oldSk)).build());
     if (finalGame && !oldDate.substring(0, 4).equals(date.substring(0, 4)))
       moveSeasonTotals(id, teamId, oldDate.substring(0, 4), date.substring(0, 4), oldResult);
     if (finalGame && !oldResult.equals(result))
@@ -380,8 +382,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
       String playerId = str(row, "playerId");
       if (playerId.isBlank()) playerId = str(row, "sk").replaceFirst("^PLAYER#", "");
       Map<String, Long> totals = new HashMap<>();
-      for (String field : BasketballStatistics.boxScoreFields())
-        totals.put(field, longValue(row, field, 0));
+      for (String f : STAT_FIELDS) totals.put(f, longValue(row, f, 0));
       totals.put("GP", 1L);
       totals.put("W", "W".equals(result) ? 1L : 0L);
       totals.put("L", "L".equals(result) ? 1L : 0L);
@@ -411,55 +412,6 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     }
   }
 
-  /** 表計算ファイル内のすべての試合を検証してから、最初の1件を書き込みます。 後の行に不正データや重複があった場合に、一部だけ保存されることを防ぎます。 */
-  private Map<String, Object> importGames(JsonNode body, String teamId) {
-    JsonNode matches = body.path("matches");
-    if (!matches.isArray() || matches.isEmpty() || matches.size() > 50)
-      throw new IllegalArgumentException("一度に1〜50試合まで取り込めます");
-    Set<String> seen = new java.util.HashSet<>();
-    for (var game : rows(teamPk(teamId), "GAME#"))
-      if (bool(game, "imported"))
-        seen.add(
-            str(game, "date")
-                + "|"
-                + str(game, "opponent").trim().toLowerCase(Locale.ROOT)
-                + "|"
-                + str(game, "competitionName").trim().toLowerCase(Locale.ROOT)
-                + "|"
-                + str(game, "round").trim().toLowerCase(Locale.ROOT));
-    List<Map<String, Object>> results = new ArrayList<>();
-    int playersImported = 0;
-    for (JsonNode match : matches) {
-      String date = required(match, "date"), opponent = required(match, "opponent");
-      try {
-        LocalDate.parse(date);
-      } catch (Exception e) {
-        throw new IllegalArgumentException("試合日を確認してください: " + date);
-      }
-      JsonNode roster = match.path("players");
-      if (!roster.isArray() || roster.isEmpty() || roster.size() > 100)
-        throw new IllegalArgumentException("各試合に1〜100名分の選手データが必要です");
-      String key =
-          date
-              + "|"
-              + opponent.trim().toLowerCase(Locale.ROOT)
-              + "|"
-              + match.path("competitionName").asText("").trim().toLowerCase(Locale.ROOT)
-              + "|"
-              + match.path("round").asText("").trim().toLowerCase(Locale.ROOT);
-      if (!seen.add(key))
-        throw new IllegalArgumentException(
-            "CSV内に同じ日付・対戦相手・大会の試合が重複しています: " + date + " " + opponent);
-    }
-    for (JsonNode match : matches) {
-      Map<String, Object> result = importGame(match, teamId);
-      results.add(result);
-      playersImported += ((Number) result.get("playersImported")).intValue();
-    }
-    return Map.of(
-        "gamesImported", results.size(), "playersImported", playersImported, "games", results);
-  }
-
   private Map<String, Object> importGame(JsonNode b, String teamId) {
     String partition = teamPk(teamId);
     if (item(partition, "PROFILE").isEmpty())
@@ -470,20 +422,14 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     } catch (Exception e) {
       throw new IllegalArgumentException("試合日を確認してください");
     }
-    String competitionName = b.path("competitionName").asText("").trim(),
-        round = b.path("round").asText("").trim();
-    if (competitionName.length() > 80 || round.length() > 40)
-      throw new IllegalArgumentException("大会名は80文字、ラウンドは40文字以内で入力してください");
     JsonNode inputPlayers = b.path("players");
     if (!inputPlayers.isArray() || inputPlayers.isEmpty() || inputPlayers.size() > 100)
       throw new IllegalArgumentException("CSVに1〜100名分の選手スタッツが必要です");
     for (var existing : rows(partition, "GAME#"))
       if (bool(existing, "imported")
           && date.equals(str(existing, "date"))
-          && opponent.equalsIgnoreCase(str(existing, "opponent"))
-          && competitionName.equals(str(existing, "competitionName"))
-          && round.equals(str(existing, "round")))
-        throw new ApiException(409, "DUPLICATE_IMPORT", "同じ日付・対戦相手・大会の過去試合はすでに取り込まれています");
+          && opponent.equalsIgnoreCase(str(existing, "opponent")))
+        throw new ApiException(409, "DUPLICATE_IMPORT", "同じ日付・対戦相手の過去試合はすでに取り込まれています");
     int opponentScore = b.path("opponentScore").asInt(-1), teamScore = 0;
     for (JsonNode p : inputPlayers) teamScore += importNumber(p.path("stats"), "PTS", "points");
     String result =
@@ -508,13 +454,11 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     game.put("imported", boolValue(true));
     game.put("createdAt", n(now));
     game.put("finishedAt", n(now));
-    if (!competitionName.isBlank()) game.put("competitionName", s(competitionName));
-    if (!round.isBlank()) game.put("round", s(round));
-    repository.save(game);
+    db.putItem(PutItemRequest.builder().tableName(TABLE).item(game).build());
     Map<String, AttributeValue> meta = new HashMap<>(game);
     meta.put("pk", s("GAME#" + id));
     meta.put("sk", s("META"));
-    repository.save(meta);
+    db.putItem(PutItemRequest.builder().tableName(TABLE).item(meta).build());
     Map<String, Map<String, AttributeValue>> rosterByName = new HashMap<>();
     for (var existing : rows(partition, "PLAYER#"))
       rosterByName.put(str(existing, "name").trim().toLowerCase(Locale.ROOT), existing);
@@ -534,7 +478,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
         String pos = input.path("position").asText("").trim().toUpperCase(Locale.ROOT);
         if (Set.of("PG", "SG", "SF", "PF", "C").contains(pos)) player.put("position", s(pos));
         player.put("active", boolValue(true));
-        repository.save(player);
+        db.putItem(PutItemRequest.builder().tableName(TABLE).item(player).build());
         rosterByName.put(name.toLowerCase(Locale.ROOT), player);
       } else {
         playerId = str(player, "playerId");
@@ -548,7 +492,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
       if (!str(player, "position").isBlank()) gameStats.put("position", s(str(player, "position")));
       Map<String, Long> totals = importStats(input.path("stats"));
       totals.forEach((field, value) -> gameStats.put(field, n(value)));
-      repository.save(gameStats);
+      db.putItem(PutItemRequest.builder().tableName(TABLE).item(gameStats).build());
       totals.put("GP", 1L);
       totals.put("W", "W".equals(result) ? 1L : 0L);
       totals.put("L", "L".equals(result) ? 1L : 0L);
@@ -574,33 +518,20 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
   }
 
   private int importNumber(JsonNode node, String... fields) {
-    for (String field : fields) {
-      JsonNode value = node.get(field);
-      if (value == null || value.isNull()) {
-        continue;
-      }
-
-      if (value.isNumber()) {
-        return Math.max(0, value.asInt());
-      }
-
-      if (value.isTextual()) {
+    for (String field : fields)
+      if (node.has(field))
         try {
-          return Math.max(0, Integer.parseInt(value.asText().trim()));
-        } catch (NumberFormatException ignored) {
-          // 不正な列は飛ばし、次の別名の列を確認します。
+          return Math.max(0, node.get(field).asInt());
+        } catch (Exception ignored) {
         }
-      }
-    }
     return 0;
   }
 
-  /** 試合中の記録を1件反映し、操作履歴・選手集計・チーム得点をまとめて保存します。 DynamoDBのトランザクションを使い、関連する数値の食い違いを防ぎます。 */
   private Object recordAction(JsonNode b) {
     String gameId = required(b, "gameId");
     String playerId = required(b, "playerId");
     String type = required(b, "type");
-    Map<String, Long> delta = BasketballStatistics.deltaFor(type);
+    Map<String, Long> delta = statDelta(type);
     Map<String, AttributeValue> meta = item("GAME#" + gameId, "META");
     if (meta.isEmpty() || "FINAL".equals(str(meta, "status")))
       throw new ApiException(409, "GAME_CLOSED", "この試合は記録を終了しています");
@@ -619,7 +550,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     List<TransactWriteItem> writes = new ArrayList<>();
     writes.add(
         TransactWriteItem.builder()
-            .put(Put.builder().tableName(BasketballRepository.TABLE_NAME).item(event).build())
+            .put(Put.builder().tableName(TABLE).item(event).build())
             .build());
     writes.add(
         TransactWriteItem.builder()
@@ -639,11 +570,10 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
                     addUpdate(teamPartition, str(meta, "teamGameSk"), Map.of("teamScore", points)))
                 .build());
     }
-    repository.transact(writes);
+    db.transactWriteItems(TransactWriteItemsRequest.builder().transactItems(writes).build());
     return Map.of("eventId", eventId, "type", type, "playerId", playerId);
   }
 
-  /** 保存済みの試合時計を更新し、操作の前に経過した時間区間を確定します。 */
   private Object updateClock(JsonNode b) {
     String id = required(b, "gameId");
     Map<String, AttributeValue> meta = item("GAME#" + id, "META");
@@ -700,20 +630,23 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     String player = str(last, "playerId");
     String type = str(last, "type");
     Map<String, Long> reverse = new HashMap<>();
-    BasketballStatistics.deltaFor(type).forEach((k, v) -> reverse.put(k, -v));
+    statDelta(type).forEach((k, v) -> reverse.put(k, -v));
     addStats("GAME#" + id, "PLAYER#" + player, reverse);
-    long points = BasketballStatistics.deltaFor(type).getOrDefault("points", 0L);
+    long points = statDelta(type).getOrDefault("points", 0L);
     if (points != 0) {
       addStats("GAME#" + id, "META", Map.of("teamScore", -points));
       String teamGameSk = str(meta, "teamGameSk");
       if (!teamGameSk.isBlank())
         addStats(teamPk(str(meta, "teamId")), teamGameSk, Map.of("teamScore", -points));
     }
-    repository.delete("GAME#" + id, str(last, "sk"));
+    db.deleteItem(
+        DeleteItemRequest.builder()
+            .tableName(TABLE)
+            .key(key("GAME#" + id, str(last, "sk")))
+            .build());
     return Map.of("undone", type, "playerId", player);
   }
 
-  /** 出場中の5人を保存し、直前のラインナップへ経過時間を加算します。 */
   private Object updateLineup(JsonNode b) {
     String id = required(b, "gameId");
     Map<String, AttributeValue> meta = item("GAME#" + id, "META");
@@ -748,7 +681,6 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     return Map.of("playerIds", next);
   }
 
-  /** 試合を確定し、ボックススコアを各選手のシーズン集計へ一度だけ加算します。 */
   private Object finishGame(JsonNode b) {
     String id = required(b, "gameId");
     Map<String, AttributeValue> meta = item("GAME#" + id, "META");
@@ -768,8 +700,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     for (Map<String, AttributeValue> p : players) {
       String player = str(p, "sk").substring("PLAYER#".length());
       Map<String, Long> totals = new HashMap<>();
-      for (String field : BasketballStatistics.boxScoreFields())
-        totals.put(field, longValue(p, field, 0));
+      for (String field : STAT_FIELDS) totals.put(field, longValue(p, field, 0));
       totals.put("GP", 1L);
       totals.put("W", "W".equals(result) ? 1L : 0L);
       totals.put("L", "L".equals(result) ? 1L : 0L);
@@ -821,13 +752,53 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     return out;
   }
 
+  private Map<String, Long> statDelta(String type) {
+    return switch (type) {
+      case "FG2_MADE" -> Map.of("points", 2L, "FGM", 1L, "FGA", 1L, "2PM", 1L, "2PA", 1L);
+      case "FG2_MISS" -> Map.of("FGA", 1L, "2PA", 1L);
+      case "FG3_MADE" -> Map.of("points", 3L, "FGM", 1L, "FGA", 1L, "3PM", 1L, "3PA", 1L);
+      case "FG3_MISS" -> Map.of("FGA", 1L, "3PA", 1L);
+      case "FT_MADE" -> Map.of("points", 1L, "FTM", 1L, "FTA", 1L);
+      case "FT_MISS" -> Map.of("FTA", 1L);
+      case "OREB" -> Map.of("OREB", 1L, "REB", 1L);
+      case "DREB" -> Map.of("DREB", 1L, "REB", 1L);
+      case "AST" -> Map.of("AST", 1L);
+      case "STL" -> Map.of("STL", 1L);
+      case "BLK" -> Map.of("BLK", 1L);
+      case "TO" -> Map.of("TO", 1L);
+      case "PF" -> Map.of("PF", 1L);
+      default -> throw new IllegalArgumentException("スタッツの種類が不正です");
+    };
+  }
+
+  private static final List<String> STAT_FIELDS =
+      List.of(
+          "points",
+          "FGM",
+          "FGA",
+          "2PM",
+          "2PA",
+          "3PM",
+          "3PA",
+          "FTM",
+          "FTA",
+          "OREB",
+          "DREB",
+          "REB",
+          "AST",
+          "STL",
+          "BLK",
+          "TO",
+          "PF",
+          "minutesSeconds");
+
   private void addStats(String pk, String sk, Map<String, Long> deltas) {
     if (deltas.isEmpty()) return;
     Update update = addUpdate(pk, sk, deltas);
     if (update != null)
-      repository.update(
+      db.updateItem(
           UpdateItemRequest.builder()
-              .tableName(BasketballRepository.TABLE_NAME)
+              .tableName(TABLE)
               .key(key(pk, sk))
               .updateExpression(update.updateExpression())
               .expressionAttributeNames(update.expressionAttributeNames())
@@ -852,7 +823,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     }
     if (i == 0) return null;
     return Update.builder()
-        .tableName(BasketballRepository.TABLE_NAME)
+        .tableName(TABLE)
         .key(key(pk, sk))
         .updateExpression(update.toString())
         .expressionAttributeNames(names)
@@ -878,9 +849,9 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
       vals.put(v, e.getValue());
       i++;
     }
-    repository.update(
+    db.updateItem(
         UpdateItemRequest.builder()
-            .tableName(BasketballRepository.TABLE_NAME)
+            .tableName(TABLE)
             .key(key(pk, sk))
             .updateExpression(exp.toString())
             .expressionAttributeNames(names)
@@ -914,7 +885,9 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
   }
 
   private Map<String, AttributeValue> item(String pk, String sk) {
-    return repository.find(pk, sk);
+    return db.getItem(
+            GetItemRequest.builder().tableName(TABLE).key(key(pk, sk)).consistentRead(true).build())
+        .item();
   }
 
   private void addCurrentLineupMinutes(String id, Map<String, AttributeValue> meta, long now) {
@@ -931,14 +904,35 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
   }
 
   private List<Map<String, AttributeValue>> rows(String pk, String prefix) {
-    return repository.findBySortKeyPrefix(pk, prefix);
+    var result =
+        db.query(
+            QueryRequest.builder()
+                .tableName(TABLE)
+                .consistentRead(true)
+                .keyConditionExpression("pk = :pk AND begins_with(sk, :prefix)")
+                .expressionAttributeValues(Map.of(":pk", s(pk), ":prefix", s(prefix)))
+                .build());
+    return result.items();
   }
 
   private List<Map<String, AttributeValue>> allRows(String pk) {
-    return repository.findAll(pk);
+    List<Map<String, AttributeValue>> result = new ArrayList<>();
+    Map<String, AttributeValue> start = null;
+    do {
+      var builder =
+          QueryRequest.builder()
+              .tableName(TABLE)
+              .consistentRead(true)
+              .keyConditionExpression("pk = :pk")
+              .expressionAttributeValues(Map.of(":pk", s(pk)));
+      if (start != null && !start.isEmpty()) builder.exclusiveStartKey(start);
+      var page = db.query(builder.build());
+      result.addAll(page.items());
+      start = page.lastEvaluatedKey();
+    } while (start != null && !start.isEmpty());
+    return result;
   }
 
-  /** 旧形式の既定チームも考慮して、チーム用DynamoDBパーティションキーを作成します。 */
   private static String teamPk(String id) {
     return "TEAM#" + (id == null || id.isBlank() ? "MAIN" : id);
   }
@@ -948,156 +942,133 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     return "MAIN".equals(teamId) ? season : season + "#TEAM#" + teamId;
   }
 
-  /** スコアブック全レコードで共通するDynamoDB主キー属性を作成します。 */
-  private Map<String, AttributeValue> key(String partitionKey, String sortKey) {
-    Map<String, AttributeValue> attributes = new HashMap<>();
-    attributes.put("pk", s(partitionKey));
-    attributes.put("sk", s(sortKey));
-    return attributes;
+  private Map<String, AttributeValue> key(String pk, String sk) {
+    Map<String, AttributeValue> m = new HashMap<>();
+    m.put("pk", s(pk));
+    m.put("sk", s(sk));
+    return m;
   }
 
-  /** DynamoDBの行を、ブラウザー画面が使うJSON一覧形式へ変換します。 */
   private Map<String, Object> plainList(List<Map<String, AttributeValue>> rows) {
-    List<Map<String, Object>> output = new ArrayList<>();
-    for (var row : rows) {
-      output.add(plain(row));
-    }
-    return Map.of("items", output);
+    List<Map<String, Object>> out = new ArrayList<>();
+    for (var row : rows) out.add(plain(row));
+    return Map.of("items", out);
   }
 
-  /** 対応するDynamoDB属性を通常のJSON値へ変換します。 */
   private Map<String, Object> plain(Map<String, AttributeValue> row) {
-    Map<String, Object> output = new HashMap<>();
+    Map<String, Object> out = new HashMap<>();
     row.forEach(
-        (name, value) -> {
-          if (value.s() != null) {
-            output.put(name, value.s());
-          } else if (value.n() != null) {
-            output.put(name, Long.parseLong(value.n()));
-          } else if (value.bool() != null) {
-            output.put(name, value.bool());
-          } else if (value.hasSs()) {
-            output.put(name, value.ss());
-          }
+        (k, v) -> {
+          if (v.s() != null) out.put(k, v.s());
+          else if (v.n() != null) out.put(k, Long.parseLong(v.n()));
+          else if (v.bool() != null) out.put(k, v.bool());
+          else if (v.hasSs()) out.put(k, v.ss());
         });
-    return output;
+    return out;
   }
 
-  private String required(JsonNode node, String field) {
-    String value = node.path(field).asText("").trim();
-    if (value.isBlank()) {
-      throw new IllegalArgumentException(field + "は必須です");
-    }
-    return value;
+  private String required(JsonNode n, String field) {
+    String v = n.path(field).asText("").trim();
+    if (v.isBlank()) throw new IllegalArgumentException(field + "は必須です");
+    return v;
   }
 
   private String required(Map<String, String> values, String field) {
-    String value = values.get(field);
-    if (value == null || value.isBlank()) {
-      throw new IllegalArgumentException(field + "は必須です");
-    }
-    return value;
+    String v = values.get(field);
+    if (v == null || v.isBlank()) throw new IllegalArgumentException(field + "は必須です");
+    return v;
   }
 
   private static String season(String value) {
-    String year = value == null ? LocalDate.now().toString().substring(0, 4) : value;
-    if (!year.matches("\\d{4}")) {
-      throw new IllegalArgumentException("seasonは年4桁で指定してください");
-    }
-    return year;
+    String y = value == null ? LocalDate.now().toString().substring(0, 4) : value;
+    if (!y.matches("\\d{4}")) throw new IllegalArgumentException("seasonは年4桁で指定してください");
+    return y;
   }
 
-  private static String str(Map<String, AttributeValue> attributes, String name) {
-    AttributeValue value = attributes.get(name);
-    return value == null || value.s() == null ? "" : value.s();
+  private static String str(Map<String, AttributeValue> m, String k) {
+    AttributeValue v = m.get(k);
+    return v == null || v.s() == null ? "" : v.s();
   }
 
-  /** DynamoDBの整数項目を読み取り、未設定または不正な場合は既定値を返します。 */
-  private static int integer(Map<String, AttributeValue> attributes, String name, int fallback) {
-    long value = longValue(attributes, name, fallback);
-    return value < Integer.MIN_VALUE || value > Integer.MAX_VALUE ? fallback : (int) value;
-  }
-
-  /** DynamoDBの数値または文字列形式の項目を読み取り、不正な場合は既定値を返します。 */
-  private static long longValue(
-      Map<String, AttributeValue> attributes, String name, long fallback) {
-    AttributeValue value = attributes.get(name);
-    if (value == null) {
-      return fallback;
-    }
-    String text = value.n() != null ? value.n() : value.s();
-    if (text == null) {
-      return fallback;
-    }
+  private static int integer(Map<String, AttributeValue> m, String k, int d) {
     try {
-      return Long.parseLong(text);
-    } catch (NumberFormatException ignored) {
-      return fallback;
+      return Integer.parseInt(m.get(k).n());
+    } catch (Exception e) {
+      try {
+        return Integer.parseInt(m.get(k).s());
+      } catch (Exception ex) {
+        return d;
+      }
     }
   }
 
-  private static boolean bool(Map<String, AttributeValue> attributes, String name) {
-    AttributeValue value = attributes.get(name);
-    return value != null && Boolean.TRUE.equals(value.bool());
+  private static long longValue(Map<String, AttributeValue> m, String k, long d) {
+    try {
+      return Long.parseLong(m.get(k).n());
+    } catch (Exception e) {
+      try {
+        return Long.parseLong(m.get(k).s());
+      } catch (Exception ex) {
+        return d;
+      }
+    }
   }
 
-  private static AttributeValue s(String value) {
-    return AttributeValue.builder().s(value).build();
+  private static boolean bool(Map<String, AttributeValue> m, String k) {
+    AttributeValue v = m.get(k);
+    return v != null && Boolean.TRUE.equals(v.bool());
   }
 
-  private static AttributeValue n(long value) {
-    return AttributeValue.builder().n(Long.toString(value)).build();
+  private static AttributeValue s(String v) {
+    return AttributeValue.builder().s(v).build();
   }
 
-  private static AttributeValue boolValue(boolean value) {
-    return AttributeValue.builder().bool(value).build();
+  private static AttributeValue n(long v) {
+    return AttributeValue.builder().n(Long.toString(v)).build();
+  }
+
+  private static AttributeValue boolValue(boolean v) {
+    return AttributeValue.builder().bool(v).build();
   }
 
   private static String method(Map<String, Object> input) {
-    Object requestContext = input.get("requestContext");
-    if (requestContext instanceof Map<?, ?> context
-        && context.get("http") instanceof Map<?, ?> http
-        && http.get("method") != null) {
-      return http.get("method").toString();
-    }
+    Object c = input.get("requestContext");
+    if (c instanceof Map<?, ?> m && m.get("http") instanceof Map<?, ?> h && h.get("method") != null)
+      return h.get("method").toString();
     return input.getOrDefault("httpMethod", "GET").toString();
   }
 
   private static Map<String, String> query(Map<String, Object> input) {
-    Object rawQuery = input.get("queryStringParameters");
-    if (!(rawQuery instanceof Map<?, ?> values)) {
-      return Map.of();
-    }
-    Map<String, String> query = new HashMap<>();
-    values.forEach(
-        (name, value) ->
-            query.put(String.valueOf(name), value == null ? null : String.valueOf(value)));
-    return query;
+    Object q = input.get("queryStringParameters");
+    if (!(q instanceof Map<?, ?> m)) return Map.of();
+    Map<String, String> out = new HashMap<>();
+    m.forEach((k, v) -> out.put(String.valueOf(k), v == null ? null : String.valueOf(v)));
+    return out;
   }
 
   private Map<String, Object> response(int status, Object body) {
     return Map.of(
-        "statusCode", status,
-        "headers", Map.of("Content-Type", "application/json; charset=UTF-8"),
-        "body", writeJson(body));
+        "statusCode",
+        status,
+        "headers",
+        Map.of("Content-Type", "application/json; charset=UTF-8"),
+        "body",
+        writeJson(body));
   }
 
   private String writeJson(Object value) {
     try {
       return JSON.writeValueAsString(value);
-    } catch (Exception error) {
-      throw new IllegalStateException("Basketball API response could not be serialized", error);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
   }
 
-  /** API応答に使うHTTPステータスとエラーコードを保持する内部例外です。 */
   private static final class ApiException extends RuntimeException {
-    private static final long serialVersionUID = 1L;
+    final int status;
+    final String code;
 
-    private final int status;
-    private final String code;
-
-    private ApiException(int status, String code, String message) {
+    ApiException(int status, String code, String message) {
       super(message);
       this.status = status;
       this.code = code;

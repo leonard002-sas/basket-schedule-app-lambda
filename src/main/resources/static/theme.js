@@ -1,10 +1,8 @@
-/** ライト・ダークの選択をすべての画面で共有します。 */
-(function initializeThemeControls() {
+(function () {
     const KEY = "courtside_theme";
     const saved = localStorage.getItem(KEY);
     document.documentElement.dataset.theme = saved === "dark" ? "dark" : "light";
 
-    /** 現在の配色に合わせてテーマ切り替えボタンの表示を更新します。 */
     function paintButton() {
         document.querySelectorAll("[data-theme-toggle]").forEach((button) => {
             const dark = document.documentElement.dataset.theme === "dark";

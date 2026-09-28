@@ -1,13 +1,22 @@
-/**
- * スコアブック画面の状態とAPI通信を管理します。
- *
- * ブラウザーで読み取ったクレームは操作ボタンの表示だけに使います。
- * チームデータの変更を許可する前に、Java API側でもトークンと権限を検証します。
- */
 const SCORE_API = "https://7yxh3p2c5swyx6ajv45ldmiswe0tirop.lambda-url.ap-northeast-1.on.aws/";
 const SCHEDULE_API = SCORE_API;
 const token = localStorage.getItem("id_token");
 const qs = new URLSearchParams(location.search);
+const currentScoreView = qs.get("view") || (qs.has("date") ? "games" : "teams");
+document.querySelectorAll(".site-navigation [data-app-nav]").forEach((link) => {
+    if (link.dataset.appNav === currentScoreView) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+});
+if (!isAdmin()) {
+    document
+        .querySelectorAll(
+            '.site-navigation [data-app-nav="schedule"], .site-navigation [data-app-nav="facility"], .site-navigation [data-app-nav="announcements"]',
+        )
+        .forEach((link) => {
+            link.hidden = true;
+        });
+}
+
 let seasonYear = new Date().getFullYear();
 let team = null;
 let cachedTeams = null;
@@ -25,41 +34,16 @@ let toastTimer = null;
 let playerTrendRows = [];
 let playerTrendId = "";
 
-/** ログイン時に保存したIDトークンから表示用の利用者情報を読み取ります。 */
 function claims() {
     try {
-        const encoded = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-        const normalized = encoded + "=".repeat((4 - (encoded.length % 4)) % 4);
-        const payload = JSON.parse(atob(normalized));
-        return Number(payload.exp) * 1000 > Date.now() ? payload : null;
+        return JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
     } catch {
         return null;
     }
 }
-/** 管理者向けの編集操作を表示するか、画面上で判断します。API側でも権限を検証します。 */
 function isAdmin() {
     return (claims()?.["cognito:groups"] || []).includes("admins");
 }
-
-/** 現在の画面に合わせてスコアブック共通メニューを初期化します。 */
-function initializeScorebookNavigation() {
-    const view = qs.get("view") || (qs.has("date") ? "games" : "teams");
-    document.querySelectorAll(".site-navigation [data-app-nav]").forEach((link) => {
-        if (link.dataset.appNav === view) link.setAttribute("aria-current", "page");
-        else link.removeAttribute("aria-current");
-        if (["schedule", "facility"].includes(link.dataset.appNav)) link.hidden = !isAdmin();
-    });
-}
-initializeScorebookNavigation();
-/**
- * 認証情報を付けてスコアブックAPIへリクエストを送ります。
- *
- * @param {string} resource APIのリソース名（例: games、player）
- * @param {string} [method="GET"] HTTPメソッド
- * @param {object|null} [body=null] 書き込み時に送るJSON本文
- * @param {object} [extra={}] シーズンや選手IDなどの追加クエリ
- * @returns {Promise<object>} 解析済みのJSON応答
- */
 function api(resource, method = "GET", body = null, extra = {}) {
     const params = new URLSearchParams({
         feature: "basketball",
@@ -67,58 +51,61 @@ function api(resource, method = "GET", body = null, extra = {}) {
         ...(activeTeamId ? { teamId: activeTeamId } : {}),
         ...extra,
     });
-    const headers = {
-        Authorization: `Bearer ${token}`,
-        ...(body ? { "Content-Type": "application/json" } : {}),
-    };
-
     return fetch(`${SCORE_API}?${params}`, {
         method,
-        headers,
+        headers: {
+            Authorization: `Bearer ${token}`,
+            ...(body ? { "Content-Type": "application/json" } : {}),
+        },
         body: body ? JSON.stringify(body) : undefined,
     })
-        .then(async (response) => {
-            const data = await response.json();
-            if (!response.ok) {
-                const code = data.code ? ` (${data.code})` : "";
-                throw new Error(`${data.message || `APIエラー ${response.status}`}${code}`);
-            }
-            return data;
+        .then(async (r) => {
+            const d = await r.json();
+            if (!r.ok)
+                throw new Error(
+                    `${d.message || `APIエラー ${r.status}`}${d.code ? ` (${d.code})` : ""}`,
+                );
+            return d;
         })
-        .catch((error) => {
-            if (error instanceof TypeError) {
+        .catch((e) => {
+            if (e instanceof TypeError)
                 throw new Error("APIに接続できません。しばらく待って再読み込みしてください。");
-            }
-            throw error;
+            throw e;
         });
 }
-/** 操作の結果を短時間だけ画面に通知します。 */
 function toast(message) {
-    const element = document.getElementById("scorebookToast");
-    element.textContent = message;
-    element.classList.add("is-visible");
+    const el = document.getElementById("scorebookToast");
+    el.textContent = message;
+    el.classList.add("is-visible");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => element.classList.remove("is-visible"), 2500);
+    toastTimer = setTimeout(() => el.classList.remove("is-visible"), 2500);
 }
-
-/** 選手レコードの新旧形式から共通の選手IDを取得します。 */
 function playerId(item) {
     return item.playerId || String(item.sk || "").replace(/^PLAYER#/, "");
 }
-
-/** 選手IDを画面に表示する選手名へ変換します。 */
 function nameFor(id) {
-    return players.find((player) => player.playerId === id)?.name || "選手";
+    return players.find((p) => p.playerId === id)?.name || "選手";
 }
-
-/** 選手のスタッツを表に並べる項目定義と値へ変換します。 */
 function statRows(data) {
     return data?.items || [];
 }
+function ratio(a, b) {
+    return b ? `${((a / b) * 100).toFixed(1)}%` : "—";
+}
+function eff(s) {
+    return (
+        (s.points || 0) +
+        (s.REB || 0) +
+        (s.AST || 0) +
+        (s.STL || 0) +
+        (s.BLK || 0) -
+        ((s.FGA || 0) - (s.FGM || 0)) -
+        ((s.FTA || 0) - (s.FTM || 0)) -
+        (s.TO || 0)
+    );
+}
 
-/** チーム、選手、試合の情報をまとめて読み、現在の画面を描画します。 */
 async function loadEverything() {
-    // 待ち時間を減らすため、チーム、選手、試合、ランキングの独立したデータを並行して取得します。
     const view = qs.get("view") || (qs.has("date") ? "games" : "teams");
     const requestedTeamId = activeTeamId;
     const teamListPromise = cachedTeams
@@ -201,7 +188,6 @@ async function loadEverything() {
     document.getElementById("deleteTeamButton").hidden = !activeTeamId || !isAdmin();
 }
 
-/** 選択チームの選手一覧と編集操作を表示します。 */
 function renderRoster() {
     const activePlayers = players.filter((p) => p.active !== false);
     document.getElementById("rosterList").innerHTML = activePlayers.length
@@ -222,7 +208,6 @@ function renderRoster() {
     renderPlayerSelection();
 }
 
-/** ライブ記録で選手を素早く一人選べるボタン一覧を描画します。 */
 function renderPlayerSelection() {
     const activePlayers = players.filter((p) => p.active !== false);
     if (!activePlayers.some((p) => p.playerId === selectedPlayerId)) selectedPlayerId = "";
@@ -237,7 +222,6 @@ function renderPlayerSelection() {
     renderSelectedPlayerPanel();
 }
 
-/** 選択選手に対する記録ボタンと現在のスタッツを表示します。 */
 function renderSelectedPlayerPanel() {
     const panel = document.getElementById("selectedPlayerPanel");
     const player = players.find((p) => p.playerId === selectedPlayerId && p.active !== false);
@@ -248,11 +232,9 @@ function renderSelectedPlayerPanel() {
         : "";
 }
 
-/** スコアブックの試合とカレンダー予定を結び付けるための共通IDを作ります。 */
 function scheduleId(item) {
     return `${item.scheduleMonth || ""}|${item.startDateTime || ""}`;
 }
-/** カレンダーの試合予定を読み、スコアブックとの紐付け候補にします。 */
 async function loadScheduleOptions() {
     const select = document.getElementById("scheduleGameSelect");
     try {
@@ -263,18 +245,6 @@ async function loadScheduleOptions() {
         const payload = await response.json();
         scheduleRows = (Array.isArray(payload) ? payload : payload.items || []).filter(
             (s) => s.eventType === "GAME",
-        );
-        const competitions = [
-            ...new Set(
-                scheduleRows.map((s) => String(s.competitionName || "").trim()).filter(Boolean),
-            ),
-        ].sort((a, b) => a.localeCompare(b, "ja"));
-        document.getElementById("basketballCompetitionNames").replaceChildren(
-            ...competitions.map((name) => {
-                const option = document.createElement("option");
-                option.value = name;
-                return option;
-            }),
         );
         const linked = new Set(
             games.filter((g) => g.scheduleMonth && g.startDateTime).map(scheduleId),
@@ -297,7 +267,6 @@ async function loadScheduleOptions() {
     }
 }
 
-/** 試合結果を日付順の一覧にし、詳細や編集への操作を付けます。 */
 function renderGames() {
     const box = document.getElementById("gamesList");
     document.getElementById("exportGamesButton").disabled = games.length === 0;
@@ -329,7 +298,6 @@ function renderGames() {
         .join("");
 }
 
-/** 選択チームの試合データを表計算ソフト向けCSVとして保存します。 */
 function exportGamesCsv() {
     const headers = [
         "DATE",
@@ -362,7 +330,6 @@ function exportGamesCsv() {
     URL.revokeObjectURL(url);
 }
 
-/** 集計済みスタッツをランキング表に表示します。 */
 function renderLeaderboard(rows) {
     const body = document.getElementById("leaderboardBody");
     leaderboardRows = rows;
@@ -387,7 +354,6 @@ function renderLeaderboard(rows) {
     document.getElementById("leaderboardEmpty").hidden = sorted.length > 0;
 }
 
-/** 選手の試合ごとの記録を読み、推移グラフの表示対象を切り替えます。 */
 async function showPlayerTrend(id) {
     playerTrendId = id;
     const panel = document.getElementById("playerTrendPanel");
@@ -410,13 +376,11 @@ async function showPlayerTrend(id) {
             `<p class='empty-state'>推移を読み込めませんでした：${escapeHtml(e.message)}</p>`;
     }
 }
-
-/** 選手ごとのスタッツ推移を、グラフと試合別の数値で表示します。 */
 function renderPlayerTrend() {
     const rows = playerTrendRows,
         metric = document.getElementById("playerTrendMetric").value,
         chart = document.getElementById("playerTrendChart"),
-        field = metric === "minutesSeconds" ? "minutesSeconds" : metric;
+        field = metric;
     if (!rows.length) {
         chart.innerHTML = "<p class='empty-state'>このシーズンに確定した試合はありません。</p>";
         document.getElementById("playerTrendGames").innerHTML = "";
@@ -446,27 +410,124 @@ function renderPlayerTrend() {
         .join("");
 }
 
-/** 選手名などの登録値をHTMLとして実行されないように保護します。 */
-function escapeHtml(value) {
-    return String(value ?? "").replace(
+function escapeHtml(v) {
+    return String(v ?? "").replace(
         /[&<>"']/g,
-        (character) =>
-            ({
-                "&": "&amp;",
-                "<": "&lt;",
-                ">": "&gt;",
-                '"': "&quot;",
-                "'": "&#39;",
-            })[character],
+        (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
     );
 }
-
-/** HTML属性へ入れる値の引用符と特殊文字をエスケープします。 */
-function escapeAttr(value) {
-    return escapeHtml(value);
+function escapeAttr(v) {
+    return escapeHtml(v);
 }
 
-/** 現在のシーズン集計をCSVファイルとして保存します。 */
+function parseCsv(text) {
+    const rows = [];
+    let row = [],
+        cell = "",
+        quoted = false;
+    for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (quoted) {
+            if (c === '"' && text[i + 1] === '"') {
+                cell += '"';
+                i++;
+            } else if (c === '"') quoted = false;
+            else cell += c;
+        } else if (c === '"') quoted = true;
+        else if (c === ",") {
+            row.push(cell);
+            cell = "";
+        } else if (c === "\n") {
+            row.push(cell.replace(/\r$/, ""));
+            rows.push(row);
+            row = [];
+            cell = "";
+        } else cell += c;
+    }
+    if (cell.length || row.length) {
+        row.push(cell.replace(/\r$/, ""));
+        rows.push(row);
+    }
+    return rows;
+}
+
+function parseStatsCsv(text) {
+    const rows = parseCsv(text);
+    if (rows.length < 2) throw new Error("CSVにデータ行がありません。");
+    const headers = rows[0].map((h) =>
+        h
+            .replace(/^\uFEFF/, "")
+            .trim()
+            .toUpperCase()
+            .replace(/\s+/g, ""),
+    );
+    const findIndex = (...names) => headers.findIndex((h) => names.includes(h));
+    const nameIndex = findIndex("PLAYER", "NAME", "選手", "選手名");
+    if (nameIndex < 0) throw new Error("PLAYER（選手名）列が見つかりません。");
+    const aliases = {
+        PTS: ["PTS", "POINTS"],
+        REB: ["REB", "REBOUNDS"],
+        AST: ["AST", "ASSISTS"],
+        STL: ["STL", "STEALS"],
+        BLK: ["BLK", "BLOCKS"],
+        FGM: ["FGM"],
+        FGA: ["FGA"],
+        "2PM": ["2PM"],
+        "2PA": ["2PA"],
+        "3PM": ["3PM"],
+        "3PA": ["3PA"],
+        FTM: ["FTM"],
+        FTA: ["FTA"],
+        OREB: ["OREB"],
+        DREB: ["DREB"],
+        TO: ["TO", "TOV"],
+        PF: ["PF"],
+    };
+    const indexes = Object.fromEntries(
+        Object.entries(aliases).map(([key, names]) => [key, findIndex(...names)]),
+    );
+    const numberIndex = findIndex("NUMBER", "NO", "背番号"),
+        positionIndex = findIndex("POS", "POSITION", "ポジション");
+    const numeric = (value) =>
+        /^\s*\d+(?:\.0+)?\s*$/.test(value || "") ? Math.trunc(Number(value)) : null;
+    const imported = [],
+        seen = new Set();
+    for (const cells of rows.slice(1)) {
+        const name = (cells[nameIndex] || "").trim();
+        if (!name || /^(TOTAL|合計|総計|計)$/i.test(name)) continue;
+        const stats = {};
+        let numericCount = 0;
+        for (const [field, index] of Object.entries(indexes)) {
+            if (index < 0) continue;
+            const value = numeric(cells[index] || "");
+            if (value !== null) {
+                stats[field] = value;
+                numericCount++;
+            }
+        }
+        if (!numericCount) continue;
+        const key = name.toLocaleLowerCase();
+        if (seen.has(key))
+            throw new Error(`「${name}」が複数行あります。選手を1行にまとめてください。`);
+        seen.add(key);
+        imported.push({
+            name,
+            number: numberIndex < 0 ? 0 : numeric(cells[numberIndex] || "") || 0,
+            position: positionIndex < 0 ? "" : (cells[positionIndex] || "").trim(),
+            stats,
+        });
+    }
+    if (!imported.length)
+        throw new Error(
+            "選手のスタッツ行を読み取れませんでした。PLAYER列とスタッツ列を確認してください。",
+        );
+    return imported;
+}
+
+function csvCell(value) {
+    const text = String(value ?? "");
+    return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
 function downloadSeasonCsv() {
     const headers = [
         "PLAYER",
@@ -540,7 +601,6 @@ function downloadSeasonCsv() {
     URL.revokeObjectURL(url);
 }
 
-/** 選択した試合を開き、記録または結果確認画面を用意します。 */
 async function openGame(id) {
     try {
         currentGame = await api("game", "GET", null, { gameId: id });
@@ -594,16 +654,17 @@ async function openGame(id) {
     }
 }
 
-/** 試合時計の経過状態から、現在の残り時間を計算します。 */
 function remainingNow() {
     const base = Number(currentGame?.remainingSeconds) || 0;
-    if (!currentGame?.clockRunning) return base;
-
-    const startedAt = Number(currentGame.clockStartedAt) || Math.floor(Date.now() / 1000);
-    const elapsedSeconds = Math.floor(Date.now() / 1000) - startedAt;
-    return Math.max(0, base - elapsedSeconds);
+    return currentGame?.clockRunning
+        ? Math.max(
+              0,
+              base -
+                  (Math.floor(Date.now() / 1000) -
+                      (Number(currentGame.clockStartedAt) || Math.floor(Date.now() / 1000))),
+          )
+        : base;
 }
-/** 試合時計、スコア、選手の記録操作を画面へ反映します。 */
 function drawGame() {
     if (!currentGame) return;
     const sec = remainingNow();
@@ -657,7 +718,6 @@ function drawGame() {
         updateClock("pause").catch(() => {});
     }
 }
-/** 記録操作コードをスコアブックのボタン表示名に変換します。 */
 function statLabel(type) {
     return (
         {
@@ -678,15 +738,13 @@ function statLabel(type) {
     );
 }
 
-/** APIから試合の最新状態を読み直し、スコア表示を同期します。 */
 async function refreshGame() {
     currentGame = await api("game", "GET", null, { gameId: currentGame.gameId });
     drawGame();
 }
-/** 時計の開始、一時停止、リセットをAPIへ保存して表示を更新します。 */
 async function updateClock(command) {
-    const updatedGame = await api("clock", "PUT", { gameId: currentGame.gameId, command });
-    Object.assign(currentGame, updatedGame);
+    const r = await api("clock", "PUT", { gameId: currentGame.gameId, command });
+    Object.assign(currentGame, r);
     currentGame.clockStartedAt = Math.floor(Date.now() / 1000);
     clockPauseSent = false;
     drawGame();
@@ -755,7 +813,6 @@ document.getElementById("deleteTeamButton").addEventListener("click", async () =
         toast(e.message);
     }
 });
-/** 選手フォームを新規登録用の初期状態へ戻します。 */
 function resetPlayerForm() {
     const form = document.getElementById("playerForm");
     form.reset();
@@ -1018,6 +1075,9 @@ document.getElementById("playerTrendMetric").addEventListener("change", renderPl
 document
     .getElementById("closePlayerTrend")
     .addEventListener("click", () => (document.getElementById("playerTrendPanel").hidden = true));
+document.getElementById("seasonSelect").addEventListener("change", () => {
+    if (playerTrendId) document.getElementById("playerTrendPanel").hidden = true;
+});
 document.getElementById("gameGrouping").addEventListener("change", renderGames);
 document.getElementById("exportGamesButton").addEventListener("click", exportGamesCsv);
 document.getElementById("seasonSelect").addEventListener("change", async (e) => {
@@ -1026,51 +1086,11 @@ document.getElementById("seasonSelect").addEventListener("change", async (e) => 
         `${seasonYear}年シーズン · 確定試合の累計`;
     try {
         await loadEverything();
-        if (!document.getElementById("playerTrendPanel").hidden && playerTrendId)
-            await showPlayerTrend(playerTrendId);
     } catch (err) {
         toast(err.message);
     }
 });
 document.getElementById("exportStatsButton").addEventListener("click", downloadSeasonCsv);
-document.getElementById("downloadImportTemplateButton").addEventListener("click", () => {
-    const headers = [
-        "DATE",
-        "COMPETITION",
-        "ROUND",
-        "OPPONENT",
-        "OPPONENT_SCORE",
-        "PLAYER",
-        "POS",
-        "NUMBER",
-        "PTS",
-        "REB",
-        "AST",
-        "STL",
-        "BLK",
-        "FGM",
-        "FGA",
-        "2PM",
-        "2PA",
-        "3PM",
-        "3PA",
-        "FTM",
-        "FTA",
-        "OREB",
-        "DREB",
-        "TO",
-        "PF",
-    ];
-    const blob = new Blob(["\uFEFF", headers.join(",") + "\r\n"], {
-        type: "text/csv;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "basketball-game-import-template.csv";
-    link.click();
-    URL.revokeObjectURL(url);
-});
 document.getElementById("csvImportForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const status = document.getElementById("csvImportStatus"),
@@ -1078,37 +1098,31 @@ document.getElementById("csvImportForm").addEventListener("submit", async (e) =>
     if (!file) return;
     status.textContent = "CSVを読み込んでいます…";
     try {
-        const parsed = parseMigrationCsv(await file.text());
-        let result, summary;
-        if (parsed.multi) {
-            if (parsed.matches.length > 50) throw new Error("一度に取り込めるのは50試合までです。");
-            result = await api("import-games", "PUT", { matches: parsed.matches });
-            summary = `${result.gamesImported}試合、選手記録${result.playersImported}件を取り込みました。`;
-        } else {
-            const date = document.getElementById("importGameDate").value,
-                opponent = document.getElementById("importOpponent").value.trim();
-            if (!date || !opponent)
-                throw new Error("旧形式の1試合CSVでは試合日と対戦相手を入力してください。");
-            const body = {
-                date,
-                opponent,
-                competitionName: document.getElementById("importCompetition").value.trim(),
-                players: parsed.players,
-            };
-            const opponentScore = document.getElementById("importOpponentScore").value;
-            if (opponentScore !== "") body.opponentScore = Number(opponentScore);
-            result = await api("import-game", "PUT", body);
-            summary = `1試合、選手記録${result.playersImported}件を取り込みました。`;
-        }
+        const text = await file.text();
+        const importedPlayers = parseStatsCsv(text);
+        const body = {
+            date: document.getElementById("importGameDate").value,
+            opponent: document.getElementById("importOpponent").value.trim(),
+            players: importedPlayers,
+        };
+        const opponentScore = document.getElementById("importOpponentScore").value;
+        if (opponentScore !== "") body.opponentScore = Number(opponentScore);
+        seasonYear = Number(body.date.slice(0, 4));
+        const seasonSelect = document.getElementById("seasonSelect");
+        if (![...seasonSelect.options].some((option) => Number(option.value) === seasonYear))
+            seasonSelect.add(new Option(`${seasonYear}年`, String(seasonYear)));
+        seasonSelect.value = String(seasonYear);
+        document.getElementById("rankingSeasonLabel").textContent =
+            `${seasonYear}年シーズン · 確定試合の累計`;
+        const result = await api("import-game", "PUT", body);
         await loadEverything();
-        status.textContent = `過去データを取り込みました。${summary}`;
+        status.textContent = `過去試合を取り込みました。${result.playersImported}名の記録を${seasonYear}年ランキングに反映しました。`;
         e.target.reset();
     } catch (err) {
         status.textContent = err.message;
     }
 });
 
-/** URLの画面指定から、チーム・試合・ランキングの表示を選びます。 */
 function applyView() {
     const view = qs.get("view") || (qs.has("date") ? "games" : "teams");
     const config = {
@@ -1142,13 +1156,12 @@ function applyView() {
         .forEach((link) => link.classList.toggle("is-active", link.dataset.viewLink === page));
 }
 
-/** 画面イベント、認証状態、初期データを設定してスコアブックを起動します。 */
 async function init() {
-    if (!claims()) {
+    if (!token) {
         location.replace("index.html");
         return;
     }
-    document.body.classList.remove("auth-pending");
+    document.body.style.display = "block";
     document.getElementById("memberViewNote").hidden = isAdmin();
     if (!isAdmin())
         [

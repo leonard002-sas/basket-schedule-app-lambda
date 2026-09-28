@@ -23,19 +23,8 @@ import software.amazon.awssdk.services.s3.model.PutObjectTaggingRequest;
 import software.amazon.awssdk.services.s3.model.Tag;
 import software.amazon.awssdk.services.s3.model.Tagging;
 
-/** S3へアップロードされた画像をGeminiで解析し、バスケットボールの予定を抽出します。 */
 public class ImageProcessor implements RequestHandler<S3Event, String> {
 
-  /** S3イベントで起動するLambdaハンドラーを作成します。 */
-  public ImageProcessor() {}
-
-  /**
-   * S3で作成された画像ごとに解析を実行し、オブジェクトの進捗タグを更新します。
-   *
-   * @param event アップロードされた画像を特定するS3通知
-   * @param context 進捗やエラーの記録に使うLambda実行コンテキスト
-   * @return Lambdaの実行ログに記録する短い処理結果
-   */
   @Override
   public String handleRequest(S3Event event, Context context) {
 
