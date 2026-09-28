@@ -3,6 +3,7 @@ const token = localStorage.getItem("id_token");
 const qs = new URLSearchParams(location.search);
 const seasonYear = new Date().getFullYear();
 let team = null;
+let activeTeamId = localStorage.getItem("basket_team_id") || "";
 let players = [];
 let games = [];
 let currentGame = null;
@@ -14,9 +15,10 @@ let toastTimer = null;
 function claims() { try { return JSON.parse(atob(token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))); } catch { return null; } }
 function isAdmin() { return (claims()?.["cognito:groups"] || []).includes("admins"); }
 function api(resource, method="GET", body=null, extra={}) {
-    const params = new URLSearchParams({feature:"basketball",resource,...extra});
+    const params = new URLSearchParams({feature:"basketball",resource,...(activeTeamId?{teamId:activeTeamId}:{}),...extra});
     return fetch(`${SCORE_API}?${params}`, {method,headers:{Authorization:`Bearer ${token}`,...(body?{"Content-Type":"application/json"}:{})},body:body?JSON.stringify(body):undefined})
-        .then(async r=>{ const d=await r.json(); if(!r.ok) throw new Error(d.message||`APIエラー ${r.status}`); return d; });
+        .then(async r=>{ const d=await r.json(); if(!r.ok) throw new Error(d.message||`APIエラー ${r.status}`); return d; })
+        .catch(e=>{if(e instanceof TypeError)throw new Error("APIに接続できません。しばらく待って再読み込みしてください。");throw e;});
 }
 function toast(message) { const el=document.getElementById("scorebookToast");el.textContent=message;el.classList.add("is-visible");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("is-visible"),2500); }
 function playerId(item) { return item.playerId || String(item.sk||"").replace(/^PLAYER#/,""); }
@@ -26,13 +28,22 @@ function ratio(a,b) { return b ? `${(a/b*100).toFixed(1)}%` : "—"; }
 function eff(s) { return (s.points||0)+(s.REB||0)+(s.AST||0)+(s.STL||0)+(s.BLK||0)-((s.FGA||0)-(s.FGM||0))-((s.FTA||0)-(s.FTM||0))-(s.TO||0); }
 
 async function loadEverything() {
-    const results=await Promise.all([api("team"),api("players"),api("games"),api("leaderboard","GET",null,{season:String(seasonYear)})]);
+    const teamResult=await api("teams","GET",null,{teamId:""});
+    const availableTeams=statRows(teamResult);
+    if(!availableTeams.some(t=>String(t.teamId)===activeTeamId))activeTeamId=availableTeams[0]?.teamId||"";
+    const select=document.getElementById("teamSelect");
+    select.innerHTML=availableTeams.map(t=>`<option value="${escapeAttr(t.teamId)}">${escapeHtml(t.name||"名称未設定")}</option>`).join("")||"<option value=''>チームを登録してください</option>";
+    select.value=activeTeamId;
+    if(activeTeamId)localStorage.setItem("basket_team_id",activeTeamId);else localStorage.removeItem("basket_team_id");
+    const results=activeTeamId?await Promise.all([api("team"),api("players"),api("games"),api("leaderboard","GET",null,{season:String(seasonYear)})]):[{}, {items:[]}, {items:[]}, {items:[]}];
     team=results[0]; players=statRows(results[1]).map(p=>({...p,playerId:playerId(p)})).filter(p=>p.active!==false);
     games=statRows(results[2]).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
     document.getElementById("teamName").value=team.name||"";
     document.getElementById("liveTeamName").textContent=team.name||"チーム";
     renderRoster();renderGames();renderLeaderboard(statRows(results[3]));
-    if(!team.name) document.getElementById("teamStatus").textContent="まずチーム名を保存してください。";
+    document.getElementById("teamStatus").textContent=!activeTeamId?"チームを登録するとメンバーと試合を管理できます。":team.name?"":"チーム名を登録してください。";
+    document.getElementById("playerForm").classList.toggle("viewer-hidden",!activeTeamId||!isAdmin());
+    document.getElementById("newGameCard").querySelector("form").classList.toggle("viewer-hidden",!activeTeamId);
 }
 
 function renderRoster() {
@@ -45,7 +56,7 @@ function renderRoster() {
 function renderGames() {
     const box=document.getElementById("gamesList");
     if(!games.length){box.innerHTML="<div class='empty-state'>試合はまだありません。</div>";return;}
-    box.innerHTML=games.map(g=>{const done=g.status==="FINAL",admin=isAdmin();return `<div class="game-item"><div><strong>${escapeHtml(g.date||"")} · ${escapeHtml(team.name||"チーム")} vs ${escapeHtml(g.opponent||"相手")}</strong><span>${done?`${g.teamScore||0} - ${g.opponentScore||0} · ${g.result||""}`:g.status==="LIVE"?"記録中":"未開始"}</span></div>${done||admin?`<button type="button" data-open-game="${escapeAttr(g.gameId)}" class="${done?"button-light":"button-accent"}">${done?"結果を見る":g.status==="LIVE"?"記録を再開":"記録開始"}</button>`:"<span>試合前</span>"}</div>`;}).join("");
+    box.innerHTML=games.map(g=>{const done=g.status==="FINAL",admin=isAdmin();return `<div class="game-item"><div><strong>${escapeHtml(g.date||"")} · ${escapeHtml(team.name||"チーム")} vs ${escapeHtml(g.opponent||"相手")}</strong><span>${done?`${g.teamScore||0} - ${g.opponentScore||0} · ${g.result||""}`:g.status==="LIVE"?"記録中":"未開始"}</span></div><button type="button" data-open-game="${escapeAttr(g.gameId)}" class="${done?"button-light":admin?"button-accent":"button-light"}">${done?"結果を見る":admin?g.status==="LIVE"?"記録を再開":"スコア記録":"詳細を見る"}</button></div>`;}).join("");
     box.querySelectorAll("[data-open-game]").forEach(b=>b.addEventListener("click",()=>openGame(b.dataset.openGame)));
 }
 
@@ -111,9 +122,11 @@ function statLabel(type) { return ({FG2_MADE:"2P成功",FG2_MISS:"2P失敗",FG3_
 async function refreshGame() { currentGame=await api("game","GET",null,{gameId:currentGame.gameId});drawGame(); }
 async function updateClock(command) { const r=await api("clock","PUT",{gameId:currentGame.gameId,command});Object.assign(currentGame,r);currentGame.clockStartedAt=Math.floor(Date.now()/1000);clockPauseSent=false;drawGame(); }
 
-document.getElementById("teamForm").addEventListener("submit",async e=>{e.preventDefault();try{team=await api("team","PUT",{name:document.getElementById("teamName").value.trim()});document.getElementById("liveTeamName").textContent=team.name;document.getElementById("teamStatus").textContent="チーム情報を保存しました。";toast("チームを保存しました");}catch(err){document.getElementById("teamStatus").textContent=err.message;}});
-document.getElementById("playerForm").addEventListener("submit",async e=>{e.preventDefault();if(!team?.name){toast("先にチーム名を登録してください");return;}try{await api("player","PUT",{name:document.getElementById("playerName").value.trim(),number:Number(document.getElementById("playerNumber").value)||0,age:Number(document.getElementById("playerAge").value)||0});e.target.reset();await loadEverything();toast("選手を追加しました");}catch(err){toast(err.message);}});
-document.getElementById("gameForm").addEventListener("submit",async e=>{e.preventDefault();if(!team?.name){toast("先にチーム名を登録してください");return;}try{const body={date:document.getElementById("gameDate").value,opponent:document.getElementById("opponent").value.trim(),quarterMinutes:Number(document.getElementById("quarterMinutes").value)||10};const scheduleMonth=qs.get("scheduleMonth"),startDateTime=qs.get("startDateTime");if(scheduleMonth&&startDateTime){body.scheduleMonth=scheduleMonth;body.startDateTime=startDateTime;}await api("game","PUT",body);e.target.reset();document.getElementById("quarterMinutes").value=10;await loadEverything();document.getElementById("gameStatus").textContent="試合を登録しました。試合一覧から記録を始められます。";}catch(err){document.getElementById("gameStatus").textContent=err.message;}});
+document.getElementById("teamForm").addEventListener("submit",async e=>{e.preventDefault();const creating=!activeTeamId;try{const saved=await api("team","PUT",{...(creating?{}:{teamId:activeTeamId}),name:document.getElementById("teamName").value.trim()},{teamId:""});activeTeamId=saved.teamId;localStorage.setItem("basket_team_id",activeTeamId);await loadEverything();toast(creating?"チームを登録しました":"チーム名を更新しました");}catch(err){document.getElementById("teamStatus").textContent=err.message;}});
+document.getElementById("newTeamButton").addEventListener("click",()=>{activeTeamId="";localStorage.removeItem("basket_team_id");team=null;document.getElementById("teamSelect").value="";document.getElementById("teamName").value="";document.getElementById("teamStatus").textContent="新しいチーム名を入力してください。";document.getElementById("teamName").focus();});
+document.getElementById("teamSelect").addEventListener("change",async e=>{activeTeamId=e.target.value;localStorage.setItem("basket_team_id",activeTeamId);try{await loadEverything();}catch(err){toast(err.message);}});
+document.getElementById("playerForm").addEventListener("submit",async e=>{e.preventDefault();if(!activeTeamId){toast("先にチームを登録してください");return;}try{await api("player","PUT",{name:document.getElementById("playerName").value.trim(),number:Number(document.getElementById("playerNumber").value)||0,age:Number(document.getElementById("playerAge").value)||0});e.target.reset();await loadEverything();toast("メンバーを追加しました");}catch(err){toast(err.message);}});
+document.getElementById("gameForm").addEventListener("submit",async e=>{e.preventDefault();if(!activeTeamId){toast("先にチームを登録してください");return;}try{const body={date:document.getElementById("gameDate").value,opponent:document.getElementById("opponent").value.trim(),quarterMinutes:Number(document.getElementById("quarterMinutes").value)||10};const scheduleMonth=qs.get("scheduleMonth"),startDateTime=qs.get("startDateTime");if(scheduleMonth&&startDateTime){body.scheduleMonth=scheduleMonth;body.startDateTime=startDateTime;}await api("game","PUT",body);e.target.reset();document.getElementById("quarterMinutes").value=10;await loadEverything();document.getElementById("gameStatus").textContent="試合を登録しました。試合一覧から記録を始められます。";}catch(err){document.getElementById("gameStatus").textContent=err.message;}});
 document.getElementById("gamesList").addEventListener("click",e=>{const b=e.target.closest("[data-open-game]");if(b)openGame(b.dataset.openGame);});
 document.getElementById("clockToggle").addEventListener("click",()=>{if(!currentGame.clockRunning&&(currentGame.onCourt||[]).length!==5){toast("先にコート上の選手5人を保存してください");return;}updateClock(currentGame.clockRunning?"pause":"start").catch(e=>toast(e.message));});
 document.getElementById("nextPeriod").addEventListener("click",async()=>{if(Number(currentGame.period)>=4){toast("4Qです。試合終了を記録してください。");return;}try{await updateClock("next");}catch(e){toast(e.message);}});
@@ -124,10 +137,25 @@ document.getElementById("finishGame").addEventListener("click",async()=>{if(!cur
 document.getElementById("closeGameButton").addEventListener("click",()=>{currentGame=null;document.getElementById("scorekeeperCard").hidden=true;});
 document.getElementById("rankingMetric").addEventListener("change",()=>renderLeaderboard(leaderboardRows));
 
+function applyView() {
+    const view=qs.get("view")||(qs.has("date")?"games":"teams");
+    const config={
+        teams:{title:"チーム管理",description:"チームを登録して、メンバーを管理します。",sections:["teamCard","rosterCard"]},
+        games:{title:"試合管理",description:"選択したチームの試合を登録し、詳細やスコアを確認します。",sections:["newGameCard","gamesCard","scorekeeperCard"]},
+        rankings:{title:"ランキング",description:"選択したチームのシーズンスタッツを確認します。",sections:["leaderboardCard"]}
+    };
+    const page=config[view]?view:"teams",selected=config[page];
+    document.getElementById("scorebookPageTitle").textContent=selected.title;
+    document.getElementById("scorebookPageDescription").textContent=selected.description;
+    document.querySelectorAll(".scorebook-grid > section").forEach(section=>{section.hidden=!selected.sections.includes(section.id)||(section.id==="scorekeeperCard"&&!currentGame);});
+    document.querySelectorAll("[data-view-link]").forEach(link=>link.classList.toggle("is-active",link.dataset.viewLink===page));
+}
+
 async function init() {
     if(!token){location.replace("index.html");return;}
     document.body.style.display="block";
-    if(!isAdmin()) ["teamForm","playerForm","gameForm"].forEach(id=>document.getElementById(id).classList.add("viewer-hidden"));
+    if(!isAdmin()) ["teamForm","playerForm","gameForm","newTeamButton"].forEach(id=>document.getElementById(id).classList.add("viewer-hidden"));
+    applyView();
     const date=qs.get("date");document.getElementById("gameDate").value=date||new Date().toISOString().slice(0,10);
     document.getElementById("rankingSeasonLabel").textContent=`${seasonYear}年シーズン · 確定試合の累計`;
     try{await loadEverything();}catch(e){toast(`${e.message}。DynamoDB設定を確認してください。`);}

@@ -13,24 +13,33 @@
 <div class="app-shell scorebook-shell">
     <header class="site-header">
         <a class="brand-lockup" href="index.html"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12.2" stroke="currentColor" stroke-width="1.8"/><path d="M5.3 10.1c7.1 1.8 14.3 1.8 21.4 0M5.3 21.9c7.1-1.8 14.3-1.8 21.4 0M16 3.8c-4.1 3.1-6.2 7.2-6.2 12.2S11.9 25.1 16 28.2M16 3.8c4.1 3.1 6.2 7.2 6.2 12.2S20.1 25.1 16 28.2" stroke="currentColor" stroke-width="1.5"/></svg></span><span><span class="brand-name">COURTSIDE</span><span class="brand-caption">Team scorebook</span></span></a>
-        <a class="button-light scorebook-back" href="index.html">← カレンダー</a>
+        <div class="scorebook-header-actions"><a class="button-light scorebook-back" href="index.html">← カレンダー</a></div>
     </header>
 
     <section class="scorebook-hero">
         <span class="eyebrow">TEAM SCOREBOOK</span>
-        <h1>チームスコアブック</h1>
-        <p>試合を記録して、シーズンのスタッツを積み上げます。</p>
+        <h1 id="scorebookPageTitle">チーム管理</h1>
+        <p id="scorebookPageDescription">チームを登録して、選手と試合を管理します。</p>
     </section>
+
+    <nav class="scorebook-nav" aria-label="スコアブックメニュー">
+        <a href="basketball.html?view=teams" data-view-link="teams">チーム管理</a>
+        <a href="basketball.html?view=games" data-view-link="games">試合管理</a>
+        <a href="basketball.html?view=rankings" data-view-link="rankings">ランキング</a>
+    </nav>
+
+    <div class="team-select-row global-team-select"><label>管理するチーム<select id="teamSelect"><option value="">チームを読み込み中</option></select></label></div>
 
     <main class="scorebook-grid">
         <section class="section score-card" id="teamCard">
-            <div class="score-section-title"><span class="score-icon">♧</span><div><h2>チーム</h2><p>最初にチーム名を登録してください。</p></div></div>
-            <form id="teamForm" class="team-form"><label>チーム名<input id="teamName" maxlength="80" required placeholder="例：COURTSIDE"></label><button class="button-accent">保存</button></form>
+            <div class="score-section-title"><span class="score-icon">♧</span><div><h2>チーム</h2><p>チームを選択するか、新しいチームを登録します。</p></div></div>
+            <button id="newTeamButton" type="button" class="button-light team-create-button">＋ チームを登録</button>
+            <form id="teamForm" class="team-form"><label>チーム名<input id="teamName" maxlength="80" required placeholder="例：COURTSIDE"></label><button id="saveTeamButton" class="button-accent">チームを保存</button></form>
             <div id="teamStatus" class="score-status" role="status"></div>
         </section>
 
         <section class="section score-card" id="rosterCard">
-            <div class="score-section-title"><span class="score-icon">♟</span><div><h2>選手登録</h2><p>背番号と年齢は任意です。</p></div></div>
+            <div class="score-section-title"><span class="score-icon">♟</span><div><h2>メンバー登録</h2><p>選択中のチームに選手を登録します。背番号と年齢は任意です。</p></div></div>
             <form id="playerForm" class="player-form"><label>選手名<input id="playerName" maxlength="80" required placeholder="選手名"></label><label>背番号<input id="playerNumber" type="number" min="0" max="99" placeholder="番号"></label><label>年齢<input id="playerAge" type="number" min="0" max="99" placeholder="任意"></label><button class="button-accent">選手を追加</button></form>
             <div id="rosterList" class="roster-list"></div>
         </section>

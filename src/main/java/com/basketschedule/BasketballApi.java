@@ -29,7 +29,7 @@ import software.amazon.awssdk.services.dynamodb.model.Put;
 /** Team roster, live basketball scorekeeping, and season totals. */
 public class BasketballApi implements RequestHandler<Map<String, Object>, Map<String, Object>> {
     private static final String TABLE = "BasketballData";
-    private static final String TEAM_PK = "TEAM#MAIN";
+    private static final String TEAM_INDEX_PK = "BASKETBALL";
     private static final ObjectMapper JSON = new ObjectMapper();
     private final DynamoDbClient db = DynamoDbClient.builder().region(Region.AP_NORTHEAST_1).build();
 
@@ -44,7 +44,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
             JsonNode body = input.get("body") == null ? JSON.createObjectNode() : JSON.readTree(input.get("body").toString());
             Object result = switch (method.toUpperCase()) {
                 case "GET" -> read(resource, query);
-                case "PUT" -> write(resource, body);
+                case "PUT" -> write(resource, body, query);
                 default -> throw new ApiException(405, "METHOD_NOT_ALLOWED", "この操作には対応していません");
             };
             return response(200, result);
@@ -62,20 +62,33 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
 
     private Object read(String resource, Map<String, String> q) {
         return switch (resource) {
-            case "team" -> item(TEAM_PK, "PROFILE");
-            case "players" -> rows(TEAM_PK, "PLAYER#");
-            case "games" -> rows(TEAM_PK, "GAME#");
+            case "teams" -> teams();
+            case "team" -> item(teamPk(required(q, "teamId")), "PROFILE");
+            case "players" -> rows(teamPk(required(q, "teamId")), "PLAYER#");
+            case "games" -> rows(teamPk(required(q, "teamId")), "GAME#");
             case "game" -> game(q.get("gameId"));
-            case "leaderboard" -> rows("SEASON#" + season(q.get("season")), "PLAYER#");
+            case "leaderboard" -> rows(seasonPk(q.get("season"), required(q, "teamId")), "PLAYER#");
             default -> throw new ApiException(404, "NOT_FOUND", "指定された情報がありません");
         };
     }
 
-    private Object write(String resource, JsonNode b) {
+    private Object teams() {
+        List<Map<String, AttributeValue>> registered = new ArrayList<>(rows(TEAM_INDEX_PK, "TEAM#"));
+        Map<String, AttributeValue> legacy = item("TEAM#MAIN", "PROFILE");
+        if (!legacy.isEmpty() && registered.stream().noneMatch(t -> "MAIN".equals(str(t,"teamId")))) {
+            Map<String, AttributeValue> migrated = new HashMap<>(legacy);
+            migrated.put("teamId", s("MAIN"));
+            migrated.put("name", s(str(legacy,"name")));
+            registered.add(migrated);
+        }
+        return plainList(registered);
+    }
+
+    private Object write(String resource, JsonNode b, Map<String, String> query) {
         return switch (resource) {
             case "team" -> saveTeam(b);
-            case "player" -> savePlayer(b);
-            case "game" -> createGame(b);
+            case "player" -> savePlayer(b, required(query, "teamId"));
+            case "game" -> createGame(b, required(query, "teamId"));
             case "action" -> recordAction(b);
             case "undo" -> undoAction(b);
             case "clock" -> updateClock(b);
@@ -87,19 +100,24 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
 
     private Map<String, Object> saveTeam(JsonNode b) {
         String name = required(b, "name");
-        Map<String, AttributeValue> item = key(TEAM_PK, "PROFILE");
+        String id = b.path("teamId").asText("").isBlank() ? UUID.randomUUID().toString() : b.path("teamId").asText();
+        Map<String, AttributeValue> item = key(teamPk(id), "PROFILE");
+        item.put("teamId", s(id));
         item.put("name", s(name));
         item.put("updatedAt", s(Instant.now().toString()));
         db.putItem(PutItemRequest.builder().tableName(TABLE).item(item).build());
-        return Map.of("name", name);
+        Map<String, AttributeValue> index = key(TEAM_INDEX_PK, "TEAM#" + id);
+        index.put("teamId", s(id)); index.put("name", s(name));
+        db.putItem(PutItemRequest.builder().tableName(TABLE).item(index).build());
+        return Map.of("teamId", id, "name", name);
     }
 
-    private Map<String, Object> savePlayer(JsonNode b) {
+    private Map<String, Object> savePlayer(JsonNode b, String teamId) {
         String id = b.path("playerId").asText("").isBlank() ? UUID.randomUUID().toString() : b.path("playerId").asText();
         String name = required(b, "name");
         int number = Math.max(0, b.path("number").asInt(0));
         int age = Math.max(0, b.path("age").asInt(0));
-        Map<String, AttributeValue> item = key(TEAM_PK, "PLAYER#" + id);
+        Map<String, AttributeValue> item = key(teamPk(teamId), "PLAYER#" + id);
         item.put("playerId", s(id)); item.put("name", s(name));
         item.put("number", n(number)); item.put("age", n(age));
         item.put("active", AttributeValue.builder().bool(true).build());
@@ -107,24 +125,27 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
         return Map.of("playerId", id, "name", name, "number", number, "age", age);
     }
 
-    private Map<String, Object> createGame(JsonNode b) {
+    private Map<String, Object> createGame(JsonNode b, String teamId) {
+        if (item(teamPk(teamId), "PROFILE").isEmpty()) throw new ApiException(404,"TEAM_NOT_FOUND","チームが見つかりません");
         String opponent = required(b, "opponent");
         String date = b.path("date").asText(LocalDate.now().toString());
         try { LocalDate.parse(date); } catch (Exception e) { throw new IllegalArgumentException("試合日を確認してください"); }
         int quarterMinutes = b.path("quarterMinutes").asInt(10);
         if (quarterMinutes < 1 || quarterMinutes > 20) throw new IllegalArgumentException("クォーター時間は1〜20分で指定してください");
         String linkedMonth=b.path("scheduleMonth").asText(""); String linkedStart=b.path("startDateTime").asText("");
-        if(!linkedMonth.isBlank()&&!linkedStart.isBlank()) for(var existing:rows(TEAM_PK,"GAME#")) {
+        String teamPartition = teamPk(teamId);
+        if(!linkedMonth.isBlank()&&!linkedStart.isBlank()) for(var existing:rows(teamPartition,"GAME#")) {
             if(linkedMonth.equals(str(existing,"scheduleMonth"))&&linkedStart.equals(str(existing,"startDateTime"))) throw new ApiException(409,"GAME_EXISTS","この試合予定はすでにスコア記録へ登録されています");
         }
         String id = UUID.randomUUID().toString();
         long now = Instant.now().getEpochSecond();
-        Map<String, AttributeValue> game = key(TEAM_PK, "GAME#" + date + "#" + id);
+        Map<String, AttributeValue> game = key(teamPartition, "GAME#" + date + "#" + id);
         game.put("gameId", s(id)); game.put("date", s(date)); game.put("opponent", s(opponent));
         game.put("quarterMinutes", n(quarterMinutes)); game.put("status", s("READY"));
         game.put("period", n(1)); game.put("remainingSeconds", n(quarterMinutes * 60));
         game.put("teamScore", n(0)); game.put("opponentScore", n(0)); game.put("createdAt", n(now));
         game.put("teamGameSk", s("GAME#" + date + "#" + id));
+        game.put("teamId", s(teamId));
         if (!linkedMonth.isBlank()) game.put("scheduleMonth", s(linkedMonth));
         if (!linkedStart.isBlank()) game.put("startDateTime", s(linkedStart));
         db.putItem(PutItemRequest.builder().tableName(TABLE).item(game).build());
@@ -138,10 +159,11 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
         String gameId = required(b, "gameId");
         String playerId = required(b, "playerId");
         String type = required(b, "type");
-        if (item(TEAM_PK, "PLAYER#" + playerId).isEmpty()) throw new ApiException(404,"PLAYER_NOT_FOUND","選手が見つかりません");
         Map<String, Long> delta = statDelta(type);
         Map<String, AttributeValue> meta = item("GAME#" + gameId, "META");
         if (meta.isEmpty() || "FINAL".equals(str(meta, "status"))) throw new ApiException(409, "GAME_CLOSED", "この試合は記録を終了しています");
+        String teamPartition = teamPk(str(meta, "teamId"));
+        if (item(teamPartition, "PLAYER#" + playerId).isEmpty()) throw new ApiException(404,"PLAYER_NOT_FOUND","選手が見つかりません");
         long now = Instant.now().toEpochMilli();
         String eventId = UUID.randomUUID().toString();
         Map<String, AttributeValue> event = key("GAME#" + gameId, "EVENT#" + String.format("%013d", now) + "#" + eventId);
@@ -153,8 +175,8 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
         long points = delta.getOrDefault("points",0L);
         if (points != 0) {
             writes.add(TransactWriteItem.builder().update(addUpdate("GAME#"+gameId,"META",Map.of("teamScore",points))).build());
-            Map<String,AttributeValue> gameRow=item(TEAM_PK,str(meta,"sk"));
-            if(!gameRow.isEmpty()) writes.add(TransactWriteItem.builder().update(addUpdate(TEAM_PK,str(meta,"sk"),Map.of("teamScore",points))).build());
+            Map<String,AttributeValue> gameRow=item(teamPartition,str(meta,"teamGameSk"));
+            if(!gameRow.isEmpty()) writes.add(TransactWriteItem.builder().update(addUpdate(teamPartition,str(meta,"teamGameSk"),Map.of("teamScore",points))).build());
         }
         db.transactWriteItems(TransactWriteItemsRequest.builder().transactItems(writes).build());
         return Map.of("eventId", eventId, "type", type, "playerId", playerId);
@@ -204,7 +226,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
         if(points!=0) {
             addStats("GAME#"+id,"META",Map.of("teamScore",-points));
             String teamGameSk = str(meta, "teamGameSk");
-            if (!teamGameSk.isBlank()) addStats(TEAM_PK, teamGameSk, Map.of("teamScore", -points));
+            if (!teamGameSk.isBlank()) addStats(teamPk(str(meta,"teamId")), teamGameSk, Map.of("teamScore", -points));
         }
         db.deleteItem(DeleteItemRequest.builder().tableName(TABLE).key(key("GAME#"+id,str(last,"sk"))).build());
         return Map.of("undone",type,"playerId",player);
@@ -217,7 +239,8 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
         List<String> next = new ArrayList<>();
         b.path("playerIds").forEach(v -> { if (!v.asText().isBlank() && !next.contains(v.asText())) next.add(v.asText()); });
         if (next.size() > 5) throw new IllegalArgumentException("コート上の選手は5人までです");
-        for (String player : next) if (item(TEAM_PK,"PLAYER#"+player).isEmpty()) throw new ApiException(404,"PLAYER_NOT_FOUND","登録されていない選手が含まれています");
+        String teamPartition = teamPk(str(meta,"teamId"));
+        for (String player : next) if (item(teamPartition,"PLAYER#"+player).isEmpty()) throw new ApiException(404,"PLAYER_NOT_FOUND","登録されていない選手が含まれています");
         long now = Instant.now().getEpochSecond();
         List<String> old = str(meta,"onCourt").isBlank() ? List.of() : List.of(str(meta,"onCourt").split(","));
         long since = longValue(meta, "lineupStartedAt", now);
@@ -241,7 +264,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
             Map<String, Long> totals = new HashMap<>();
             for (String field : STAT_FIELDS) totals.put(field, longValue(p, field, 0));
             totals.put("GP", 1L); totals.put("W", "W".equals(result) ? 1L : 0L); totals.put("L", "L".equals(result) ? 1L : 0L); totals.put("D", "D".equals(result) ? 1L : 0L);
-            addStats("SEASON#" + season, "PLAYER#" + player, totals);
+            addStats(seasonPk(season, str(meta,"teamId")), "PLAYER#" + player, totals);
         }
         long now = Instant.now().getEpochSecond();
         setMeta(id, Map.of("status", s("FINAL"), "opponentScore", n(opponentScore), "result", s(result), "finishedAt", n(now), "clockRunning", boolValue(false)));
@@ -311,8 +334,8 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     private void syncTeamGame(Map<String, AttributeValue> meta, String id, int period, long remaining, boolean running) {
         updateTeamGameFields(meta,id,Map.of("period",n(period),"remainingSeconds",n(remaining),"clockRunning",boolValue(running)));
     }
-    private void updateTeamGameFields(Map<String, AttributeValue> meta,String id,Map<String,AttributeValue> changes) { set(TEAM_PK,str(meta,"teamGameSk"),changes); }
-    private void setTeamGame(String id, Map<String, AttributeValue> changes) { Map<String,AttributeValue> meta=item("GAME#"+id,"META"); if(!meta.isEmpty()&&!str(meta,"teamGameSk").isBlank()) set(TEAM_PK,str(meta,"teamGameSk"),changes); }
+    private void updateTeamGameFields(Map<String, AttributeValue> meta,String id,Map<String,AttributeValue> changes) { set(teamPk(str(meta,"teamId")),str(meta,"teamGameSk"),changes); }
+    private void setTeamGame(String id, Map<String, AttributeValue> changes) { Map<String,AttributeValue> meta=item("GAME#"+id,"META"); if(!meta.isEmpty()&&!str(meta,"teamGameSk").isBlank()) set(teamPk(str(meta,"teamId")),str(meta,"teamGameSk"),changes); }
 
     private Map<String, AttributeValue> item(String pk, String sk) { return db.getItem(GetItemRequest.builder().tableName(TABLE).key(key(pk,sk)).consistentRead(true).build()).item(); }
     private void addCurrentLineupMinutes(String id, Map<String,AttributeValue> meta,long now) {
@@ -325,11 +348,17 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
         var result = db.query(QueryRequest.builder().tableName(TABLE).consistentRead(true).keyConditionExpression("pk = :pk AND begins_with(sk, :prefix)").expressionAttributeValues(Map.of(":pk",s(pk),":prefix",s(prefix))).build());
         return result.items();
     }
+    private static String teamPk(String id) { return "TEAM#" + (id == null || id.isBlank() ? "MAIN" : id); }
+    private static String seasonPk(String year, String teamId) {
+        String season = "SEASON#" + season(year);
+        return "MAIN".equals(teamId) ? season : season + "#TEAM#" + teamId;
+    }
     private Map<String, AttributeValue> key(String pk,String sk) { Map<String,AttributeValue> m=new HashMap<>(); m.put("pk",s(pk));m.put("sk",s(sk));return m; }
     private Map<String,Object> plainList(List<Map<String,AttributeValue>> rows) { List<Map<String,Object>> out=new ArrayList<>(); for(var row:rows)out.add(plain(row)); return Map.of("items",out); }
     private Map<String,Object> plain(Map<String,AttributeValue> row) { Map<String,Object> out=new HashMap<>(); row.forEach((k,v)->{ if(v.s()!=null)out.put(k,v.s()); else if(v.n()!=null)out.put(k,Long.parseLong(v.n())); else if(v.bool()!=null)out.put(k,v.bool()); else if(v.hasSs())out.put(k,v.ss()); }); return out; }
     private String required(JsonNode n,String field) { String v=n.path(field).asText("").trim(); if(v.isBlank())throw new IllegalArgumentException(field+"は必須です"); return v; }
-    private String season(String value) { String y=value==null?LocalDate.now().toString().substring(0,4):value; if(!y.matches("\\d{4}"))throw new IllegalArgumentException("seasonは年4桁で指定してください");return y; }
+    private String required(Map<String,String> values,String field) { String v=values.get(field); if(v==null||v.isBlank())throw new IllegalArgumentException(field+"は必須です"); return v; }
+    private static String season(String value) { String y=value==null?LocalDate.now().toString().substring(0,4):value; if(!y.matches("\\d{4}"))throw new IllegalArgumentException("seasonは年4桁で指定してください");return y; }
     private static String str(Map<String,AttributeValue> m,String k){AttributeValue v=m.get(k);return v==null||v.s()==null?"":v.s();}
     private static int integer(Map<String,AttributeValue> m,String k,int d){try{return Integer.parseInt(m.get(k).n());}catch(Exception e){try{return Integer.parseInt(m.get(k).s());}catch(Exception ex){return d;}}}
     private static long longValue(Map<String,AttributeValue> m,String k,long d){try{return Long.parseLong(m.get(k).n());}catch(Exception e){try{return Long.parseLong(m.get(k).s());}catch(Exception ex){return d;}}}
@@ -339,7 +368,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     private static AttributeValue boolValue(boolean v){return AttributeValue.builder().bool(v).build();}
     private static String method(Map<String,Object> input){Object c=input.get("requestContext");if(c instanceof Map<?,?> m && m.get("http") instanceof Map<?,?> h && h.get("method")!=null)return h.get("method").toString();return input.getOrDefault("httpMethod","GET").toString();}
     private static Map<String,String> query(Map<String,Object> input){Object q=input.get("queryStringParameters");if(!(q instanceof Map<?,?> m))return Map.of();Map<String,String> out=new HashMap<>();m.forEach((k,v)->out.put(String.valueOf(k),v==null?null:String.valueOf(v)));return out;}
-    private Map<String,Object> response(int status,Object body){return Map.of("statusCode",status,"headers",Map.of("Content-Type","application/json; charset=UTF-8","Access-Control-Allow-Origin","https://d13o4oynf3jxlu.cloudfront.net"),"body",writeJson(body));}
+    private Map<String,Object> response(int status,Object body){return Map.of("statusCode",status,"headers",Map.of("Content-Type","application/json; charset=UTF-8"),"body",writeJson(body));}
     private String writeJson(Object value){try{return JSON.writeValueAsString(value);}catch(Exception e){throw new RuntimeException(e);}}
     private static final class ApiException extends RuntimeException { final int status; final String code; ApiException(int status,String code,String message){super(message);this.status=status;this.code=code;} }
 }

@@ -1,6 +1,18 @@
 .scorebook-body { background: radial-gradient(ellipse at 100% 0%, rgba(255,138,76,.1), transparent 27rem), var(--canvas); }
 .scorebook-shell { padding-bottom: 40px; }
 .scorebook-back { text-decoration: none; }
+.scorebook-header-actions { display:flex; align-items:center; gap:10px; }
+.scorebook-back { display:inline-flex; align-items:center; min-height:40px; padding:8px 14px; border:1px solid var(--line); border-radius:12px; color:#34445a; background:#fff; text-decoration:none; font-size:13px; font-weight:700; }
+.scorebook-nav { display:flex; gap:8px; margin:0 0 20px; padding:6px; border:1px solid var(--line); border-radius:15px; background:#fff; box-shadow:0 8px 24px rgba(30,48,72,.05); }
+.scorebook-nav a { display:inline-flex; align-items:center; min-height:40px; padding:8px 16px; border-radius:10px; color:#536177; text-decoration:none; font-size:13px; font-weight:750; }
+.scorebook-nav a:hover { color:var(--ink); background:#f4f7f9; }
+.scorebook-nav a.is-active { color:var(--navy); background:var(--lime); }
+.team-select-row { display:flex; align-items:end; gap:12px; margin-bottom:16px; }
+.team-select-row label { display:grid; gap:6px; width:min(420px,100%); color:#526177; font-size:12px; font-weight:700; }
+.global-team-select { margin:0 0 18px; }
+.team-create-button { margin-bottom:14px; color:#34445a; background:#fff; border-color:var(--line); box-shadow:none; }
+#newTeamButton { color:#34445a; background:#fff; border-color:var(--line); box-shadow:none; }
+.scorebook-panel[hidden] { display:none!important; }
 .scorebook-hero { position: relative; overflow: hidden; margin: 8px 0 22px; padding: 24px 29px; border-radius: 22px; color: white; background: linear-gradient(112deg,#101d31,#1b3956); box-shadow: 0 16px 34px rgba(16,29,49,.13); }
 .scorebook-hero::after { position:absolute; top:-65px; right:5%; width:190px; height:190px; content:""; border:1px solid rgba(255,138,76,.45); border-radius:50%; background:linear-gradient(90deg,transparent 49.5%,rgba(255,138,76,.3) 50%,transparent 50.5%),linear-gradient(0deg,transparent 49.5%,rgba(255,138,76,.3) 50%,transparent 50.5%); pointer-events:none; }
 .scorebook-hero .eyebrow { color:var(--lime); }
@@ -81,4 +93,5 @@
 .viewer-hidden { display:none !important; }
 @media(max-width:760px) { .scorebook-grid { grid-template-columns:1fr; } .scorekeeper-card,.leaderboard-card { grid-column:auto; } }
 @media(max-width:560px) { .scorebook-hero { padding:20px; } .score-card { padding:16px !important; } .scoreboard { grid-template-columns:1fr 1fr; padding:13px 8px; } .score-clock { grid-column:1/-1; grid-row:1; } .score-team { grid-row:2; } .stat-buttons { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; } .stat-button { min-height:45px; padding:6px 3px; font-size:10px; } .scorekeeper-bottom { align-items:stretch; flex-direction:column; } .opponent-final { justify-content:flex-end; } .lineup-panel { align-items:flex-start; flex-direction:column; } .ranking-title-row { align-items:stretch; flex-direction:column; } .ranking-sort { flex-basis:auto; } }
+@media(max-width:600px) { .scorebook-nav { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; } .scorebook-nav a { justify-content:center; padding-inline:6px; font-size:12px; } .team-select-row { align-items:stretch; flex-direction:column; } .team-select-row label { width:100%; } #newTeamButton { align-self:flex-start; } }
 

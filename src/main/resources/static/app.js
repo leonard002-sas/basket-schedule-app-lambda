@@ -1514,6 +1514,7 @@ if (startBasketballButton) {
     startBasketballButton.addEventListener("click", () => {
         if (!currentScheduleDetail) return;
         const params = new URLSearchParams({
+            view: "games",
             date: String(currentScheduleDetail.startDateTime || "").slice(0, 10),
             scheduleMonth: currentScheduleDetail.scheduleMonth || "",
             startDateTime: currentScheduleDetail.startDateTime || ""

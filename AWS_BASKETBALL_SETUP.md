@@ -12,7 +12,7 @@ Create a table in `ap-northeast-1` with:
 - Capacity mode: On-demand
 - No secondary indexes are required
 
-The application stores a single team roster and its games in this table. Team, player, game, game-event, box-score, and season-total records use namespaced partition/sort key values.
+The application stores multiple team rosters and their games in this table. Team, player, game, game-event, box-score, and season-total records use namespaced partition/sort key values. No additional index is needed.
 
 ## Lambda execution role
 
