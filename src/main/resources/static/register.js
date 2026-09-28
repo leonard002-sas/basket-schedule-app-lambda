@@ -253,6 +253,36 @@ const scheduleRows =
         "scheduleRows"
     );
 
+const registrationMenuButton = document.getElementById("registrationMenuButton");
+const registrationMenu = document.getElementById("registrationMenu");
+const scheduleRegistrationScreen = document.getElementById("scheduleRegistrationScreen");
+const facilityRegistrationScreen = document.getElementById("facilityRegistrationScreen");
+
+function showRegistrationScreen(screen) {
+    scheduleRegistrationScreen.hidden = screen !== "schedule";
+    facilityRegistrationScreen.hidden = screen !== "facility";
+    registrationMenu.hidden = true;
+    registrationMenuButton.setAttribute("aria-expanded", "false");
+    document.querySelector(".admin-page-heading h1").textContent = screen === "facility" ? "施設を登録" : "予定を登録";
+}
+registrationMenuButton?.addEventListener("click", () => {
+    registrationMenu.hidden = !registrationMenu.hidden;
+    registrationMenuButton.setAttribute("aria-expanded", String(!registrationMenu.hidden));
+});
+registrationMenu?.addEventListener("click", event => {
+    const target = event.target.closest("[data-registration-screen]");
+    if (target) showRegistrationScreen(target.dataset.registrationScreen);
+});
+document.addEventListener("click", event => {
+    if (registrationMenu && !event.target.closest(".registration-screen-switch")) {
+        registrationMenu.hidden = true;
+        registrationMenuButton?.setAttribute("aria-expanded", "false");
+    }
+});
+document.querySelector(".admin-page-heading p").textContent =
+    "予定や施設の登録・管理画面を切り替えられます。";
+
+
 const addScheduleButton =
     document.getElementById(
         "addScheduleButton"
@@ -292,14 +322,14 @@ if (addScheduleButton) {
 
                 <input
                     type="time"
-                    class="time-input"
+                    class="time-input start-time-input"
                 >
 
-                <span>～</span>
+                <span class="time-separator">～</span>
 
                 <input
                     type="time"
-                    class="time-input"
+                    class="time-input end-time-input"
                 >
 
                 <select
@@ -312,18 +342,14 @@ if (addScheduleButton) {
 
                 <div class="schedule-row-actions"><button type="button" class="duplicate-button button-light">複製</button><button type="button" class="delete-button">削除</button></div>
 
-                <label class="schedule-video-field">動画URL（任意）<input type="url" class="video-url-input" maxlength="2048" placeholder="YouTubeなどの共有リンク"></label>
-                <label class="schedule-video-field">動画タグ（任意）<input type="text" class="video-tags-input" maxlength="120" list="videoTagOptions" placeholder="例：シュート、練習全体"></label>
+                <label class="schedule-video-field schedule-video-url">動画URL（任意）<input type="url" class="video-url-input" maxlength="2048" placeholder="YouTubeなどの共有リンク"></label>
+                <label class="schedule-video-field schedule-video-tags">動画タグ（任意）<input type="text" class="video-tags-input" maxlength="120" list="videoTagOptions" placeholder="例：シュート、練習全体"></label>
 
                 <div class="schedule-game-fields" hidden>
                     <label>大会名（登録済みから選択・新規入力）<input type="text" class="competition-name-input" maxlength="80" list="competitionNames" placeholder="例：2026秋北区大会"></label>
                     <label>ラウンド（任意）<input type="text" class="round-input" maxlength="40" list="basketballRoundOptions" placeholder="例：1回戦"></label>
                 </div>
 
-                <div class="schedule-game-fields" hidden>
-                    <label>大会名（任意）<input type="text" class="competition-name-input" maxlength="80" placeholder="例：2026秋北区大会"></label>
-                    <label>ラウンド（任意）<input type="text" class="round-input" maxlength="40" list="basketballRoundOptions" placeholder="例：1回戦"></label>
-                </div>
             `;
 
 
@@ -959,10 +985,10 @@ if (getAdminIdToken()) {
     document.body.style.display = "";
     loadFacilities().then(() => {
         const requestedDate = new URLSearchParams(window.location.search).get("date");
-        if (/^\\d{4}-\\d{2}-\\d{2}$/.test(requestedDate || "") && scheduleRows && scheduleRows.children.length === 0 && addScheduleButton) {
-            addScheduleButton.click();
-            scheduleRows.querySelector(".date-input").value = requestedDate;
-        }
+        const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate || "");
+        const dateInput = scheduleRows?.querySelector(".date-input");
+        if (isValidDate && dateInput) dateInput.value = requestedDate;
+        if (isValidDate) showRegistrationScreen("schedule");
     });
     loadCompetitionNames();
 } else {

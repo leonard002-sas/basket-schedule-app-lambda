@@ -26,7 +26,7 @@
                 </span>
                 <span><span class="brand-name">COURTSIDE</span><span class="brand-caption">Basketball schedule</span></span>
             </a>
-            <div class="register-header-actions"><button type="button" class="theme-toggle" data-theme-toggle></button><button id="backButton" type="button" class="button-light">← カレンダーへ</button></div>
+            <div class="register-header-actions"><button type="button" class="theme-toggle" data-theme-toggle></button></div>
         </header>
 
         <section class="admin-page-heading">
@@ -36,29 +36,23 @@
         </section>
 
         <main class="registration-grid">
-            <section class="section" id="facilityRegistrationCard" aria-labelledby="facilityHeading">
-                <div class="section-heading">
-                    <span class="section-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none"><path d="M4 20V6.5L12 3l8 3.5V20M8 20v-5h8v5M8 9h.01M12 9h.01M16 9h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    </span>
-                    <div><h2 id="facilityHeading">施設を登録</h2><p>施設を追加すると、予定登録の候補にすぐ反映されます。</p></div>
+            <nav class="registration-screen-nav" aria-label="管理画面">
+            <div class="registration-screen-switch">
+                <button type="button" id="registrationMenuButton" class="button-light" aria-expanded="false" aria-controls="registrationMenu">画面を移動 <span aria-hidden="true">⌄</span></button>
+                <div id="registrationMenu" class="registration-menu" hidden>
+                    <a href="index.html">カレンダー</a>
+                    <button type="button" data-registration-screen="schedule">予定を登録</button>
+                    <button type="button" data-registration-screen="facility">施設を登録</button>
                 </div>
-                <form id="facilityRegisterForm" class="facility-register-form">
-                    <label>施設名<input id="facilityNameInput" name="facilityName" type="text" maxlength="120" placeholder="例：落合第五小学校" required></label>
-                    <label>住所<input id="facilityAddressInput" name="address" type="text" maxlength="300" placeholder="例：東京都新宿区上落合３丁目１−６" required></label>
-                    <label>施設URL（任意）<input id="facilityUrlInput" name="url" type="url" maxlength="1000" placeholder="https://example.jp/施設案内"></label>
-                    <label class="facility-note-field">備考（任意）<textarea id="facilityNoteInput" name="note" maxlength="1000" rows="3" placeholder="例：正面玄関から入館／室内シューズ必須"></textarea><span class="field-hint">駐車場、入口、持ち物などチーム向けのメモ</span></label>
-                    <button id="facilityRegisterButton" type="submit">施設を登録</button>
-                </form>
-                <div id="facilityStatus" role="status" aria-live="polite"></div>
-            </section>
-
-            <section class="section" id="manualRegistrationCard" aria-labelledby="manualHeading">
+            </div>
+        </nav>
+            <section id="scheduleRegistrationScreen" class="register-screen register-screen-schedule">
+                <section class="section" id="manualRegistrationCard" aria-labelledby="manualHeading">
                 <div class="section-heading">
                     <span class="section-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="15" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M8 3.5v3M16 3.5v3M4.5 9h15M8 13h3M8 16.5h7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
                     </span>
-\t\t\t\t\t<div><h2 id="manualHeading">手入力で登録</h2><p>日付、時間、施設を入力できます。前回予定の複製、毎週の繰り返し、試合の大会名・ラウンドも登録できます。</p></div>
+\t\t\t\t\t<div><h2 id="manualHeading">手入力で登録</h2><p>日付・時間・施設を入力して、練習や試合を登録できます。</p></div>
                 </div>
 
                 <div id="scheduleRows">
@@ -69,17 +63,17 @@
                             <option value="MEETING">会議</option>
                         </select>
                         <input type="date" class="date-input" aria-label="日付">
-                        <input type="time" class="time-input" aria-label="開始時刻">
-                        <span>～</span>
-                        <input type="time" class="time-input" aria-label="終了時刻">
+                        <input type="time" class="time-input start-time-input" aria-label="開始時刻">
+                        <span class="time-separator">～</span>
+                        <input type="time" class="time-input end-time-input" aria-label="終了時刻">
                         <select class="facility-select" aria-label="施設">
                             <option value="">施設を選択してください</option>
                         </select>
                         <div class="schedule-row-actions"><button type="button" class="duplicate-button button-light">複製</button><button type="button" class="delete-button">削除</button></div>
-                        <label class="schedule-video-field">動画URL（任意）<input type="url" class="video-url-input" maxlength="2048" placeholder="YouTubeなどの共有リンク"></label>
-                        <label class="schedule-video-field">動画タグ（任意）<input type="text" class="video-tags-input" maxlength="120" list="videoTagOptions" placeholder="例：シュート、練習全体"></label>
+                        <label class="schedule-video-field schedule-video-url">動画URL（任意）<input type="url" class="video-url-input" maxlength="2048" placeholder="YouTubeなどの共有リンク"></label>
+                        <label class="schedule-video-field schedule-video-tags">動画タグ（任意）<input type="text" class="video-tags-input" maxlength="120" list="videoTagOptions" placeholder="例：シュート、練習全体"></label>
                         <div class="schedule-game-fields" hidden><label>大会名（登録済みから選択・新規入力）<input type="text" class="competition-name-input" maxlength="80" list="competitionNames" placeholder="例：2026秋北区大会"></label><label>ラウンド（任意）<input type="text" class="round-input" maxlength="40" list="basketballRoundOptions" placeholder="例：1回戦"></label></div>
-                        <div class="schedule-game-fields" hidden><label>大会名（任意）<input type="text" class="competition-name-input" maxlength="80" placeholder="例：2026秋北区大会"></label><label>ラウンド（任意）<input type="text" class="round-input" maxlength="40" list="basketballRoundOptions" placeholder="例：1回戦"></label></div>
+                        
                     </div>
                 </div>
                 <datalist id="basketballRoundOptions"><option value="1回戦"><option value="2回戦"><option value="準々決勝"><option value="準決勝"><option value="決勝"><option value="3位決定戦"></datalist>
@@ -89,8 +83,7 @@
                 <button type="button" id="registerButton">予定を登録</button>
                 <div id="status" role="status" aria-live="polite"></div>
             </section>
-
-            <section class="section" id="imageUploadCard" aria-labelledby="imageHeading">
+                <section class="section" id="imageUploadCard" aria-labelledby="imageHeading">
                 <div class="section-heading">
                     <span class="section-icon" aria-hidden="true" style="color:#a8582d;background:#fff1e8;">
                         <svg viewBox="0 0 24 24" fill="none"><path d="M4 16.5 8.2 12l3.1 3.2 3.2-3.7 5.5 5.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.2" cy="8.2" r="1.7" stroke="currentColor" stroke-width="1.7"/><rect x="3" y="3.5" width="18" height="17" rx="3" stroke="currentColor" stroke-width="1.7"/></svg>
@@ -109,6 +102,25 @@
 
                 <button id="uploadButton" type="button">画像をアップロード</button>
                 <div id="uploadStatus" role="status" aria-live="polite"></div>
+            </section>
+            </section>
+            <section id="facilityRegistrationScreen" class="register-screen register-screen-facility" hidden>
+                <section class="section" id="facilityRegistrationCard" aria-labelledby="facilityHeading">
+                <div class="section-heading">
+                    <span class="section-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none"><path d="M4 20V6.5L12 3l8 3.5V20M8 20v-5h8v5M8 9h.01M12 9h.01M16 9h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                    <div><h2 id="facilityHeading">施設を登録</h2><p>施設を追加すると、予定登録の候補にすぐ反映されます。</p></div>
+                </div>
+                <form id="facilityRegisterForm" class="facility-register-form">
+                    <label>施設名<input id="facilityNameInput" name="facilityName" type="text" maxlength="120" placeholder="例：落合第五小学校" required></label>
+                    <label>住所<input id="facilityAddressInput" name="address" type="text" maxlength="300" placeholder="例：東京都新宿区上落合３丁目１−６" required></label>
+                    <label>施設URL（任意）<input id="facilityUrlInput" name="url" type="url" maxlength="1000" placeholder="https://example.jp/施設案内"></label>
+                    <label class="facility-note-field">備考（任意）<textarea id="facilityNoteInput" name="note" maxlength="1000" rows="3" placeholder="例：正面玄関から入館／室内シューズ必須"></textarea><span class="field-hint">駐車場、入口、持ち物などチーム向けのメモ</span></label>
+                    <button id="facilityRegisterButton" type="submit">施設を登録</button>
+                </form>
+                <div id="facilityStatus" role="status" aria-live="polite"></div>
+            </section>
             </section>
         </main>
     </div>

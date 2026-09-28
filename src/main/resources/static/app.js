@@ -603,27 +603,18 @@ function displayCalendar() {
         // 日付クリック
         // ========================================
 
-        element.addEventListener(
-            "click",
-            () => {
-
-                showDaySchedule(
-                    currentYear,
-                    currentMonth,
-                    day
-                );
-
-            }
-        );
-
         if (daySchedules.length === 0 && isCalendarAdmin()) {
             element.classList.add("can-create-schedule");
-            element.title = "ダブルクリックでこの日に予定を登録";
-            element.addEventListener("dblclick", event => {
-                event.preventDefault();
-                window.location.href = `register.html?date=${encodeURIComponent(dateKey)}`;
-            });
+            element.title = "クリックしてこの日に予定を登録";
         }
+
+        element.addEventListener("click", () => {
+            if (daySchedules.length === 0 && isCalendarAdmin()) {
+                window.location.href = `register.html?date=${encodeURIComponent(dateKey)}`;
+                return;
+            }
+            showDaySchedule(currentYear, currentMonth, day);
+        });
 
 
         calendarElement.appendChild(element);
