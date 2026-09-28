@@ -468,6 +468,8 @@ if (registerButton) {
                             row.querySelector(".event-type-select").value;
                         const competitionName = row.querySelector(".competition-name-input")?.value.trim() || "";
                         const round = row.querySelector(".round-input")?.value.trim() || "";
+                        const videoUrl = row.querySelector(".video-url-input")?.value.trim() || "";
+                        const videoTags = row.querySelector(".video-tags-input")?.value.split(",").map(tag => tag.trim()).filter(Boolean).slice(0, 6).join(", ") || "";
 
                         const facilityName =
                             facilitySelect
@@ -955,7 +957,13 @@ if (uploadButton) {
 
 if (getAdminIdToken()) {
     document.body.style.display = "";
-    loadFacilities();
+    loadFacilities().then(() => {
+        const requestedDate = new URLSearchParams(window.location.search).get("date");
+        if (/^\\d{4}-\\d{2}-\\d{2}$/.test(requestedDate || "") && scheduleRows && scheduleRows.children.length === 0 && addScheduleButton) {
+            addScheduleButton.click();
+            scheduleRows.querySelector(".date-input").value = requestedDate;
+        }
+    });
     loadCompetitionNames();
 } else {
     window.location.replace("index.html");

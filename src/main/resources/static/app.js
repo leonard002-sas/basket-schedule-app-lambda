@@ -257,7 +257,7 @@ function renderAnnouncements(admin = isCalendarAdmin()) {
     const area = document.getElementById("announcementsArea");
     const list = document.getElementById("announcementList");
     const active = announcements.filter(item => item.visible);
-    area.hidden = !active.length && !admin;
+    area.hidden = active.length === 0;
     document.getElementById("announcementCount").textContent = active.length ? `${active.length}件` : "";
     list.innerHTML = active.map(item => `<article class="announcement-card urgency-${escapeHtml(item.urgency)}"><div class="announcement-meta"><span>${item.urgency === "URGENT" ? "緊急" : item.urgency === "IMPORTANT" ? "重要" : "お知らせ"}</span><span>${escapeHtml(item.visibleUntil)}まで</span></div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.content).replace(/\n/g,"<br>")}</p></article>`).join("");
     const manager = document.getElementById("announcementManager");
@@ -615,6 +615,15 @@ function displayCalendar() {
 
             }
         );
+
+        if (daySchedules.length === 0 && isCalendarAdmin()) {
+            element.classList.add("can-create-schedule");
+            element.title = "ダブルクリックでこの日に予定を登録";
+            element.addEventListener("dblclick", event => {
+                event.preventDefault();
+                window.location.href = `register.html?date=${encodeURIComponent(dateKey)}`;
+            });
+        }
 
 
         calendarElement.appendChild(element);

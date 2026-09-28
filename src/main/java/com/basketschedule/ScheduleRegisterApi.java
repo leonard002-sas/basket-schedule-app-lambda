@@ -219,6 +219,20 @@ public class ScheduleRegisterApi
                 );
                 if (!competitionName.isBlank()) item.put("competitionName", AttributeValue.builder().s(competitionName).build());
                 if (!round.isBlank()) item.put("round", AttributeValue.builder().s(round).build());
+                String videoUrl = optionalText(schedule, "videoUrl", 2048);
+                String videoTags = optionalText(schedule, "videoTags", 120);
+                if (!videoUrl.isBlank()) {
+                    try {
+                        URI parsedVideoUrl = URI.create(videoUrl);
+                        if (!"https".equalsIgnoreCase(parsedVideoUrl.getScheme()) || parsedVideoUrl.getHost() == null) {
+                            throw new IllegalArgumentException("HTTPSの動画共有リンクを入力してください");
+                        }
+                    } catch (IllegalArgumentException e) {
+                        throw new IllegalArgumentException("動画URLを確認してください。YouTubeの共有リンクを入力できます");
+                    }
+                }
+                if (!videoUrl.isBlank()) item.put("videoUrl", AttributeValue.builder().s(videoUrl).build());
+                if (!videoTags.isBlank()) item.put("videoTags", AttributeValue.builder().s(videoTags).build());
 
                 PutItemRequest request =
                         PutItemRequest.builder()
