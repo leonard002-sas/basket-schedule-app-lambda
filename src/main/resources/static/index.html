@@ -471,6 +471,16 @@
 				<button id="registerButton" class="button-accent" style="display: none;">新規登録</button>
 			</nav>
 		</header>
+<nav class="site-navigation" aria-label="メインナビゲーション" hidden>
+    <a href="index.html" data-app-nav="calendar" data-workspace-screen="homeScreen">カレンダー</a>
+    <a href="register.html?screen=schedule" data-app-nav="schedule">予定登録</a>
+    <a href="register.html?screen=facility" data-app-nav="facility">施設登録</a>
+    <a href="index.html?screen=announcements" data-app-nav="announcements" data-workspace-screen="announcementScreen">周知事項</a>
+    <a href="index.html?screen=videos" data-app-nav="videos" data-workspace-screen="videoScreen">練習動画</a>
+    <a href="basketball.html?view=teams" data-app-nav="teams">チーム</a>
+    <a href="basketball.html?view=games" data-app-nav="games">試合</a>
+    <a href="basketball.html?view=rankings" data-app-nav="rankings">ランキング</a>
+</nav>
 
 		<section id="loginRequiredMessage" class="login-gate" aria-labelledby="loginTitle">
 			<div class="login-copy">
@@ -503,14 +513,6 @@
 				<p>チームの練習・試合予定を確認できます。</p>
 			</div>
 			<div class="page-intro-actions">
-				<div class="workspace-menu">
-					<button type="button" id="workspaceMenuButton" class="button-light" aria-expanded="false" aria-controls="workspaceMenuList">チームメニュー <span aria-hidden="true">⌄</span></button>
-					<div id="workspaceMenuList" class="workspace-menu-list" hidden>
-						<button type="button" data-workspace-target="homeScreen">予定表</button>
-						<button type="button" id="announcementMenuItem" data-workspace-target="announcementScreen" hidden>周知事項を管理</button>
-						<button type="button" data-workspace-target="videoScreen">練習動画</button>
-					</div>
-				</div>
 				<button type="button" id="basketballButton" class="button-accent" style="display:none;">チーム・試合・ランキング</button>
 				<button id="scheduleRegisterButton" class="button-accent" style="display: none;">予定表を登録</button>
 			</div>

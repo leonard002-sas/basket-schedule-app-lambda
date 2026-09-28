@@ -47,15 +47,30 @@ let schedules = [];
 let announcements = [];
 
 const workspaceScreenIds = ["homeScreen", "announcementScreen", "videoScreen"];
-function showWorkspaceScreen(screenId) {
+function workspaceScreenFromUrl() {
+    const route = new URLSearchParams(window.location.search).get("screen");
+    return route === "announcements" ? "announcementScreen" : route === "videos" ? "videoScreen" : "homeScreen";
+}
+function workspaceRouteForScreen(screenId) {
+    return screenId === "announcementScreen" ? "announcements" : screenId === "videoScreen" ? "videos" : "";
+}
+function showWorkspaceScreen(screenId, updateUrl = true) {
     workspaceScreenIds.forEach(id => {
         const screen = document.getElementById(id);
         if (screen) screen.hidden = id !== screenId;
     });
-    const menu = document.getElementById("workspaceMenuList");
-    const menuButton = document.getElementById("workspaceMenuButton");
-    if (menu) menu.hidden = true;
-    if (menuButton) menuButton.setAttribute("aria-expanded", "false");
+    const route = workspaceRouteForScreen(screenId);
+    const activeKey = route || "calendar";
+    document.querySelectorAll(".site-navigation [data-app-nav]").forEach(link => {
+        if (link.dataset.appNav === activeKey) link.setAttribute("aria-current", "page");
+        else link.removeAttribute("aria-current");
+    });
+    const announcementLink = document.querySelector('.site-navigation [data-app-nav="announcements"]');
+    if (announcementLink) announcementLink.hidden = !isCalendarAdmin();
+    if (updateUrl) {
+        const url = route ? `index.html?screen=${route}` : "index.html";
+        history.pushState({screenId}, "", url);
+    }
     if (screenId === "videoScreen") renderVideoArchive();
 }
 document.getElementById("workspaceMenuButton")?.addEventListener("click", () => {
@@ -64,10 +79,15 @@ document.getElementById("workspaceMenuButton")?.addEventListener("click", () => 
     menu.hidden = !menu.hidden;
     button.setAttribute("aria-expanded", String(!menu.hidden));
 });
-document.getElementById("workspaceMenuList")?.addEventListener("click", event => {
-    const item = event.target.closest("[data-workspace-target]");
-    if (item) showWorkspaceScreen(item.dataset.workspaceTarget);
+document.querySelectorAll(".site-navigation [data-workspace-screen]").forEach(link => {
+    link.addEventListener("click", event => {
+        event.preventDefault();
+        const screenId = link.dataset.workspaceScreen;
+        if (screenId === "announcementScreen" && !isCalendarAdmin()) return;
+        showWorkspaceScreen(screenId);
+    });
 });
+window.addEventListener("popstate", () => showWorkspaceScreen(workspaceScreenFromUrl(), false));
 document.addEventListener("click", event => {
     const menu = document.getElementById("workspaceMenuList");
     const wrapper = document.querySelector(".workspace-menu");
@@ -83,6 +103,10 @@ let facilities = [];
 
 // 現在開いている予定
 let currentScheduleDetail = null;
+const mainNavigation = document.querySelector(".site-navigation");
+const initiallyRequestedScreen = workspaceScreenFromUrl();
+showWorkspaceScreen(initiallyRequestedScreen === "announcementScreen" && !isCalendarAdmin() ? "homeScreen" : initiallyRequestedScreen, false);
+
 
 
 // ========================================
@@ -262,7 +286,7 @@ function renderAnnouncements(admin = isCalendarAdmin()) {
     list.innerHTML = active.map(item => `<article class="announcement-card urgency-${escapeHtml(item.urgency)}"><div class="announcement-meta"><span>${item.urgency === "URGENT" ? "緊急" : item.urgency === "IMPORTANT" ? "重要" : "お知らせ"}</span><span>${escapeHtml(item.visibleUntil)}まで</span></div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.content).replace(/\n/g,"<br>")}</p></article>`).join("");
     const manager = document.getElementById("announcementManager");
     manager.hidden = !admin;
-    const announcementMenuItem = document.getElementById("announcementMenuItem");
+    const announcementMenuItem = document.querySelector('.site-navigation [data-app-nav="announcements"]');
     if (announcementMenuItem) announcementMenuItem.hidden = !admin;
     if (!admin) return;
     const adminList = document.getElementById("announcementAdminList");
@@ -1425,6 +1449,8 @@ function updateAuthUI() {
         if (calendarContent) {
             calendarContent.hidden = true;
         }
+        if (mainNavigation) mainNavigation.hidden = true;
+
 
         if (loginRequiredMessage) {
             loginRequiredMessage.hidden = false;
@@ -1466,6 +1492,10 @@ function updateAuthUI() {
     if (calendarContent) {
         calendarContent.hidden = false;
     }
+    if (mainNavigation) mainNavigation.hidden = false;
+    const admin = isCalendarAdmin();
+    document.querySelectorAll('.site-navigation [data-app-nav="schedule"], .site-navigation [data-app-nav="facility"], .site-navigation [data-app-nav="announcements"]').forEach(link => { link.hidden = !admin; });
+
 
     if (loginRequiredMessage) {
         loginRequiredMessage.hidden = true;

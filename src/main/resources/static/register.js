@@ -258,26 +258,31 @@ const registrationMenu = document.getElementById("registrationMenu");
 const scheduleRegistrationScreen = document.getElementById("scheduleRegistrationScreen");
 const facilityRegistrationScreen = document.getElementById("facilityRegistrationScreen");
 
-function showRegistrationScreen(screen) {
+function showRegistrationScreen(screen, updateUrl = true) {
     scheduleRegistrationScreen.hidden = screen !== "schedule";
     facilityRegistrationScreen.hidden = screen !== "facility";
-    registrationMenu.hidden = true;
-    registrationMenuButton.setAttribute("aria-expanded", "false");
     document.querySelector(".admin-page-heading h1").textContent = screen === "facility" ? "施設を登録" : "予定を登録";
-}
-registrationMenuButton?.addEventListener("click", () => {
-    registrationMenu.hidden = !registrationMenu.hidden;
-    registrationMenuButton.setAttribute("aria-expanded", String(!registrationMenu.hidden));
-});
-registrationMenu?.addEventListener("click", event => {
-    const target = event.target.closest("[data-registration-screen]");
-    if (target) showRegistrationScreen(target.dataset.registrationScreen);
-});
-document.addEventListener("click", event => {
-    if (registrationMenu && !event.target.closest(".registration-screen-switch")) {
-        registrationMenu.hidden = true;
-        registrationMenuButton?.setAttribute("aria-expanded", "false");
+    document.querySelectorAll(".site-navigation [data-app-nav]").forEach(link => {
+        if (link.dataset.appNav === screen) link.setAttribute("aria-current", "page");
+        else link.removeAttribute("aria-current");
+    });
+    if (updateUrl) {
+        const params = new URLSearchParams(window.location.search);
+        const date = params.get("date");
+        params.set("screen", screen);
+        if (date) params.set("date", date);
+        history.pushState({screen}, "", `register.html?${params.toString()}`);
     }
+}
+document.querySelectorAll(".site-navigation [data-registration-screen]").forEach(link => {
+    link.addEventListener("click", event => {
+        event.preventDefault();
+        showRegistrationScreen(link.dataset.registrationScreen);
+    });
+});
+window.addEventListener("popstate", () => {
+    const screen = new URLSearchParams(window.location.search).get("screen") === "facility" ? "facility" : "schedule";
+    showRegistrationScreen(screen, false);
 });
 document.querySelector(".admin-page-heading p").textContent =
     "予定や施設の登録・管理画面を切り替えられます。";
@@ -984,11 +989,13 @@ if (uploadButton) {
 if (getAdminIdToken()) {
     document.body.style.display = "";
     loadFacilities().then(() => {
-        const requestedDate = new URLSearchParams(window.location.search).get("date");
+        const params = new URLSearchParams(window.location.search);
+        const requestedDate = params.get("date");
         const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate || "");
         const dateInput = scheduleRows?.querySelector(".date-input");
         if (isValidDate && dateInput) dateInput.value = requestedDate;
-        if (isValidDate) showRegistrationScreen("schedule");
+        const requestedScreen = params.get("screen") === "facility" ? "facility" : "schedule";
+        showRegistrationScreen(requestedScreen, false);
     });
     loadCompetitionNames();
 } else {

@@ -28,6 +28,16 @@
             </a>
             <div class="register-header-actions"><button type="button" class="theme-toggle" data-theme-toggle></button></div>
         </header>
+<nav class="site-navigation" aria-label="メインナビゲーション">
+    <a href="index.html" data-app-nav="calendar">カレンダー</a>
+    <a href="register.html?screen=schedule" data-app-nav="schedule" data-registration-screen="schedule">予定登録</a>
+    <a href="register.html?screen=facility" data-app-nav="facility" data-registration-screen="facility">施設登録</a>
+    <a href="index.html?screen=announcements" data-app-nav="announcements">周知事項</a>
+    <a href="index.html?screen=videos" data-app-nav="videos">練習動画</a>
+    <a href="basketball.html?view=teams" data-app-nav="teams">チーム</a>
+    <a href="basketball.html?view=games" data-app-nav="games">試合</a>
+    <a href="basketball.html?view=rankings" data-app-nav="rankings">ランキング</a>
+</nav>
 
         <section class="admin-page-heading">
             <span class="eyebrow">Admin studio</span>
@@ -36,23 +46,14 @@
         </section>
 
         <main class="registration-grid">
-            <nav class="registration-screen-nav" aria-label="管理画面">
-            <div class="registration-screen-switch">
-                <button type="button" id="registrationMenuButton" class="button-light" aria-expanded="false" aria-controls="registrationMenu">画面を移動 <span aria-hidden="true">⌄</span></button>
-                <div id="registrationMenu" class="registration-menu" hidden>
-                    <a href="index.html">カレンダー</a>
-                    <button type="button" data-registration-screen="schedule">予定を登録</button>
-                    <button type="button" data-registration-screen="facility">施設を登録</button>
-                </div>
-            </div>
-        </nav>
+            
             <section id="scheduleRegistrationScreen" class="register-screen register-screen-schedule">
                 <section class="section" id="manualRegistrationCard" aria-labelledby="manualHeading">
                 <div class="section-heading">
                     <span class="section-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="15" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M8 3.5v3M16 3.5v3M4.5 9h15M8 13h3M8 16.5h7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
                     </span>
-\t\t\t\t\t<div><h2 id="manualHeading">手入力で登録</h2><p>日付・時間・施設を入力して、練習や試合を登録できます。</p></div>
+<div><h2 id="manualHeading">手入力で登録</h2><p>日付・時間・施設を入力して、練習や試合を登録できます。</p></div>
                 </div>
 
                 <div id="scheduleRows">

@@ -2,6 +2,15 @@ const SCORE_API = "https://7yxh3p2c5swyx6ajv45ldmiswe0tirop.lambda-url.ap-northe
 const SCHEDULE_API = SCORE_API;
 const token = localStorage.getItem("id_token");
 const qs = new URLSearchParams(location.search);
+const currentScoreView = qs.get("view") || (qs.has("date") ? "games" : "teams");
+document.querySelectorAll(".site-navigation [data-app-nav]").forEach(link => {
+    if (link.dataset.appNav === currentScoreView) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+});
+if (!isAdmin()) {
+    document.querySelectorAll('.site-navigation [data-app-nav="schedule"], .site-navigation [data-app-nav="facility"], .site-navigation [data-app-nav="announcements"]').forEach(link => { link.hidden = true; });
+}
+
 let seasonYear = new Date().getFullYear();
 let team = null;
 let cachedTeams = null;
