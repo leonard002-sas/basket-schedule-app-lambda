@@ -16,6 +16,8 @@ let selectedPlayerId = "";
 let clockInterval = null;
 let clockPauseSent = false;
 let toastTimer = null;
+let playerTrendRows = [];
+let playerTrendId = "";
 
 function claims() { try { return JSON.parse(atob(token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))); } catch { return null; } }
 function isAdmin() { return (claims()?.["cognito:groups"] || []).includes("admins"); }
@@ -132,8 +134,27 @@ function renderLeaderboard(rows) {
     const metric=document.getElementById("rankingMetric")?.value||"points";
     const value=s=>metric==="EFF"?eff(s):Number(s[metric])||0;
     const sorted=[...rows].sort((a,b)=>value(b)-value(a));
-    body.innerHTML=sorted.map(s=>{const id=playerId(s),p=players.find(x=>x.playerId===id)||{},fga=Number(s.FGA)||0,fgm=Number(s.FGM)||0,twoa=Number(s["2PA"])||0,twom=Number(s["2PM"])||0,threea=Number(s["3PA"])||0,threem=Number(s["3PM"])||0,fta=Number(s.FTA)||0,ftm=Number(s.FTM)||0;return `<tr><td><b>${escapeHtml(nameFor(id))}</b></td><td>${escapeHtml(p.position||"—")}</td><td>${Number(s.GP)||0}</td><td>${Number(s.W)||0}-${Number(s.L)||0}-${Number(s.D)||0}</td><td>${Math.floor((Number(s.minutesSeconds)||0)/60)}</td><td>${Number(s.points)||0}</td><td>${Number(s.REB)||0}</td><td>${Number(s.AST)||0}</td><td>${Number(s.STL)||0}</td><td>${Number(s.BLK)||0}</td><td>${fgm}/${fga}</td><td>${ratio(fgm,fga)}</td><td>${twom}/${twoa}</td><td>${ratio(twom,twoa)}</td><td>${threem}/${threea}</td><td>${ratio(threem,threea)}</td><td>${ftm}/${fta}</td><td>${ratio(ftm,fta)}</td><td>${Number(s.OREB)||0}</td><td>${Number(s.DREB)||0}</td><td>${Number(s.TO)||0}</td><td>${Number(s.PF)||0}</td><td>${eff(s)}</td></tr>`;}).join("");
+    body.innerHTML=sorted.map(s=>{const id=playerId(s),p=players.find(x=>x.playerId===id)||{},fga=Number(s.FGA)||0,fgm=Number(s.FGM)||0,twoa=Number(s["2PA"])||0,twom=Number(s["2PM"])||0,threea=Number(s["3PA"])||0,threem=Number(s["3PM"])||0,fta=Number(s.FTA)||0,ftm=Number(s.FTM)||0;return `<tr><td><button type="button" class="trend-player-button" data-trend-player="${escapeAttr(id)}">${escapeHtml(nameFor(id))} ↗</button></td><td>${escapeHtml(p.position||"—")}</td><td>${Number(s.GP)||0}</td><td>${Number(s.W)||0}-${Number(s.L)||0}-${Number(s.D)||0}</td><td>${Math.floor((Number(s.minutesSeconds)||0)/60)}</td><td>${Number(s.points)||0}</td><td>${Number(s.REB)||0}</td><td>${Number(s.AST)||0}</td><td>${Number(s.STL)||0}</td><td>${Number(s.BLK)||0}</td><td>${fgm}/${fga}</td><td>${ratio(fgm,fga)}</td><td>${twom}/${twoa}</td><td>${ratio(twom,twoa)}</td><td>${threem}/${threea}</td><td>${ratio(threem,threea)}</td><td>${ftm}/${fta}</td><td>${ratio(ftm,fta)}</td><td>${Number(s.OREB)||0}</td><td>${Number(s.DREB)||0}</td><td>${Number(s.TO)||0}</td><td>${Number(s.PF)||0}</td><td>${eff(s)}</td></tr>`;}).join("");
     document.getElementById("leaderboardEmpty").hidden=sorted.length>0;
+}
+
+
+async function showPlayerTrend(id) {
+    playerTrendId=id;
+    const panel=document.getElementById("playerTrendPanel");panel.hidden=false;
+    document.getElementById("playerTrendTitle").textContent=`${nameFor(id)} · ${seasonYear}年の試合ごとの推移`;
+    document.getElementById("playerTrendChart").innerHTML="<p class='empty-state'>読み込み中…</p>";
+    try { const result=await api("player-trend","GET",null,{playerId:id,season:String(seasonYear)});if(playerTrendId!==id)return;playerTrendRows=statRows(result).reverse();renderPlayerTrend();panel.scrollIntoView({behavior:"smooth",block:"nearest"}); }
+    catch(e){document.getElementById("playerTrendChart").innerHTML=`<p class='empty-state'>推移を読み込めませんでした：${escapeHtml(e.message)}</p>`;}
+}
+function renderPlayerTrend() {
+    const rows=playerTrendRows,metric=document.getElementById("playerTrendMetric").value,chart=document.getElementById("playerTrendChart"),field=metric;
+    if(!rows.length){chart.innerHTML="<p class='empty-state'>このシーズンに確定した試合はありません。</p>";document.getElementById("playerTrendGames").innerHTML="";return;}
+    const values=rows.map(r=>metric==="minutesSeconds"?Math.round((Number(r[field])||0)/60):Number(r[field])||0),max=Math.max(1,...values),w=640,h=210,pad=30;
+    const points=values.map((v,i)=>({x:pad+(rows.length===1?(w-2*pad)/2:i*(w-2*pad)/(rows.length-1)),y:h-pad-(v/max)*(h-2*pad),v}));
+    const path=points.map((p,i)=>`${i?"L":"M"}${p.x},${p.y}`).join(" ");
+    chart.innerHTML=`<div class="trend-chart-scroll"><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${escapeHtml(nameFor(playerTrendId))}の試合ごとの推移"><line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" class="trend-axis"/><path d="${path}" class="trend-line"/>${points.map((p,i)=>`<circle cx="${p.x}" cy="${p.y}" r="5" class="trend-point"><title>${escapeHtml(rows[i].date)} ${escapeHtml(rows[i].opponent||"")}：${p.v}</title></circle>`).join("")}</svg></div><div class="trend-chart-caption"><span>${escapeHtml(rows[0].date||"")} · ${escapeHtml(rows[0].opponent||"")}</span><strong>最大 ${max}${metric==="minutesSeconds"?"分":""}</strong><span>${escapeHtml(rows.at(-1).date||"")} · ${escapeHtml(rows.at(-1).opponent||"")}</span></div>`;
+    document.getElementById("playerTrendGames").innerHTML=rows.map((r,i)=>`<span><strong>${escapeHtml(r.date||"")}</strong> vs ${escapeHtml(r.opponent||"—")} · ${values[i]}${metric==="minutesSeconds"?"分":""}</span>`).join("");
 }
 
 function escapeHtml(v) { return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
@@ -259,6 +280,10 @@ document.getElementById("undoAction").addEventListener("click",async()=>{if(!cur
 document.getElementById("finishGame").addEventListener("click",async()=>{if(!currentGame)return;const score=Number(document.getElementById("finalOpponentScore").value);if(!Number.isInteger(score)||score<0){toast("相手の得点を確認してください");return;}if(!confirm("試合を終了し、ランキングに反映します。よろしいですか？"))return;try{const checked=[...document.querySelectorAll("#lineupChoices input:checked")].map(i=>i.value);await api("lineup","PUT",{gameId:currentGame.gameId,playerIds:[]});const result=await api("finish","PUT",{gameId:currentGame.gameId,opponentScore:score});toast(`試合を保存しました（${result.teamScore} - ${result.opponentScore}）`);currentGame=null;document.getElementById("scorekeeperCard").hidden=true;await loadEverything();}catch(e){toast(e.message);}});
 document.getElementById("closeGameButton").addEventListener("click",()=>{currentGame=null;document.getElementById("scorekeeperCard").hidden=true;});
 document.getElementById("rankingMetric").addEventListener("change",()=>renderLeaderboard(leaderboardRows));
+document.getElementById("leaderboardBody").addEventListener("click",e=>{const button=e.target.closest("[data-trend-player]");if(button)showPlayerTrend(button.dataset.trendPlayer);});
+document.getElementById("playerTrendMetric").addEventListener("change",renderPlayerTrend);
+document.getElementById("closePlayerTrend").addEventListener("click",()=>document.getElementById("playerTrendPanel").hidden=true);
+document.getElementById("seasonSelect").addEventListener("change",()=>{if(playerTrendId)document.getElementById("playerTrendPanel").hidden=true;});
 document.getElementById("gameGrouping").addEventListener("change",renderGames);
 document.getElementById("exportGamesButton").addEventListener("click",exportGamesCsv);
 document.getElementById("seasonSelect").addEventListener("change",async e=>{seasonYear=Number(e.target.value)||new Date().getFullYear();document.getElementById("rankingSeasonLabel").textContent=`${seasonYear}年シーズン · 確定試合の累計`;try{await loadEverything();}catch(err){toast(err.message);}});

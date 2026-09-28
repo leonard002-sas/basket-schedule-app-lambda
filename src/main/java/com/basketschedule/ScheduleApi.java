@@ -2,10 +2,14 @@ package com.basketschedule;
 
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
@@ -55,6 +59,8 @@ public class ScheduleApi
             String method =
                     getHttpMethod(input);
 
+            String resource = routeQuery.get("resource");
+
             if (("PUT".equalsIgnoreCase(method)
                     || "DELETE".equalsIgnoreCase(method))
                     && !user.groups().contains("admins")) {
@@ -86,7 +92,7 @@ public class ScheduleApi
                 }
 
                 // /schedules
-                return getSchedules();
+                return getSchedules(user.groups().contains("admins"));
             }
 
 
@@ -95,6 +101,8 @@ public class ScheduleApi
             // ========================================
 
             if ("PUT".equalsIgnoreCase(method)) {
+
+                if ("announcement".equals(resource)) return saveAnnouncement(input);
 
                 return updateSchedule(
                         input,
@@ -107,6 +115,8 @@ public class ScheduleApi
             // ========================================
 
             if ("DELETE".equalsIgnoreCase(method)) {
+
+                if ("announcement".equals(resource)) return deleteAnnouncement(routeQuery.get("id"));
 
                 return deleteSchedule(
                         input,
@@ -151,7 +161,7 @@ public class ScheduleApi
     // GET /schedules
     // ========================================
 
-    private Map<String, Object> getSchedules()
+    private Map<String, Object> getSchedules(boolean includeExpired)
             throws Exception {
 
         ScanRequest request =
@@ -164,9 +174,23 @@ public class ScheduleApi
 
         List<Map<String, String>> result =
                 new ArrayList<>();
+        List<Map<String,Object>> announcements = new ArrayList<>();
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Tokyo"));
 
         for (Map<String, AttributeValue> item
                 : dynamoResponse.items()) {
+
+            if ("ANNOUNCEMENT".equals(getString(item, "recordType"))) {
+                String visibleUntil = getString(item,"visibleUntil");
+                boolean visible = !visibleUntil.isBlank() && !LocalDate.parse(visibleUntil).isBefore(today);
+                if (!visible && !includeExpired) continue;
+                Map<String,Object> notice = new HashMap<>();
+                notice.put("id",getString(item,"announcementId")); notice.put("title",getString(item,"title"));
+                notice.put("content",getString(item,"content")); notice.put("urgency",getString(item,"urgency"));
+                notice.put("visibleUntil",visibleUntil); notice.put("visible",visible);
+                announcements.add(notice);
+                continue;
+            }
 
             Map<String, String> schedule =
                     new HashMap<>();
@@ -217,11 +241,39 @@ public class ScheduleApi
             result.add(schedule);
         }
 
-        return response(
-                200,
-                result
-        );
+        announcements.sort((a,b) -> Integer.compare(announcementPriority((String)b.get("urgency")),announcementPriority((String)a.get("urgency"))));
+        return response(200,Map.of("items",result,"announcements",announcements));
     }
+
+    private Map<String,Object> saveAnnouncement(Map<String,Object> input) throws Exception {
+        JsonNode body = mapper.readTree(getBody(input));
+        String id = body.path("id").asText("").trim(); if(id.isBlank()) id=UUID.randomUUID().toString();
+        String title = required(body,"title").trim(), content = required(body,"content").trim();
+        String urgency = body.path("urgency").asText("NORMAL");
+        String visibleUntil = required(body,"visibleUntil");
+        if(title.length()>100||content.length()>2000) throw new IllegalArgumentException("見出しは100文字、本文は2000文字以内で入力してください");
+        if(!List.of("NORMAL","IMPORTANT","URGENT").contains(urgency)) throw new IllegalArgumentException("緊急度が不正です");
+        try { LocalDate.parse(visibleUntil); } catch(Exception e) { throw new IllegalArgumentException("表示期限を確認してください（YYYY-MM-DD）"); }
+        Map<String,AttributeValue> key = new HashMap<>(); key.put("scheduleMonth",AttributeValue.builder().s("ANNOUNCEMENTS").build()); key.put("startDateTime",AttributeValue.builder().s(id).build());
+        var old = dynamoDbClient.getItem(GetItemRequest.builder().tableName(SCHEDULE_TABLE).key(key).build());
+        long createdAt = old.hasItem() && old.item().containsKey("createdAt") ? Long.parseLong(old.item().get("createdAt").n()) : System.currentTimeMillis();
+        Map<String,AttributeValue> item = new HashMap<>(key);
+        item.put("recordType",AttributeValue.builder().s("ANNOUNCEMENT").build()); item.put("announcementId",AttributeValue.builder().s(id).build());
+        item.put("title",AttributeValue.builder().s(title).build()); item.put("content",AttributeValue.builder().s(content).build());
+        item.put("urgency",AttributeValue.builder().s(urgency).build()); item.put("visibleUntil",AttributeValue.builder().s(visibleUntil).build());
+        item.put("createdAt",AttributeValue.builder().n(Long.toString(createdAt)).build()); item.put("updatedAt",AttributeValue.builder().n(Long.toString(System.currentTimeMillis())).build());
+        dynamoDbClient.putItem(PutItemRequest.builder().tableName(SCHEDULE_TABLE).item(item).build());
+        return response(200,Map.of("message","周知事項を保存しました","id",id));
+    }
+
+    private Map<String,Object> deleteAnnouncement(String id) {
+        if(id==null||id.isBlank()) throw new IllegalArgumentException("お知らせIDがありません");
+        Map<String,AttributeValue> key = new HashMap<>(); key.put("scheduleMonth",AttributeValue.builder().s("ANNOUNCEMENTS").build()); key.put("startDateTime",AttributeValue.builder().s(id).build());
+        dynamoDbClient.deleteItem(DeleteItemRequest.builder().tableName(SCHEDULE_TABLE).key(key).build());
+        return response(200,Map.of("message","周知事項を削除しました"));
+    }
+
+    private int announcementPriority(String urgency) { return switch(urgency) { case "URGENT" -> 3; case "IMPORTANT" -> 2; default -> 1; }; }
 
 
     // ========================================
@@ -500,7 +552,7 @@ public class ScheduleApi
         String eventType = body.hasNonNull("eventType")
                 ? body.get("eventType").asText()
                 : eventTypeOrDefault(oldItem.item());
-        if (!"PRACTICE".equals(eventType) && !"GAME".equals(eventType)) {
+        if (!"PRACTICE".equals(eventType) && !"GAME".equals(eventType) && !"MEETING".equals(eventType)) {
             throw new IllegalArgumentException("予定種別が不正です");
         }
         String competitionName = body.hasNonNull("competitionName") ? body.get("competitionName").asText().trim() : getString(oldItem.item(), "competitionName");
@@ -890,7 +942,17 @@ public class ScheduleApi
 
     private String eventTypeOrDefault(Map<String, AttributeValue> item) {
         String eventType = getString(item, "eventType");
-        return "GAME".equals(eventType) ? "GAME" : "PRACTICE";
+        return "GAME".equals(eventType) || "MEETING".equals(eventType) ? eventType : "PRACTICE";
+    }
+
+    private void validateVideoUrl(String value) {
+        if (value.isBlank()) return;
+        try {
+            URI uri = URI.create(value);
+            if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null) throw new IllegalArgumentException();
+        } catch (Exception e) {
+            throw new IllegalArgumentException("動画URLはhttps://から始まるURLを入力してください");
+        }
     }
 
 
@@ -960,3 +1022,4 @@ public class ScheduleApi
         return response;
     }
 }
+

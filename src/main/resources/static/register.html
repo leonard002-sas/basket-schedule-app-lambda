@@ -8,6 +8,8 @@
     <title>予定を登録 · COURTSIDE</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="app.css">
+    <link rel="stylesheet" href="theme.css">
+    <script src="theme.js"></script>
 </head>
 
 <body style="display: none;">
@@ -24,7 +26,7 @@
                 </span>
                 <span><span class="brand-name">COURTSIDE</span><span class="brand-caption">Basketball schedule</span></span>
             </a>
-            <button id="backButton" type="button" class="button-light">← カレンダーへ</button>
+            <div class="register-header-actions"><button type="button" class="theme-toggle" data-theme-toggle></button><button id="backButton" type="button" class="button-light">← カレンダーへ</button></div>
         </header>
 
         <section class="admin-page-heading">
@@ -56,7 +58,7 @@
                     <span class="section-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="15" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M8 3.5v3M16 3.5v3M4.5 9h15M8 13h3M8 16.5h7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
                     </span>
-                    <div><h2 id="manualHeading">手入力で登録</h2><p>日付、時間、施設を入力してください。試合は大会名やラウンドでまとめられます。</p></div>
+\t\t\t\t\t<div><h2 id="manualHeading">手入力で登録</h2><p>日付、時間、施設を入力できます。前回予定の複製、毎週の繰り返し、試合の大会名・ラウンドも登録できます。</p></div>
                 </div>
 
                 <div id="scheduleRows">
@@ -64,6 +66,7 @@
                         <select class="event-type-select" aria-label="予定種別">
                             <option value="PRACTICE">練習</option>
                             <option value="GAME">試合</option>
+                            <option value="MEETING">会議</option>
                         </select>
                         <input type="date" class="date-input" aria-label="日付">
                         <input type="time" class="time-input" aria-label="開始時刻">
@@ -72,12 +75,16 @@
                         <select class="facility-select" aria-label="施設">
                             <option value="">施設を選択してください</option>
                         </select>
-                        <button type="button" class="delete-button">削除</button>
+                        <div class="schedule-row-actions"><button type="button" class="duplicate-button button-light">複製</button><button type="button" class="delete-button">削除</button></div>
+                        <label class="schedule-video-field">動画URL（任意）<input type="url" class="video-url-input" maxlength="2048" placeholder="YouTubeなどの共有リンク"></label>
+                        <label class="schedule-video-field">動画タグ（任意）<input type="text" class="video-tags-input" maxlength="120" list="videoTagOptions" placeholder="例：シュート、練習全体"></label>
+                        <div class="schedule-game-fields" hidden><label>大会名（登録済みから選択・新規入力）<input type="text" class="competition-name-input" maxlength="80" list="competitionNames" placeholder="例：2026秋北区大会"></label><label>ラウンド（任意）<input type="text" class="round-input" maxlength="40" list="basketballRoundOptions" placeholder="例：1回戦"></label></div>
                         <div class="schedule-game-fields" hidden><label>大会名（任意）<input type="text" class="competition-name-input" maxlength="80" placeholder="例：2026秋北区大会"></label><label>ラウンド（任意）<input type="text" class="round-input" maxlength="40" list="basketballRoundOptions" placeholder="例：1回戦"></label></div>
                     </div>
                 </div>
                 <datalist id="basketballRoundOptions"><option value="1回戦"><option value="2回戦"><option value="準々決勝"><option value="準決勝"><option value="決勝"><option value="3位決定戦"></datalist>
 
+                <div class="schedule-repeat-controls"><label><input id="repeatWeekly" type="checkbox"> 毎週同じ曜日に繰り返す</label><label>繰り返し終了日<input id="repeatUntilDate" type="date" disabled></label><span>1予定につき最大52回まで</span></div>
                 <button type="button" id="addScheduleButton" class="button-light">＋ 予定を追加</button>
                 <button type="button" id="registerButton">予定を登録</button>
                 <div id="status" role="status" aria-live="polite"></div>
@@ -111,3 +118,4 @@
 </body>
 
 </html>
+

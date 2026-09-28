@@ -37,12 +37,14 @@ const nextMonthButton =
 
 const exportMonthCalendarButton =
     document.getElementById("exportMonthCalendar");
+const copyMonthScheduleTextButton = document.getElementById("copyMonthScheduleText");
 
 const calendarExportStatus =
     document.getElementById("calendarExportStatus");
 
 
 let schedules = [];
+let announcements = [];
 
 // 施設マスタ
 let facilities = [];
@@ -147,8 +149,10 @@ async function loadSchedule() {
             );
         }
 
-        schedules =
-            await response.json();
+        const payload = await response.json();
+        schedules = Array.isArray(payload) ? payload : (payload.items || []);
+        announcements = Array.isArray(payload) ? [] : (payload.announcements || []);
+        renderAnnouncements();
 
         schedules.sort(
             (a, b) =>
@@ -162,6 +166,8 @@ async function loadSchedule() {
 
         displayCalendar();
         displaySchedule();
+        renderHomeAgenda();
+        renderVideoArchive();
 
     } catch (error) {
 
@@ -171,6 +177,101 @@ async function loadSchedule() {
             '<p class="error">予定の取得に失敗しました。</p>';
     }
 }
+
+function scheduleKind(schedule) {
+    return schedule.eventType === "GAME" ? {label:"試合",icon:"🏀",className:"game"} : schedule.eventType === "MEETING" ? {label:"会議",icon:"📋",className:"meeting"} : {label:"練習",icon:"🏀",className:"practice"};
+}
+
+function agendaCard(schedule) {
+    const start = new Date(schedule.startDateTime), end = new Date(schedule.endDateTime), kind = scheduleKind(schedule);
+    const facility = facilities.find(item => item.facilityId === schedule.facilityId)?.facilityName || schedule.facilityName || "施設未設定";
+    return `<article class="agenda-event agenda-${kind.className}"><span class="agenda-type">${kind.icon} ${kind.label}</span><strong>${formatDate(start)}</strong><span>${formatTime(start)}〜${formatTime(end)}</span><span class="agenda-facility">${escapeHtml(facility)}</span>${schedule.competitionName ? `<small>${escapeHtml(schedule.competitionName)}${schedule.round ? ` · ${escapeHtml(schedule.round)}` : ""}</small>` : ""}</article>`;
+}
+
+function renderHomeAgenda() {
+    const todayBox = document.getElementById("todayAgendaList"), weekBox = document.getElementById("weekAgendaList");
+    if (!todayBox || !weekBox) return;
+    const now = new Date(), today = new Date(now.getFullYear(), now.getMonth(), now.getDate()), end = new Date(today); end.setDate(end.getDate()+7);
+    const todayKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
+    const todayItems = schedules.filter(s => String(s.startDateTime).slice(0,10) === todayKey);
+    const weekItems = schedules.filter(s => { const d = new Date(s.startDateTime); return d >= today && d < end; });
+    todayBox.innerHTML = todayItems.length ? todayItems.map(agendaCard).join("") : "<p class='agenda-empty'>今日は予定がありません。ゆっくりシュート練習を 🏀</p>";
+    weekBox.innerHTML = weekItems.length ? weekItems.map(agendaCard).join("") : "<p class='agenda-empty'>今週の予定はありません。</p>";
+}
+
+function renderVideoArchive() {
+    const list = document.getElementById("videoArchiveList"), filter = document.getElementById("videoTagFilter");
+    if (!list || !filter) return;
+    const videos = schedules.filter(s => s.videoUrl).sort((a,b) => String(b.startDateTime).localeCompare(String(a.startDateTime)));
+    const tags = [...new Set(videos.flatMap(s => String(s.videoTags || "").split(",").map(t => t.trim()).filter(Boolean)))].sort((a,b) => a.localeCompare(b,"ja"));
+    const selected = filter.value;
+    filter.innerHTML = `<option value="">すべて</option>${tags.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("")}`;
+    if (tags.includes(selected)) filter.value = selected;
+    const shown = filter.value ? videos.filter(s => String(s.videoTags || "").split(",").map(t => t.trim()).includes(filter.value)) : videos;
+    list.innerHTML = shown.length ? shown.map(s => { const type=scheduleKind(s),date=new Date(s.startDateTime),tags=String(s.videoTags||"").split(",").map(t=>t.trim()).filter(Boolean),venue=facilities.find(f=>f.facilityId===s.facilityId)?.facilityName||s.facilityName;return `<article class="video-archive-card"><div class="video-archive-meta"><span class="agenda-type">${type.icon} ${type.label}</span><time>${formatDate(date)}</time></div><h3>${escapeHtml(s.competitionName||venue||type.label+"の動画")}</h3><div class="video-tags">${tags.map(t=>`<span>${escapeHtml(t)}</span>`).join("")}</div><a href="${escapeHtml(s.videoUrl)}" target="_blank" rel="noopener noreferrer">動画を開く ↗</a></article>`;}).join("") : "<p class='agenda-empty'>このタグの動画はまだありません。</p>";
+}
+
+document.getElementById("videoTagFilter")?.addEventListener("change", renderVideoArchive);
+
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char]));
+}
+
+function isCalendarAdmin() {
+    return (getValidIdTokenClaims()?.["cognito:groups"] || []).includes("admins");
+}
+
+function renderAnnouncements(admin = isCalendarAdmin()) {
+    const area = document.getElementById("announcementsArea");
+    const list = document.getElementById("announcementList");
+    const active = announcements.filter(item => item.visible);
+    area.hidden = !active.length && !admin;
+    document.getElementById("announcementCount").textContent = active.length ? `${active.length}件` : "";
+    list.innerHTML = active.map(item => `<article class="announcement-card urgency-${escapeHtml(item.urgency)}"><div class="announcement-meta"><span>${item.urgency === "URGENT" ? "緊急" : item.urgency === "IMPORTANT" ? "重要" : "お知らせ"}</span><span>${escapeHtml(item.visibleUntil)}まで</span></div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.content).replace(/\n/g,"<br>")}</p></article>`).join("");
+    const manager = document.getElementById("announcementManager");
+    manager.hidden = !admin;
+    if (!admin) return;
+    const adminList = document.getElementById("announcementAdminList");
+    adminList.innerHTML = announcements.length ? announcements.map(item => `<div class="announcement-admin-item${item.visible ? "" : " is-expired"}"><span><strong>${escapeHtml(item.title)}</strong><small>${item.visible ? `表示中 · ${escapeHtml(item.visibleUntil)}まで` : `期限切れ · ${escapeHtml(item.visibleUntil)}まで`}</small></span><span class="announcement-admin-actions"><button type="button" class="button-light" data-edit-announcement="${escapeHtml(item.id)}">編集</button><button type="button" class="button-danger" data-delete-announcement="${escapeHtml(item.id)}">削除</button></span></div>`).join("") : "<p class='announcement-empty'>周知事項はまだありません。</p>";
+}
+
+function resetAnnouncementForm() {
+    const form = document.getElementById("announcementForm");
+    form.reset();
+    document.getElementById("announcementId").value = "";
+    document.getElementById("cancelAnnouncementEdit").hidden = true;
+    document.getElementById("announcementStatus").textContent = "";
+}
+
+document.getElementById("announcementForm")?.addEventListener("submit", async event => {
+    event.preventDefault();
+    const status = document.getElementById("announcementStatus");
+    const payload = {id:document.getElementById("announcementId").value,title:document.getElementById("announcementTitle").value.trim(),content:document.getElementById("announcementContent").value.trim(),urgency:document.getElementById("announcementUrgency").value,visibleUntil:document.getElementById("announcementVisibleUntil").value};
+    status.textContent = "保存しています…";
+    try {
+        const response = await authenticatedFetch(`${API_URL}?resource=announcement`, {method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+        const result = await response.json(); if (!response.ok) throw new Error(result.message || "保存できませんでした");
+        resetAnnouncementForm(); await loadSchedule(); document.getElementById("announcementStatus").textContent = "周知事項を保存しました。";
+    } catch (error) { status.textContent = error.message; }
+});
+
+document.getElementById("cancelAnnouncementEdit")?.addEventListener("click", resetAnnouncementForm);
+document.getElementById("announcementAdminList")?.addEventListener("click", async event => {
+    const edit = event.target.closest("[data-edit-announcement]");
+    if (edit) {
+        const item = announcements.find(row => row.id === edit.dataset.editAnnouncement); if (!item) return;
+        document.getElementById("announcementId").value = item.id; document.getElementById("announcementTitle").value = item.title;
+        document.getElementById("announcementContent").value = item.content; document.getElementById("announcementUrgency").value = item.urgency;
+        document.getElementById("announcementVisibleUntil").value = item.visibleUntil; document.getElementById("cancelAnnouncementEdit").hidden = false;
+        document.getElementById("announcementTitle").focus(); return;
+    }
+    const remove = event.target.closest("[data-delete-announcement]");
+    if (!remove) return;
+    const item = announcements.find(row => row.id === remove.dataset.deleteAnnouncement);
+    if (!item || !confirm(`「${item.title}」を削除しますか？`)) return;
+    try { const response = await authenticatedFetch(`${API_URL}?resource=announcement&id=${encodeURIComponent(item.id)}`, {method:"DELETE"}); if (!response.ok) throw new Error("削除できませんでした"); await loadSchedule(); }
+    catch (error) { alert(error.message); }
+});
 
 
 // ========================================
@@ -417,8 +518,8 @@ function displayCalendar() {
             event.className =
                 "event-dot";
 
-            const eventType = schedule.eventType === "GAME" ? "GAME" : "PRACTICE";
-            event.classList.add(eventType === "GAME" ? "event-game" : "event-practice");
+            const eventType = ["GAME", "MEETING"].includes(schedule.eventType) ? schedule.eventType : "PRACTICE";
+            event.classList.add(eventType === "GAME" ? "event-game" : eventType === "MEETING" ? "event-meeting" : "event-practice");
 
             const start =
                 new Date(
@@ -660,12 +761,12 @@ function displaySchedule() {
         eventElement.className =
             "upcoming-schedule";
 
-        const eventType = schedule.eventType === "GAME" ? "GAME" : "PRACTICE";
-        eventElement.classList.add(eventType === "GAME" ? "event-game" : "event-practice");
+        const eventType = ["GAME", "MEETING"].includes(schedule.eventType) ? schedule.eventType : "PRACTICE";
+        eventElement.classList.add(eventType === "GAME" ? "event-game" : eventType === "MEETING" ? "event-meeting" : "event-practice");
 
 
         eventElement.innerHTML = `
-            <div class="upcoming-kind">${eventType === "GAME" ? "試合" : "練習"}</div>
+            <div class="upcoming-kind">${eventType === "GAME" ? "試合" : eventType === "MEETING" ? "会議" : "練習"}</div>
             <div class="upcoming-date">
                 ${formatDate(start)}
             </div>
@@ -1006,7 +1107,7 @@ async function exportCurrentMonthToIcs() {
         const start = new Date(schedule.startDateTime);
         const end = new Date(schedule.endDateTime);
         const facility = facilities.find(item => item.facilityId === schedule.facilityId);
-        const title = [schedule.eventType === "GAME" ? "試合" : "練習", schedule.competitionName, schedule.round]
+        const title = [schedule.eventType === "GAME" ? "試合" : schedule.eventType === "MEETING" ? "会議" : "練習", schedule.eventType === "GAME" ? schedule.competitionName : "", schedule.eventType === "GAME" ? schedule.round : ""]
             .filter(Boolean).join(" · ");
         const location = [facility?.facilityName, facility?.address]
             .filter(Boolean)
@@ -1033,6 +1134,7 @@ async function exportCurrentMonthToIcs() {
             lines.push(`URL:${String(facility.url).replace(/[\r\n]/g, "")}`);
         }
 
+        if (schedule.videoUrl) lines.push("ATTACH;VALUE=URI:" + String(schedule.videoUrl).replace(/[\r\n]/g, ""));
         lines.push("END:VEVENT");
     });
 
@@ -1066,6 +1168,35 @@ if (exportMonthCalendarButton) {
         }
     });
 }
+
+const monthEmojis = ["🎍","❄️","🌸","🌸","🌿","☔","🌻","🌻","🍁","🌕","🍂","🎄"];
+async function copyCurrentMonthScheduleText() {
+    const monthKey = String(currentYear) + "-" + String(currentMonth).padStart(2,"0");
+    const rows = schedules.filter(item => item.scheduleMonth === monthKey).sort((a,b) => String(a.startDateTime).localeCompare(String(b.startDateTime)));
+    if (!rows.length) throw new Error(currentMonth + "月の予定はありません。");
+    const weekdays = ["日","月","火","水","木","金","土"];
+    const lines = [monthEmojis[currentMonth-1] + currentMonth + "月予定" + monthEmojis[currentMonth-1],""];
+    for (const item of rows) {
+        const start = new Date(item.startDateTime), end = new Date(item.endDateTime);
+        const label = item.eventType === "GAME" ? "【試合】" : item.eventType === "MEETING" ? "【会議】" : "";
+        const date = String(start.getMonth()+1).padStart(2,"0") + "/" + String(start.getDate()).padStart(2,"0") + "(" + weekdays[start.getDay()] + ")";
+        lines.push(date + " " + label + formatTime(start) + "〜" + formatTime(end));
+    }
+    const text = lines.join("\n");
+    try { await navigator.clipboard.writeText(text); }
+    catch {
+        const textarea = document.createElement("textarea"); textarea.value = text; textarea.style.position = "fixed"; textarea.style.opacity = "0"; document.body.appendChild(textarea); textarea.select();
+        const copied = document.execCommand("copy"); textarea.remove(); if (!copied) throw new Error("コピーできませんでした。ブラウザのコピー権限を確認してください。");
+    }
+    calendarExportStatus.textContent = currentMonth + "月の予定" + rows.length + "件をLINE用にコピーしました。";
+}
+
+copyMonthScheduleTextButton?.addEventListener("click", async () => {
+    copyMonthScheduleTextButton.disabled = true;
+    try { await copyCurrentMonthScheduleText(); }
+    catch (error) { calendarExportStatus.textContent = error.message; }
+    finally { copyMonthScheduleTextButton.disabled = false; }
+});
 
 async function authenticatedFetch(url, options = {}) {
 
@@ -1456,7 +1587,7 @@ handleCognitoCallback()
             if (currentYear === yearToLoad) displayCalendar();
         });
 
-        await loadSchedule();
+        await Promise.all([loadSchedule(), loadFacilities()]);
 
         console.log("=== 初期表示処理完了 ===");
 
@@ -1620,7 +1751,21 @@ async function showScheduleDetail(
             + `${start.getDate()}日`;
 
         document.getElementById("detailEventType").textContent =
-            detail.eventType === "GAME" ? "試合" : "練習";
+            detail.eventType === "GAME" ? "試合" : detail.eventType === "MEETING" ? "会議" : "練習";
+        const competitionRow = document.getElementById("detailCompetitionRow");
+        const roundRow = document.getElementById("detailRoundRow");
+        document.getElementById("detailCompetition").textContent = detail.competitionName || "";
+        document.getElementById("detailRound").textContent = detail.round || "";
+        competitionRow.hidden = detail.eventType !== "GAME" || !detail.competitionName;
+        roundRow.hidden = detail.eventType !== "GAME" || !detail.round;
+        const eventVideoRow = document.getElementById("detailEventVideoRow");
+        const eventVideo = document.getElementById("detailEventVideo");
+        eventVideoRow.hidden = !detail.videoUrl;
+        if (detail.videoUrl) eventVideo.href = detail.videoUrl;
+        else eventVideo.removeAttribute("href");
+        const videoTags = String(detail.videoTags || "").split(",").map(tag => tag.trim()).filter(Boolean);
+        document.getElementById("detailVideoTags").textContent = videoTags.join(" · ");
+        document.getElementById("detailVideoTagsRow").hidden = videoTags.length === 0;
         const competitionRow = document.getElementById("detailCompetitionRow");
         const roundRow = document.getElementById("detailRoundRow");
         document.getElementById("detailCompetition").textContent = detail.competitionName || "";
@@ -2127,6 +2272,7 @@ async function loadFacilities() {
 
         facilities =
             await response.json();
+        renderHomeAgenda();
 
         console.log(
             "施設マスタ:",
@@ -2224,7 +2370,12 @@ function enterEditMode() {
         currentScheduleDetail.endDateTime;
 
     document.getElementById("editEventType").value =
-        currentScheduleDetail.eventType === "GAME" ? "GAME" : "PRACTICE";
+        ["GAME", "MEETING"].includes(currentScheduleDetail.eventType) ? currentScheduleDetail.eventType : "PRACTICE";
+    document.getElementById("editCompetitionName").value = currentScheduleDetail.competitionName || "";
+    document.getElementById("editRound").value = currentScheduleDetail.round || "";
+    document.getElementById("editVideoUrl").value = currentScheduleDetail.videoUrl || "";
+    document.getElementById("editVideoTags").value = currentScheduleDetail.videoTags || "";
+    updateScheduleGameFields();
     document.getElementById("editCompetitionName").value = currentScheduleDetail.competitionName || "";
     document.getElementById("editRound").value = currentScheduleDetail.round || "";
     updateScheduleGameFields();
@@ -2470,7 +2621,13 @@ if (saveScheduleButton) {
                                         document.getElementById("editCompetitionName").value.trim(),
 
                                     round:
-                                        document.getElementById("editRound").value.trim()
+                                        document.getElementById("editRound").value.trim(),
+
+                                    videoUrl:
+                                        document.getElementById("editVideoUrl").value.trim(),
+
+                                    videoTags:
+                                        document.getElementById("editVideoTags").value.split(",").map(tag => tag.trim()).filter(Boolean).slice(0, 6).join(", ")
 
                                 })
                         }
@@ -2661,3 +2818,4 @@ function exitEditMode() {
     }
 
 }
+

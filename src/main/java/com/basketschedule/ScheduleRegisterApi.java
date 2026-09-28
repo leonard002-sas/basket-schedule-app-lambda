@@ -3,6 +3,7 @@ package com.basketschedule;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -100,7 +101,7 @@ public class ScheduleRegisterApi
                 String eventType = schedule.hasNonNull("eventType")
                         ? schedule.get("eventType").asText()
                         : "PRACTICE";
-                if (!"PRACTICE".equals(eventType) && !"GAME".equals(eventType)) {
+                if (!"PRACTICE".equals(eventType) && !"GAME".equals(eventType) && !"MEETING".equals(eventType)) {
                     throw new IllegalArgumentException("予定種別が不正です");
                 }
                 String competitionName = optionalText(schedule, "competitionName", 80);
@@ -397,3 +398,4 @@ public class ScheduleRegisterApi
         return response;
     }
 }
+

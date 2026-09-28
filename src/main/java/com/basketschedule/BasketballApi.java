@@ -76,6 +76,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
             case "games" -> plainList(rows(teamPk(required(q, "teamId")), "GAME#"));
             case "game" -> game(q.get("gameId"));
             case "leaderboard" -> plainList(rows(seasonPk(q.get("season"), required(q, "teamId")), "PLAYER#"));
+            case "player-trend" -> playerTrend(required(q,"teamId"), required(q,"playerId"), season(q.get("season")));
             default -> throw new ApiException(404, "NOT_FOUND", "指定された情報がありません");
         };
     }
@@ -94,6 +95,17 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
 
     private Map<String,Object> teamData(String teamId) {
         return Map.of("team",plain(item(teamPk(teamId),"PROFILE")),"players",plainList(rows(teamPk(teamId),"PLAYER#")));
+    }
+
+
+    private Map<String,Object> playerTrend(String teamId,String playerId,String year) {
+        List<Map<String,AttributeValue>> completed=rows(teamPk(teamId),"GAME#").stream()
+                .filter(row->"FINAL".equals(str(row,"status"))&&str(row,"date").startsWith(year))
+                .sorted((a,b)->str(b,"date").compareTo(str(a,"date"))).limit(20).toList();
+        if(completed.isEmpty())return Map.of("items",List.of());
+        List<Map<String,Object>> out=new ArrayList<>();
+        for(var game:completed){String id=str(game,"gameId");var stat=item("GAME#"+id,"PLAYER#"+playerId);Map<String,Object> row=new HashMap<>();row.put("gameId",id);row.put("date",str(game,"date"));row.put("opponent",str(game,"opponent"));row.put("result",str(game,"result"));row.put("points",longValue(stat,"points",0));row.put("REB",longValue(stat,"REB",0));row.put("AST",longValue(stat,"AST",0));row.put("minutesSeconds",longValue(stat,"minutesSeconds",0));out.add(row);}
+        return Map.of("items",out);
     }
 
     private Object write(String resource, JsonNode b, Map<String, String> query) {

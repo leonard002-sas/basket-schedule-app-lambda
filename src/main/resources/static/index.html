@@ -445,6 +445,8 @@
 
 	</style>
 	<link rel="stylesheet" href="app.css">
+	<link rel="stylesheet" href="theme.css">
+	<script src="theme.js"></script>
 
 </head>
 
@@ -464,6 +466,7 @@
 				<span><span class="brand-name">COURTSIDE</span><span class="brand-caption">Basketball schedule</span></span>
 			</a>
 			<nav class="header-actions" aria-label="アカウント">
+				<button type="button" class="theme-toggle" data-theme-toggle></button>
 				<button id="logoutButton" class="button-light" style="display: none;">ログアウト</button>
 				<button id="registerButton" class="button-accent" style="display: none;">新規登録</button>
 			</nav>
@@ -504,6 +507,24 @@
 			</div>
 		</section>
 
+		<section id="announcementsArea" class="announcements-area" hidden aria-labelledby="announcementsHeading">
+			<div class="announcements-heading"><div><span class="eyebrow">TEAM BULLETIN</span><h2 id="announcementsHeading">チームへのお知らせ</h2></div><span class="announcement-count" id="announcementCount"></span></div>
+			<div id="announcementList" class="announcement-list"></div>
+			<details id="announcementManager" class="announcement-manager" hidden>
+				<summary>周知事項を管理</summary>
+				<form id="announcementForm" class="announcement-form"><input id="announcementId" type="hidden"><label>見出し<input id="announcementTitle" maxlength="100" required placeholder="例：今週の集合場所について"></label><label>緊急度<select id="announcementUrgency"><option value="NORMAL">通常</option><option value="IMPORTANT">重要</option><option value="URGENT">緊急</option></select></label><label>表示期限<input id="announcementVisibleUntil" type="date" required></label><label class="announcement-content-label">本文<textarea id="announcementContent" maxlength="2000" rows="3" required placeholder="メンバーに伝える内容"></textarea></label><div class="announcement-form-actions"><span id="announcementStatus" role="status" aria-live="polite"></span><button type="button" id="cancelAnnouncementEdit" class="button-light" hidden>編集をやめる</button><button class="button-accent">周知を保存</button></div></form>
+				<h3>登録済み</h3><div id="announcementAdminList" class="announcement-admin-list"></div>
+			</details>
+		</section>
+		<section class="home-agenda" aria-label="今日と今週の予定">
+			<div class="home-agenda-heading"><div><span class="eyebrow">YOUR COURTSIDE</span><h2>今日・今週の予定</h2></div><span class="home-agenda-note">ログイン後すぐにチームの予定を確認</span></div>
+			<div class="home-agenda-grid"><article class="home-agenda-card home-agenda-today"><h3>今日</h3><div id="todayAgendaList" class="home-agenda-list"></div></article><article class="home-agenda-card"><h3>今週</h3><div id="weekAgendaList" class="home-agenda-list"></div></article></div>
+		</section>
+		<section class="video-archive" aria-label="練習動画">
+			<div class="video-archive-heading"><div><span class="eyebrow">FILM ROOM</span><h2>練習動画</h2><p>予定に登録した動画をタグで探せます。</p></div><label>タグで絞り込む<select id="videoTagFilter"><option value="">すべて</option></select></label></div>
+			<div id="videoArchiveList" class="video-archive-list"></div>
+		</section>
+
 	<!-- =========================
          予定表登録
          ========================= -->
@@ -540,9 +561,11 @@
 		<div class="event-legend" aria-label="予定種別の凡例">
 			<span class="event-legend-item"><span class="event-legend-swatch event-practice" aria-hidden="true"></span>練習</span>
 			<span class="event-legend-item"><span class="event-legend-swatch event-game" aria-hidden="true"></span>試合</span>
+			<span class="event-legend-item"><span class="event-legend-swatch event-meeting" aria-hidden="true"></span>会議</span>
 		</div>
 		<div class="calendar-export-area">
 			<button id="exportMonthCalendar" type="button" class="button-light">この月をGoogleカレンダー用に保存</button>
+			<button id="copyMonthScheduleText" type="button" class="button-light">LINE用の月予定をコピー</button>
 			<span id="calendarExportStatus" role="status" aria-live="polite"></span>
 			<p>保存した .ics ファイルは、Googleカレンダーの「設定」→「インポート / エクスポート」から取り込めます。</p>
 		</div>
@@ -756,6 +779,7 @@
 						<select id="editEventType">
 							<option value="PRACTICE">練習</option>
 							<option value="GAME">試合</option>
+							<option value="MEETING">会議</option>
 						</select>
 					</div>
 					<div class="detail-row schedule-game-meta" id="editCompetitionRow" hidden><span class="detail-label">大会名</span><input id="editCompetitionName" type="text" maxlength="80" placeholder="例：2026秋北区大会"></div>
@@ -961,3 +985,4 @@
 </body>
 
 </html>
+

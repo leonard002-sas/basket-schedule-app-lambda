@@ -13,6 +13,9 @@ const FACILITY_API_URL =
 const SCHEDULE_REGISTER_API_URL =
     "https://z7gedcbjogrjl7ld4o6rcj7dte0cjklf.lambda-url.ap-northeast-1.on.aws/";
 
+const EXISTING_SCHEDULES_API_URL =
+    "https://7yxh3p2c5swyx6ajv45ldmiswe0tirop.lambda-url.ap-northeast-1.on.aws/";
+
 
 // ========================================
 // 画像アップロードAPI
@@ -169,6 +172,28 @@ async function loadFacilities() {
 
 }
 
+async function loadCompetitionNames() {
+    const list = document.getElementById("competitionNames");
+    if (!list) return;
+    try {
+        const response = await adminFetch(EXISTING_SCHEDULES_API_URL);
+        if (!response.ok) throw new Error(`大会一覧の取得に失敗しました: ${response.status}`);
+        const payload = await response.json();
+        const schedules = Array.isArray(payload) ? payload : (payload.items || []);
+        const names = [...new Set(schedules
+            .filter(item => item.eventType === "GAME")
+            .map(item => String(item.competitionName || "").trim())
+            .filter(Boolean))].sort((a, b) => a.localeCompare(b, "ja"));
+        list.replaceChildren(...names.map(name => {
+            const option = document.createElement("option");
+            option.value = name;
+            return option;
+        }));
+    } catch (error) {
+        console.warn("大会一覧を読み込めませんでした:", error);
+    }
+}
+
 
 // ========================================
 // 施設プルダウン作成
@@ -257,6 +282,7 @@ if (addScheduleButton) {
                 <select class="event-type-select" aria-label="予定種別">
                     <option value="PRACTICE">練習</option>
                     <option value="GAME">試合</option>
+                    <option value="MEETING">会議</option>
                 </select>
 
                 <input
@@ -284,12 +310,15 @@ if (addScheduleButton) {
                     </option>
                 </select>
 
-                <button
-                    type="button"
-                    class="delete-button"
-                >
-                    削除
-                </button>
+                <div class="schedule-row-actions"><button type="button" class="duplicate-button button-light">複製</button><button type="button" class="delete-button">削除</button></div>
+
+                <label class="schedule-video-field">動画URL（任意）<input type="url" class="video-url-input" maxlength="2048" placeholder="YouTubeなどの共有リンク"></label>
+                <label class="schedule-video-field">動画タグ（任意）<input type="text" class="video-tags-input" maxlength="120" list="videoTagOptions" placeholder="例：シュート、練習全体"></label>
+
+                <div class="schedule-game-fields" hidden>
+                    <label>大会名（登録済みから選択・新規入力）<input type="text" class="competition-name-input" maxlength="80" list="competitionNames" placeholder="例：2026秋北区大会"></label>
+                    <label>ラウンド（任意）<input type="text" class="round-input" maxlength="40" list="basketballRoundOptions" placeholder="例：1回戦"></label>
+                </div>
 
                 <div class="schedule-game-fields" hidden>
                     <label>大会名（任意）<input type="text" class="competition-name-input" maxlength="80" placeholder="例：2026秋北区大会"></label>
@@ -336,6 +365,17 @@ if (scheduleRows) {
     scheduleRows.addEventListener(
         "click",
         event => {
+
+            if (
+                event.target.classList.contains("duplicate-button")
+            ) {
+                const source = event.target.closest(".schedule-row");
+                const clone = source.cloneNode(true);
+                clone.querySelectorAll("input").forEach((input, index) => input.value = source.querySelectorAll("input")[index]?.value || "");
+                clone.querySelectorAll("select").forEach((select, index) => select.value = source.querySelectorAll("select")[index]?.value || "");
+                scheduleRows.insertBefore(clone, source.nextSibling);
+                return;
+            }
 
             if (
                 event.target.classList.contains(
@@ -436,7 +476,7 @@ if (registerButton) {
                                 || "";
 
 
-                        schedules.push({
+                        const schedule = {
 
                             date:
                                 date,
@@ -460,12 +500,35 @@ if (registerButton) {
                                 eventType === "GAME" ? competitionName : "",
 
                             round:
-                                eventType === "GAME" ? round : ""
+                                eventType === "GAME" ? round : "",
 
-                        });
+                            videoUrl,
+                            videoTags
+                        };
+                        schedules.push(schedule);
 
                     }
                 );
+
+                const repeatWeekly = document.getElementById("repeatWeekly")?.checked;
+                if (repeatWeekly) {
+                    const until = document.getElementById("repeatUntilDate")?.value;
+                    if (!until) throw new Error("繰り返し終了日を入力してください");
+                    const expanded = [];
+                    for (const schedule of schedules) {
+                        const cursor = new Date(`${schedule.date}T12:00:00`);
+                        const end = new Date(`${until}T12:00:00`);
+                        if (end < cursor) throw new Error("繰り返し終了日は開始日以降にしてください");
+                        let count = 0;
+                        while (cursor <= end) {
+                            expanded.push({...schedule, date: `${cursor.getFullYear()}-${String(cursor.getMonth()+1).padStart(2,"0")}-${String(cursor.getDate()).padStart(2,"0")}`});
+                            cursor.setDate(cursor.getDate()+7); count++;
+                            if (count > 52) throw new Error("繰り返し登録は1予定につき52回までです");
+                        }
+                    }
+                    if (expanded.length > 100) throw new Error("一度に登録できる予定は100件までです");
+                    schedules.splice(0, schedules.length, ...expanded);
+                }
 
 
                 console.log(
@@ -893,6 +956,8 @@ if (uploadButton) {
 if (getAdminIdToken()) {
     document.body.style.display = "";
     loadFacilities();
+    loadCompetitionNames();
 } else {
     window.location.replace("index.html");
 }
+

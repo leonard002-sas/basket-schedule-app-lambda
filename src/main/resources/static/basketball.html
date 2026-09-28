@@ -8,12 +8,14 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="app.css">
     <link rel="stylesheet" href="basketball.css">
+    <link rel="stylesheet" href="theme.css">
+    <script src="theme.js"></script>
 </head>
 <body class="scorebook-body" style="display:none">
 <div class="app-shell scorebook-shell">
     <header class="site-header">
         <a class="brand-lockup" href="index.html"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12.2" stroke="currentColor" stroke-width="1.8"/><path d="M5.3 10.1c7.1 1.8 14.3 1.8 21.4 0M5.3 21.9c7.1-1.8 14.3-1.8 21.4 0M16 3.8c-4.1 3.1-6.2 7.2-6.2 12.2S11.9 25.1 16 28.2M16 3.8c4.1 3.1 6.2 7.2 6.2 12.2S20.1 25.1 16 28.2" stroke="currentColor" stroke-width="1.5"/></svg></span><span><span class="brand-name">COURTSIDE</span><span class="brand-caption">Team scorebook</span></span></a>
-        <div class="scorebook-header-actions"><a class="button-light scorebook-back" href="index.html">← カレンダー</a></div>
+        <div class="scorebook-header-actions"><button type="button" class="theme-toggle" data-theme-toggle></button><a class="button-light scorebook-back" href="index.html">← カレンダー</a></div>
     </header>
 
     <section class="scorebook-hero">
@@ -95,6 +97,7 @@
             <div class="ranking-title-row"><div class="score-section-title"><span class="score-icon score-icon-orange">★</span><div><h2>シーズンランキング</h2><p id="rankingSeasonLabel">今シーズンの確定試合</p></div></div><div class="ranking-tools"><label class="ranking-sort">シーズン<select id="seasonSelect"></select></label><label class="ranking-sort">順位を見る項目<select id="rankingMetric"><option value="points">得点</option><option value="REB">リバウンド</option><option value="AST">アシスト</option><option value="STL">スティール</option><option value="BLK">ブロック</option><option value="3PM">3P成功</option><option value="FGM">FG成功</option><option value="minutesSeconds">出場時間</option><option value="EFF">EFF</option></select></label><button id="exportStatsButton" type="button" class="button-light">CSVを書き出す</button></div></div>
             <div class="table-scroll"><table class="boxscore-table"><thead><tr><th>選手</th><th>POS</th><th>GP</th><th>W-L-D</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>FGM/FGA</th><th>FG%</th><th>2PM/2PA</th><th>2P%</th><th>3PM/3PA</th><th>3P%</th><th>FTM/FTA</th><th>FT%</th><th>OREB</th><th>DREB</th><th>TO</th><th>PF</th><th>EFF</th></tr></thead><tbody id="leaderboardBody"></tbody></table></div>
             <div id="leaderboardEmpty" class="empty-state" hidden>試合を確定すると、選手ランキングが表示されます。</div>
+<section id="playerTrendPanel" class="player-trend-panel" hidden aria-live="polite"><div class="player-trend-heading"><div><span class="eyebrow">PLAYER FORM</span><h3 id="playerTrendTitle">個人スタッツの推移</h3></div><div class="player-trend-controls"><label>項目<select id="playerTrendMetric"><option value="points">得点</option><option value="REB">リバウンド</option><option value="AST">アシスト</option><option value="minutesSeconds">出場時間</option></select></label><button id="closePlayerTrend" type="button" class="button-light">閉じる</button></div></div><div id="playerTrendChart" class="player-trend-chart"></div><div id="playerTrendGames" class="player-trend-games"></div></section>
             <details class="csv-import-panel"><summary>Googleスプレッドシートから過去試合を取り込む</summary><p>1試合分のCSVを選び、試合日と対戦相手を入力してください。PLAYER、PTS、REB、AST、STL、BLK、FGM、FGA、2PM、2PA、3PM、3PA、FTM、FTA、OREB、DREB、TO、PF列に対応します。選手名が一致すれば、このチームのメンバーに紐づきます。相手得点が不明なら空欄にしてください。</p><form id="csvImportForm" class="csv-import-form"><label>試合日<input id="importGameDate" type="date" required></label><label>対戦相手<input id="importOpponent" maxlength="100" required></label><label>相手得点（任意）<input id="importOpponentScore" type="number" min="0" placeholder="不明なら空欄"></label><label class="csv-file-label">CSVファイル<input id="statsCsvFile" type="file" accept=".csv,text/csv" required></label><button class="button-accent">過去試合を取り込む</button></form><div id="csvImportStatus" class="score-status" role="status"></div></details>
         </section>
     </main>

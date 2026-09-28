@@ -1,0 +1,134 @@
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --ink:#e7edf4;
+    --muted:#a1afbf;
+    --line:#354253;
+    --paper:#1d2733;
+    --canvas:#111922;
+    --navy:#101d31;
+    --navy-soft:#182b45;
+    --lime:#c9f36b;
+    --orange:#ff9b68;
+    --blue:#87a0ff;
+    --shadow:0 18px 45px rgba(0,0,0,.24);
+}
+
+:root[data-theme="dark"] body {
+    color:var(--ink)!important;
+    background:radial-gradient(ellipse at 8% 0%,rgba(91,125,43,.11),transparent 27rem),var(--canvas)!important;
+}
+:root[data-theme="dark"] .site-header,
+:root[data-theme="dark"] .calendar-area,
+:root[data-theme="dark"] #scheduleList,
+:root[data-theme="dark"] .section,
+:root[data-theme="dark"] .modal-content,
+:root[data-theme="dark"] .calendar-day,
+:root[data-theme="dark"] .calendar,
+:root[data-theme="dark"] .upcoming-schedule,
+:root[data-theme="dark"] .score-card,
+:root[data-theme="dark"] .scorebook-nav,
+:root[data-theme="dark"] .game-item,
+:root[data-theme="dark"] .roster-member,
+:root[data-theme="dark"] .scorebook-dialog,
+:root[data-theme="dark"] .csv-import-panel,
+:root[data-theme="dark"] .schedule-row {
+    color:var(--ink)!important;
+    border-color:var(--line)!important;
+    background-color:var(--paper)!important;
+}
+:root[data-theme="dark"] .calendar-day.is-today,
+:root[data-theme="dark"] .calendar-day.today { background:#29351f!important; }
+:root[data-theme="dark"] .weekday,
+:root[data-theme="dark"] .game-item-meta .game-meta-chip,
+:root[data-theme="dark"] .lineup-choices,
+:root[data-theme="dark"] .scorebook-dialog,
+:root[data-theme="dark"] .schedule-game-fields input {
+    color:var(--ink)!important;
+    background:#263241!important;
+}
+:root[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea {
+    color:var(--ink)!important;
+    border-color:#465568!important;
+    background:#202c39!important;
+}
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder { color:#9aa8b7; }
+:root[data-theme="dark"] h1,
+:root[data-theme="dark"] h2,
+:root[data-theme="dark"] h3,
+:root[data-theme="dark"] h4,
+:root[data-theme="dark"] .detail-label,
+:root[data-theme="dark"] .detail-value,
+:root[data-theme="dark"] .score-section-title h2,
+:root[data-theme="dark"] .roster-member strong,
+:root[data-theme="dark"] .game-item strong { color:var(--ink)!important; }
+:root[data-theme="dark"] .scorebook-nav a { color:#c2ccd7; }
+:root[data-theme="dark"] .scorebook-nav a:hover { background:#2b3948; }
+:root[data-theme="dark"] .button-light,
+:root[data-theme="dark"] .scorebook-back,
+:root[data-theme="dark"] .team-create-button,
+:root[data-theme="dark"] #newTeamButton {
+    color:#e4ebf1!important;
+    border-color:#465568!important;
+    background:#273442!important;
+}
+:root[data-theme="dark"] .weekday { color:#b4c0ce!important; }
+:root[data-theme="dark"] .event-dot.event-practice { color:#d9efae!important; background:#334126!important; }
+:root[data-theme="dark"] .event-dot.event-game { color:#ffd0b8!important; background:#493326!important; }
+:root[data-theme="dark"] .event-dot.event-meeting { color:#d6deff!important; background:#303b60!important; }
+:root[data-theme="dark"] .event-legend-swatch.event-practice { background:#334126!important; }
+:root[data-theme="dark"] .event-legend-swatch.event-game { background:#493326!important; }
+:root[data-theme="dark"] .event-legend-swatch.event-meeting { background:#303b60!important; }
+:root[data-theme="dark"] .upcoming-schedule.event-practice .upcoming-kind { color:#d9efae; background:#334126; }
+:root[data-theme="dark"] .upcoming-schedule.event-game .upcoming-kind { color:#ffd0b8; background:#493326; }
+:root[data-theme="dark"] .upcoming-schedule.event-meeting .upcoming-kind { color:#d6deff; background:#303b60; }
+:root[data-theme="dark"] .announcement-card { color:var(--ink); border-color:#465568; background:#202c39; }
+:root[data-theme="dark"] .announcement-card.urgency-IMPORTANT { border-color:#786333; background:#3b3322; }
+:root[data-theme="dark"] .announcement-card.urgency-URGENT { border-color:#7a4543; background:#3c2929; }
+:root[data-theme="dark"] .announcement-meta,
+:root[data-theme="dark"] .announcement-form label { color:var(--muted); }
+:root[data-theme="dark"] .announcement-admin-item { border-color:var(--line); }
+:root[data-theme="dark"] .announcements-area { border-color:var(--line); background:var(--paper); }
+:root[data-theme="dark"] .lineup-choice,
+:root[data-theme="dark"] .player-select-button,
+:root[data-theme="dark"] .stat-button { color:#e3eaf1; border-color:#465568; background:#202c39; }
+:root[data-theme="dark"] .player-select-button.is-selected { color:#eff8e0; border-color:#9fc85b; background:#34452a; }
+:root[data-theme="dark"] .selected-player-panel { border-color:#52663c; background:#263321; }
+:root[data-theme="dark"] .boxscore-table th { color:#d7e0e9; background:#273442; }
+:root[data-theme="dark"] .boxscore-table td { color:#d5dee7; border-color:#354253; }
+:root[data-theme="dark"] .boxscore-table tr:nth-child(even) td { background:#202b37; }
+:root[data-theme="dark"] .empty-state { color:#b2bfcc; border-color:#435264; background:#202c39; }
+:root[data-theme="dark"] .login-card { color:var(--ink); border-color:#415063; background:rgba(29,39,51,.97); }
+:root[data-theme="dark"] .login-copy p,
+:root[data-theme="dark"] .login-card p,
+:root[data-theme="dark"] .score-status,
+:root[data-theme="dark"] .field-hint { color:var(--muted); }
+:root[data-theme="dark"] .modal,
+:root[data-theme="dark"] .modal-content { color:var(--ink); background:#1d2733!important; }
+:root[data-theme="dark"] .modal-header,
+:root[data-theme="dark"] .detail-row { border-color:var(--line); }
+:root[data-theme="dark"] .registration-grid .section-icon { color:#c5d0ff; background:#2d3859; }
+:root[data-theme="dark"] .schedule-game-fields label,
+:root[data-theme="dark"] .facility-register-form label,
+:root[data-theme="dark"] .game-form label,
+:root[data-theme="dark"] .ranking-sort { color:#c4ced8; }
+
+.theme-toggle { min-height:38px; padding:7px 11px; color:var(--ink); border:1px solid var(--line); background:var(--paper); box-shadow:none; font-size:12px; white-space:nowrap; }
+.theme-toggle:hover:not(:disabled) { color:var(--ink); background:var(--canvas); box-shadow:none; }
+:root[data-theme="dark"] .theme-toggle { color:#e6edf5; border-color:#4a5868; background:#263342; }
+.register-header-actions { display:flex; align-items:center; gap:9px; }
+
+@media(max-width:600px) {
+    .theme-toggle { min-height:36px; padding:6px 9px; font-size:11px; }
+}
+[data-theme="dark"] .home-agenda-today,[data-theme="dark"] .schedule-repeat-controls{background:#1a2b20}
+[data-theme="dark"] .agenda-event,[data-theme="dark"] .video-archive-card,[data-theme="dark"] .home-agenda-card{background:var(--surface,#1c2420);border-color:var(--line,#35423a)}
+[data-theme="dark"] .video-tags span{background:#253d2d;color:#b9e3bc}
+[data-theme="dark"] .home-agenda,[data-theme="dark"] .video-archive{color:var(--ink);border-color:var(--line);background:#1d2922}
+[data-theme="dark"] .agenda-empty,[data-theme="dark"] .video-archive-heading p,[data-theme="dark"] .home-agenda-note,[data-theme="dark"] .agenda-facility,[data-theme="dark"] .agenda-event small{color:var(--muted)}
+[data-theme="dark"] .player-trend-panel{color:var(--ink);border-color:var(--line);background:#202c39}
+[data-theme="dark"] .player-trend-games span{color:var(--muted);background:#293644}
+[data-theme="dark"] .trend-player-button{color:#b9e3bc}
+
