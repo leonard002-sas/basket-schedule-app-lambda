@@ -132,3 +132,58 @@
 [data-theme="dark"] .player-trend-games span{color:var(--muted);background:#293644}
 [data-theme="dark"] .trend-player-button{color:#b9e3bc}
 
+
+
+/* Dark mode contrast for notice management and public bulletin */
+:root[data-theme="dark"] #announcementScreen .announcement-form {
+    color: var(--ink) !important;
+    border-color: var(--line) !important;
+    background: #1d2733 !important;
+}
+:root[data-theme="dark"] #announcementScreen .announcement-form > label {
+    color: #d1dae4 !important;
+}
+:root[data-theme="dark"] #announcementScreen .announcement-form-actions span {
+    color: var(--muted) !important;
+}
+:root[data-theme="dark"] #announcementScreen .announcement-admin-item {
+    color: var(--ink) !important;
+    border-color: #465568 !important;
+    background: #202c39 !important;
+}
+:root[data-theme="dark"] #announcementScreen .announcement-admin-item strong {
+    color: var(--ink) !important;
+}
+:root[data-theme="dark"] #announcementScreen .announcement-admin-item small {
+    color: var(--muted) !important;
+}
+:root[data-theme="dark"] .announcements-area {
+    border-color: #354253 !important;
+    background: linear-gradient(135deg, #1a2921, #1b2420 72%) !important;
+}
+:root[data-theme="dark"] .announcement-count {
+    color: #d8edbb !important;
+    background: #2e4127 !important;
+}
+:root[data-theme="dark"] .announcement-card {
+    color: var(--ink) !important;
+    border-color: #465568 !important;
+    background: #202c39 !important;
+}
+:root[data-theme="dark"] .announcement-card p { color: #c2ccd6 !important; }
+:root[data-theme="dark"] .announcement-meta span:first-child {
+    color: #d8edbb !important;
+    background: #2b3b28 !important;
+}
+:root[data-theme="dark"] .announcement-card.urgency-IMPORTANT .announcement-meta span:first-child {
+    color: #f4d99b !important;
+    background: #4b3d24 !important;
+}
+:root[data-theme="dark"] .announcement-card.urgency-URGENT .announcement-meta span:first-child {
+    color: #ffc1ba !important;
+    background: #4b2e2d !important;
+}
+:root[data-theme="dark"] .modal-footer {
+    border-color: var(--line) !important;
+    background: #1d2733 !important;
+}

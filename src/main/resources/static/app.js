@@ -227,7 +227,7 @@ function renderHomeAgenda() {
     const todayKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
     const todayItems = schedules.filter(s => String(s.startDateTime).slice(0,10) === todayKey);
     const weekItems = schedules.filter(s => { const d = new Date(s.startDateTime); return d >= today && d < end; });
-    todayBox.innerHTML = todayItems.length ? todayItems.map(agendaCard).join("") : "<p class='agenda-empty'>今日は予定がありません。いい一日を(^▽^)/</p>";
+    todayBox.innerHTML = todayItems.length ? todayItems.map(agendaCard).join("") : "<p class='agenda-empty'>今日は予定がありません。よい一日を(^▽^)/</p>";
     weekBox.innerHTML = weekItems.length ? weekItems.map(agendaCard).join("") : "<p class='agenda-empty'>今週の予定はありません。</p>";
 }
 
