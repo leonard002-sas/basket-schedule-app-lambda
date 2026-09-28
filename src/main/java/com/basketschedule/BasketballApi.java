@@ -67,11 +67,11 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     private Object read(String resource, Map<String, String> q) {
         return switch (resource) {
             case "teams" -> teams();
-            case "team" -> item(teamPk(required(q, "teamId")), "PROFILE");
-            case "players" -> rows(teamPk(required(q, "teamId")), "PLAYER#");
-            case "games" -> rows(teamPk(required(q, "teamId")), "GAME#");
+            case "team" -> plain(item(teamPk(required(q, "teamId")), "PROFILE"));
+            case "players" -> plainList(rows(teamPk(required(q, "teamId")), "PLAYER#"));
+            case "games" -> plainList(rows(teamPk(required(q, "teamId")), "GAME#"));
             case "game" -> game(q.get("gameId"));
-            case "leaderboard" -> rows(seasonPk(q.get("season"), required(q, "teamId")), "PLAYER#");
+            case "leaderboard" -> plainList(rows(seasonPk(q.get("season"), required(q, "teamId")), "PLAYER#"));
             default -> throw new ApiException(404, "NOT_FOUND", "指定された情報がありません");
         };
     }
