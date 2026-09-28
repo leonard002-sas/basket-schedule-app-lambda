@@ -1510,6 +1510,13 @@ const deleteScheduleButton =
     );
 
 const startBasketballButton = document.getElementById("startBasketballButton");
+const basketballButton = document.getElementById("basketballButton");
+if (basketballButton) {
+    basketballButton.addEventListener("click", () => {
+        location.href = "basketball.html?view=teams";
+    });
+}
+
 if (startBasketballButton) {
     startBasketballButton.addEventListener("click", () => {
         if (!currentScheduleDetail) return;
