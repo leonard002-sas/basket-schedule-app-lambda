@@ -27,7 +27,6 @@
 :root[data-theme="dark"] .calendar,
 :root[data-theme="dark"] .upcoming-schedule,
 :root[data-theme="dark"] .score-card,
-:root[data-theme="dark"] .scorebook-nav,
 :root[data-theme="dark"] .game-item,
 :root[data-theme="dark"] .roster-member,
 :root[data-theme="dark"] .scorebook-dialog,
@@ -71,14 +70,7 @@
 :root[data-theme="dark"] .game-item strong {
     color: var(--ink) !important;
 }
-:root[data-theme="dark"] .scorebook-nav a {
-    color: #c2ccd7;
-}
-:root[data-theme="dark"] .scorebook-nav a:hover {
-    background: #2b3948;
-}
 :root[data-theme="dark"] .button-light,
-:root[data-theme="dark"] .scorebook-back,
 :root[data-theme="dark"] .team-create-button,
 :root[data-theme="dark"] #newTeamButton {
     color: #e4ebf1 !important;
@@ -399,4 +391,12 @@
         padding: 0.45rem 0.7rem;
         font-size: 0.9rem;
     }
+}
+
+:root[data-theme="dark"] #announcementScreen .announcement-form,
+:root[data-theme="dark"] #announcementScreen .announcement-admin-item {
+    background: var(--paper) !important;
+}
+:root[data-theme="dark"] .workspace-screen-heading p {
+    color: var(--muted);
 }

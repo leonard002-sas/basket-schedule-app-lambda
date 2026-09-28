@@ -35,8 +35,7 @@
                     ></a
                 >
                 <div class="scorebook-header-actions">
-                    <button type="button" class="theme-toggle" data-theme-toggle></button
-                    ><a class="button-light scorebook-back" href="index.html">← カレンダー</a>
+                    <button type="button" class="theme-toggle" data-theme-toggle></button>
                 </div>
             </header>
             <nav class="site-navigation" aria-label="メインナビゲーション">
@@ -45,8 +44,8 @@
                 <a href="register.html?screen=facility" data-app-nav="facility">施設登録</a>
                 <a href="index.html?screen=announcements" data-app-nav="announcements">周知事項</a>
                 <a href="index.html?screen=videos" data-app-nav="videos">練習動画</a>
-                <a href="basketball.html?view=teams" data-app-nav="teams">チーム</a>
-                <a href="basketball.html?view=games" data-app-nav="games">試合</a>
+                <a href="basketball.html?view=teams" data-app-nav="teams">チーム管理</a>
+                <a href="basketball.html?view=games" data-app-nav="games">試合管理</a>
                 <a href="basketball.html?view=rankings" data-app-nav="rankings">ランキング</a>
             </nav>
 
@@ -58,12 +57,6 @@
                     メンバー閲覧モード：チーム、登録メンバー、試合結果、ランキングを確認できます。登録・編集は管理者のみ行えます。
                 </p>
             </section>
-
-            <nav class="scorebook-nav" aria-label="スコアブックメニュー">
-                <a href="basketball.html?view=teams" data-view-link="teams">チーム管理</a>
-                <a href="basketball.html?view=games" data-view-link="games">試合管理</a>
-                <a href="basketball.html?view=rankings" data-view-link="rankings">ランキング</a>
-            </nav>
 
             <div class="team-select-row global-team-select">
                 <label
@@ -242,6 +235,9 @@
                             出場選手を保存
                         </button>
                     </div>
+                    <p class="participation-help">
+                        時計開始時にコート上の選手を出場扱いにします。出場しなかった選手はDNPとなり、GPや平均の計算には含めません。
+                    </p>
                     <div id="lineupChoices" class="lineup-choices"></div>
                     <div class="stat-entry">
                         <div class="stat-entry-heading">
@@ -339,6 +335,7 @@
                                 <tr>
                                     <th>選手</th>
                                     <th>POS</th>
+                                    <th>出場</th>
                                     <th>MIN</th>
                                     <th>PTS</th>
                                     <th>REB</th>
@@ -379,6 +376,10 @@
                                 >シーズン<select id="seasonSelect"></select></label
                             ><label class="ranking-sort"
                                 >順位を見る項目<select id="rankingMetric">
+                                    <option value="PPG">PPG（平均得点）</option>
+                                    <option value="RPG">RPG（平均リバウンド）</option>
+                                    <option value="APG">APG（平均アシスト）</option>
+                                    <option value="MPG">MPG（平均出場時間）</option>
                                     <option value="points">得点</option>
                                     <option value="REB">リバウンド</option>
                                     <option value="AST">アシスト</option>
@@ -400,9 +401,13 @@
                                 <tr>
                                     <th>選手</th>
                                     <th>POS</th>
-                                    <th>GP</th>
+                                    <th>GP（出場）</th>
                                     <th>W-L-D</th>
                                     <th>MIN</th>
+                                    <th>PPG</th>
+                                    <th>RPG</th>
+                                    <th>APG</th>
+                                    <th>MPG</th>
                                     <th>PTS</th>
                                     <th>REB</th>
                                     <th>AST</th>
@@ -460,6 +465,10 @@
                         <summary>Googleスプレッドシートから過去試合を取り込む</summary>
                         <p>
                             1試合分のCSVを選び、試合日と対戦相手を入力してください。PLAYER、PTS、REB、AST、STL、BLK、FGM、FGA、2PM、2PA、3PM、3PA、FTM、FTA、OREB、DREB、TO、PF列に対応します。選手名が一致すれば、このチームのメンバーに紐づきます。相手得点が不明なら空欄にしてください。
+                        </p>
+                        <p class="field-hint">
+                            欠場も取り込む場合は、CSVに DNP 列（1 / YES / DNP）または GP
+                            列（0）を付けると出場数に含めません。
                         </p>
                         <form id="csvImportForm" class="csv-import-form">
                             <label>試合日<input id="importGameDate" type="date" required /></label

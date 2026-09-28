@@ -1199,9 +1199,6 @@ function updateAuthUI() {
 
     const registerButton = document.getElementById("registerButton");
 
-    const scheduleRegisterButton = document.getElementById("scheduleRegisterButton");
-    const basketballButton = document.getElementById("basketballButton");
-
     // =========================
     // 未ログイン
     // =========================
@@ -1227,12 +1224,6 @@ function updateAuthUI() {
         if (registerButton) {
             registerButton.style.display = "inline-block";
         }
-
-        if (scheduleRegisterButton) {
-            scheduleRegisterButton.style.display = "none";
-        }
-
-        if (basketballButton) basketballButton.style.display = "none";
 
         return;
     }
@@ -1281,18 +1272,8 @@ function updateAuthUI() {
         // =========================
         // 管理者の場合
         // =========================
-
-        if (scheduleRegisterButton) {
-            scheduleRegisterButton.style.display = isAdmin ? "inline-block" : "none";
-        }
-        if (basketballButton) basketballButton.style.display = "inline-block";
     } catch (error) {
         console.error("IDトークン解析エラー:", error);
-
-        if (scheduleRegisterButton) {
-            scheduleRegisterButton.style.display = "none";
-        }
-        if (basketballButton) basketballButton.style.display = "none";
     }
 }
 
@@ -1363,18 +1344,6 @@ handleCognitoCallback().then(async () => {
 });
 
 // ========================================
-// 予定表登録画面へ
-// ========================================
-
-const scheduleRegisterButton = document.getElementById("scheduleRegisterButton");
-
-if (scheduleRegisterButton) {
-    scheduleRegisterButton.addEventListener("click", () => {
-        window.location.href = "register.html";
-    });
-}
-
-// ========================================
 // 予定詳細ダイアログ
 // ========================================
 
@@ -1389,13 +1358,6 @@ const editScheduleButton = document.getElementById("editScheduleButton");
 const deleteScheduleButton = document.getElementById("deleteScheduleButton");
 
 const startBasketballButton = document.getElementById("startBasketballButton");
-const basketballButton = document.getElementById("basketballButton");
-if (basketballButton) {
-    basketballButton.addEventListener("click", () => {
-        location.href = "basketball.html?view=teams";
-    });
-}
-
 if (startBasketballButton) {
     startBasketballButton.addEventListener("click", () => {
         if (!currentScheduleDetail) return;

@@ -6,55 +6,10 @@
 .scorebook-shell {
     padding-bottom: 40px;
 }
-.scorebook-back {
-    text-decoration: none;
-}
 .scorebook-header-actions {
     display: flex;
     align-items: center;
     gap: 10px;
-}
-.scorebook-back {
-    display: inline-flex;
-    align-items: center;
-    min-height: 40px;
-    padding: 8px 14px;
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    color: #34445a;
-    background: #fff;
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 700;
-}
-.scorebook-nav {
-    display: flex;
-    gap: 8px;
-    margin: 0 0 20px;
-    padding: 6px;
-    border: 1px solid var(--line);
-    border-radius: 15px;
-    background: #fff;
-    box-shadow: 0 8px 24px rgba(30, 48, 72, 0.05);
-}
-.scorebook-nav a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 40px;
-    padding: 8px 16px;
-    border-radius: 10px;
-    color: #536177;
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 750;
-}
-.scorebook-nav a:hover {
-    color: var(--ink);
-    background: #f4f7f9;
-}
-.scorebook-nav a.is-active {
-    color: var(--navy);
-    background: var(--lime);
 }
 .team-select-row {
     display: flex;
@@ -1036,16 +991,6 @@
     }
 }
 @media (max-width: 600px) {
-    .scorebook-nav {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 4px;
-    }
-    .scorebook-nav a {
-        justify-content: center;
-        padding-inline: 6px;
-        font-size: 12px;
-    }
     .team-select-row {
         align-items: stretch;
         flex-direction: column;
@@ -1173,4 +1118,22 @@
     .trend-chart-caption {
         font-size: 9px;
     }
+}
+
+.is-dnp {
+    color: var(--muted);
+    opacity: 0.76;
+}
+.is-dnp td:nth-child(3) {
+    font-weight: 800;
+}
+
+.participation-help {
+    margin: 10px 0 0;
+    color: var(--muted);
+    font-size: 0.86rem;
+}
+.trend-game-dnp {
+    color: var(--muted);
+    border-style: dashed !important;
 }

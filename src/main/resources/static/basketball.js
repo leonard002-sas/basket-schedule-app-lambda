@@ -332,28 +332,56 @@ function exportGamesCsv() {
 
 function renderLeaderboard(rows) {
     const body = document.getElementById("leaderboardBody");
-    leaderboardRows = rows;
+    const rankedByPlayerId = new Map(rows.map((row) => [playerId(row), row]));
+    players
+        .filter((player) => player.active !== false)
+        .forEach((player) => {
+            if (!rankedByPlayerId.has(player.playerId))
+                rankedByPlayerId.set(player.playerId, { playerId: player.playerId, GP: 0 });
+        });
+    leaderboardRows = [...rankedByPlayerId.values()];
     const metric = document.getElementById("rankingMetric")?.value || "points";
-    const value = (s) => (metric === "EFF" ? eff(s) : Number(s[metric]) || 0);
-    const sorted = [...rows].sort((a, b) => value(b) - value(a));
+    const average = (stats, field) => {
+        const appearances = Number(stats.GP) || 0;
+        return appearances ? (Number(stats[field]) || 0) / appearances : null;
+    };
+    const metricValue = (stats) => {
+        if (metric === "EFF") return eff(stats);
+        if (metric === "PPG") return average(stats, "points") ?? -1;
+        if (metric === "RPG") return average(stats, "REB") ?? -1;
+        if (metric === "APG") return average(stats, "AST") ?? -1;
+        if (metric === "MPG") {
+            const appearances = Number(stats.GP) || 0;
+            return appearances ? (Number(stats.minutesSeconds) || 0) / 60 / appearances : -1;
+        }
+        return Number(stats[metric]) || 0;
+    };
+    const sorted = [...leaderboardRows].sort((a, b) => metricValue(b) - metricValue(a));
     body.innerHTML = sorted
-        .map((s) => {
-            const id = playerId(s),
-                p = players.find((x) => x.playerId === id) || {},
-                fga = Number(s.FGA) || 0,
-                fgm = Number(s.FGM) || 0,
-                twoa = Number(s["2PA"]) || 0,
-                twom = Number(s["2PM"]) || 0,
-                threea = Number(s["3PA"]) || 0,
-                threem = Number(s["3PM"]) || 0,
-                fta = Number(s.FTA) || 0,
-                ftm = Number(s.FTM) || 0;
-            return `<tr><td><button type="button" class="trend-player-button" data-trend-player="${escapeAttr(id)}">${escapeHtml(nameFor(id))} ↗</button></td><td>${escapeHtml(p.position || "—")}</td><td>${Number(s.GP) || 0}</td><td>${Number(s.W) || 0}-${Number(s.L) || 0}-${Number(s.D) || 0}</td><td>${Math.floor((Number(s.minutesSeconds) || 0) / 60)}</td><td>${Number(s.points) || 0}</td><td>${Number(s.REB) || 0}</td><td>${Number(s.AST) || 0}</td><td>${Number(s.STL) || 0}</td><td>${Number(s.BLK) || 0}</td><td>${fgm}/${fga}</td><td>${ratio(fgm, fga)}</td><td>${twom}/${twoa}</td><td>${ratio(twom, twoa)}</td><td>${threem}/${threea}</td><td>${ratio(threem, threea)}</td><td>${ftm}/${fta}</td><td>${ratio(ftm, fta)}</td><td>${Number(s.OREB) || 0}</td><td>${Number(s.DREB) || 0}</td><td>${Number(s.TO) || 0}</td><td>${Number(s.PF) || 0}</td><td>${eff(s)}</td></tr>`;
+        .map((stats) => {
+            const id = playerId(stats);
+            const profile = players.find((player) => player.playerId === id) || {};
+            const appearances = Number(stats.GP) || 0;
+            const perGame = (field) => {
+                const value = average(stats, field);
+                return value === null ? "—" : value.toFixed(1);
+            };
+            const minutesPerGame = appearances
+                ? ((Number(stats.minutesSeconds) || 0) / 60 / appearances).toFixed(1)
+                : "—";
+            const fga = Number(stats.FGA) || 0;
+            const fgm = Number(stats.FGM) || 0;
+            const twoAttempts = Number(stats["2PA"]) || 0;
+            const twoMade = Number(stats["2PM"]) || 0;
+            const threeAttempts = Number(stats["3PA"]) || 0;
+            const threeMade = Number(stats["3PM"]) || 0;
+            const freeAttempts = Number(stats.FTA) || 0;
+            const freeMade = Number(stats.FTM) || 0;
+            return `<tr><td><button type="button" class="trend-player-button" data-trend-player="${escapeAttr(id)}">${escapeHtml(nameFor(id))}</button></td><td>${escapeHtml(profile.position || "—")}</td><td>${appearances}</td><td>${Number(stats.W) || 0}-${Number(stats.L) || 0}-${Number(stats.D) || 0}</td><td>${Math.floor((Number(stats.minutesSeconds) || 0) / 60)}</td><td>${perGame("points")}</td><td>${perGame("REB")}</td><td>${perGame("AST")}</td><td>${minutesPerGame}</td><td>${Number(stats.points) || 0}</td><td>${Number(stats.REB) || 0}</td><td>${Number(stats.AST) || 0}</td><td>${Number(stats.STL) || 0}</td><td>${Number(stats.BLK) || 0}</td><td>${fgm}/${fga}</td><td>${ratio(fgm, fga)}</td><td>${twoMade}/${twoAttempts}</td><td>${ratio(twoMade, twoAttempts)}</td><td>${threeMade}/${threeAttempts}</td><td>${ratio(threeMade, threeAttempts)}</td><td>${freeMade}/${freeAttempts}</td><td>${ratio(freeMade, freeAttempts)}</td><td>${Number(stats.OREB) || 0}</td><td>${Number(stats.DREB) || 0}</td><td>${Number(stats.TO) || 0}</td><td>${Number(stats.PF) || 0}</td><td>${eff(stats)}</td></tr>`;
         })
         .join("");
     document.getElementById("leaderboardEmpty").hidden = sorted.length > 0;
 }
-
 async function showPlayerTrend(id) {
     playerTrendId = id;
     const panel = document.getElementById("playerTrendPanel");
@@ -377,39 +405,54 @@ async function showPlayerTrend(id) {
     }
 }
 function renderPlayerTrend() {
-    const rows = playerTrendRows,
-        metric = document.getElementById("playerTrendMetric").value,
-        chart = document.getElementById("playerTrendChart"),
-        field = metric;
+    const allRows = playerTrendRows;
+    const rows = allRows.filter((row) => row.participation !== "DNP");
+    const metric = document.getElementById("playerTrendMetric").value;
+    const chart = document.getElementById("playerTrendChart");
     if (!rows.length) {
-        chart.innerHTML = "<p class='empty-state'>このシーズンに確定した試合はありません。</p>";
-        document.getElementById("playerTrendGames").innerHTML = "";
+        chart.innerHTML = "<p class='empty-state'>今シーズンの出場記録はありません。</p>";
+        document.getElementById("playerTrendGames").innerHTML = allRows
+            .map(
+                (row) =>
+                    `<span class="trend-game-dnp"><strong>${escapeHtml(row.date || "")}</strong> vs ${escapeHtml(row.opponent || "?")} · DNP</span>`,
+            )
+            .join("");
         return;
     }
-    const values = rows.map((r) =>
-            metric === "minutesSeconds"
-                ? Math.round((Number(r[field]) || 0) / 60)
-                : Number(r[field]) || 0,
-        ),
-        max = Math.max(1, ...values),
-        w = 640,
-        h = 210,
-        pad = 30;
-    const points = values.map((v, i) => ({
-        x: pad + (rows.length === 1 ? (w - 2 * pad) / 2 : (i * (w - 2 * pad)) / (rows.length - 1)),
-        y: h - pad - (v / max) * (h - 2 * pad),
-        v,
+    const values = rows.map((row) =>
+        metric === "minutesSeconds"
+            ? Math.round((Number(row[metric]) || 0) / 60)
+            : Number(row[metric]) || 0,
+    );
+    const max = Math.max(1, ...values);
+    const width = 640;
+    const height = 210;
+    const padding = 30;
+    const points = values.map((value, index) => ({
+        x:
+            padding +
+            (rows.length === 1
+                ? (width - 2 * padding) / 2
+                : (index * (width - 2 * padding)) / (rows.length - 1)),
+        y: height - padding - (value / max) * (height - 2 * padding),
+        value,
     }));
-    const path = points.map((p, i) => `${i ? "L" : "M"}${p.x},${p.y}`).join(" ");
-    chart.innerHTML = `<div class="trend-chart-scroll"><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${escapeHtml(nameFor(playerTrendId))}の試合ごとの推移"><line x1="${pad}" y1="${h - pad}" x2="${w - pad}" y2="${h - pad}" class="trend-axis"/><path d="${path}" class="trend-line"/>${points.map((p, i) => `<circle cx="${p.x}" cy="${p.y}" r="5" class="trend-point"><title>${escapeHtml(rows[i].date)} ${escapeHtml(rows[i].opponent || "")}：${p.v}</title></circle>`).join("")}</svg></div><div class="trend-chart-caption"><span>${escapeHtml(rows[0].date || "")} · ${escapeHtml(rows[0].opponent || "")}</span><strong>最大 ${max}${metric === "minutesSeconds" ? "分" : ""}</strong><span>${escapeHtml(rows.at(-1).date || "")} · ${escapeHtml(rows.at(-1).opponent || "")}</span></div>`;
-    document.getElementById("playerTrendGames").innerHTML = rows
-        .map(
-            (r, i) =>
-                `<span><strong>${escapeHtml(r.date || "")}</strong> vs ${escapeHtml(r.opponent || "—")} · ${values[i]}${metric === "minutesSeconds" ? "分" : ""}</span>`,
-        )
+    const path = points
+        .map((point, index) => `${index ? "L" : "M"}${point.x},${point.y}`)
+        .join(" ");
+    chart.innerHTML = `<div class="trend-chart-scroll"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(nameFor(playerTrendId))}の出場試合スタッツ推移"><line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" class="trend-axis"/><path d="${path}" class="trend-line"/>${points.map((point, index) => `<circle cx="${point.x}" cy="${point.y}" r="5" class="trend-point"><title>${escapeHtml(rows[index].date)} ${escapeHtml(rows[index].opponent || "")}：${point.value}</title></circle>`).join("")}</svg></div><div class="trend-chart-caption"><span>${escapeHtml(rows[0].date || "")} · ${escapeHtml(rows[0].opponent || "")}</span><strong>最大 ${max}${metric === "minutesSeconds" ? "分" : ""}</strong><span>${escapeHtml(rows.at(-1).date || "")} · ${escapeHtml(rows.at(-1).opponent || "")}</span></div>`;
+    document.getElementById("playerTrendGames").innerHTML = allRows
+        .map((row) => {
+            if (row.participation === "DNP")
+                return `<span class="trend-game-dnp"><strong>${escapeHtml(row.date || "")}</strong> vs ${escapeHtml(row.opponent || "?")} · DNP</span>`;
+            const value =
+                metric === "minutesSeconds"
+                    ? Math.round((Number(row[metric]) || 0) / 60)
+                    : Number(row[metric]) || 0;
+            return `<span><strong>${escapeHtml(row.date || "")}</strong> vs ${escapeHtml(row.opponent || "?")} · ${value}${metric === "minutesSeconds" ? "分" : ""}</span>`;
+        })
         .join("");
 }
-
 function escapeHtml(v) {
     return String(v ?? "").replace(
         /[&<>"']/g,
@@ -488,6 +531,9 @@ function parseStatsCsv(text) {
     );
     const numberIndex = findIndex("NUMBER", "NO", "背番号"),
         positionIndex = findIndex("POS", "POSITION", "ポジション");
+    const dnpIndex = findIndex("DNP", "DIDNOTPLAY", "DIDNOTPARTICIPATE");
+    const playedIndex = findIndex("PLAYED", "PARTICIPATED");
+    const gamesPlayedIndex = findIndex("GP", "GAMESPLAYED", "APPEARANCES");
     const numeric = (value) =>
         /^\s*\d+(?:\.0+)?\s*$/.test(value || "") ? Math.trunc(Number(value)) : null;
     const imported = [],
@@ -505,7 +551,11 @@ function parseStatsCsv(text) {
                 numericCount++;
             }
         }
-        if (!numericCount) continue;
+        const didNotPlay =
+            (dnpIndex >= 0 && /^(1|TRUE|YES|DNP)$/i.test((cells[dnpIndex] || "").trim())) ||
+            (playedIndex >= 0 && /^(0|FALSE|NO)$/i.test((cells[playedIndex] || "").trim())) ||
+            (gamesPlayedIndex >= 0 && numeric(cells[gamesPlayedIndex] || "") === 0);
+        if (!numericCount && !didNotPlay) continue;
         const key = name.toLocaleLowerCase();
         if (seen.has(key))
             throw new Error(`「${name}」が複数行あります。選手を1行にまとめてください。`);
@@ -686,22 +736,27 @@ function drawGame() {
                 `<span class="recent-action">${escapeHtml(nameFor(e.playerId))} · ${escapeHtml(statLabel(e.type))}</span>`,
         )
         .join("");
-    const gameRows = statRows(currentGame.players).sort(
+    const recordedPlayerIds = new Set(statRows(currentGame.players).map(playerId));
+    const dnpRows = (currentGame.rosterPlayerIds || [])
+        .filter((id) => !recordedPlayerIds.has(id))
+        .map((id) => ({ playerId: id, participation: "DNP" }));
+    const gameRows = [...statRows(currentGame.players), ...dnpRows].sort(
         (a, b) => (Number(b.points) || 0) - (Number(a.points) || 0),
     );
     document.getElementById("gameBoxscoreBody").innerHTML = gameRows
-        .map((s) => {
-            const id = playerId(s),
-                p = players.find((x) => x.playerId === id) || {},
-                fga = Number(s.FGA) || 0,
-                fgm = Number(s.FGM) || 0,
-                twoa = Number(s["2PA"]) || 0,
-                twom = Number(s["2PM"]) || 0,
-                threea = Number(s["3PA"]) || 0,
-                threem = Number(s["3PM"]) || 0,
-                fta = Number(s.FTA) || 0,
-                ftm = Number(s.FTM) || 0;
-            return `<tr><td><b>${escapeHtml(nameFor(id))}</b></td><td>${escapeHtml(p.position || "—")}</td><td>${Math.floor((Number(s.minutesSeconds) || 0) / 60)}</td><td>${Number(s.points) || 0}</td><td>${Number(s.REB) || 0}</td><td>${Number(s.AST) || 0}</td><td>${Number(s.STL) || 0}</td><td>${Number(s.BLK) || 0}</td><td>${fgm}/${fga}</td><td>${ratio(fgm, fga)}</td><td>${twom}/${twoa}</td><td>${ratio(twom, twoa)}</td><td>${threem}/${threea}</td><td>${ratio(threem, threea)}</td><td>${ftm}/${fta}</td><td>${ratio(ftm, fta)}</td><td>${Number(s.OREB) || 0}</td><td>${Number(s.DREB) || 0}</td><td>${Number(s.TO) || 0}</td><td>${Number(s.PF) || 0}</td><td>${eff(s)}</td></tr>`;
+        .map((stats) => {
+            const id = playerId(stats);
+            const profile = players.find((player) => player.playerId === id) || {};
+            const fga = Number(stats.FGA) || 0;
+            const fgm = Number(stats.FGM) || 0;
+            const twoAttempts = Number(stats["2PA"]) || 0;
+            const twoMade = Number(stats["2PM"]) || 0;
+            const threeAttempts = Number(stats["3PA"]) || 0;
+            const threeMade = Number(stats["3PM"]) || 0;
+            const freeAttempts = Number(stats.FTA) || 0;
+            const freeMade = Number(stats.FTM) || 0;
+            const didNotPlay = stats.participation === "DNP";
+            return `<tr class="${didNotPlay ? "is-dnp" : ""}"><td><b>${escapeHtml(nameFor(id))}</b></td><td>${escapeHtml(profile.position || "—")}</td><td>${didNotPlay ? "DNP" : "出場"}</td><td>${Math.floor((Number(stats.minutesSeconds) || 0) / 60)}</td><td>${Number(stats.points) || 0}</td><td>${Number(stats.REB) || 0}</td><td>${Number(stats.AST) || 0}</td><td>${Number(stats.STL) || 0}</td><td>${Number(stats.BLK) || 0}</td><td>${fgm}/${fga}</td><td>${ratio(fgm, fga)}</td><td>${twoMade}/${twoAttempts}</td><td>${ratio(twoMade, twoAttempts)}</td><td>${threeMade}/${threeAttempts}</td><td>${ratio(threeMade, threeAttempts)}</td><td>${freeMade}/${freeAttempts}</td><td>${ratio(freeMade, freeAttempts)}</td><td>${Number(stats.OREB) || 0}</td><td>${Number(stats.DREB) || 0}</td><td>${Number(stats.TO) || 0}</td><td>${Number(stats.PF) || 0}</td><td>${eff(stats)}</td></tr>`;
         })
         .join("");
     const closed = currentGame.status === "FINAL";
@@ -1152,8 +1207,8 @@ function applyView() {
             (section.id === "scorekeeperCard" && !currentGame);
     });
     document
-        .querySelectorAll("[data-view-link]")
-        .forEach((link) => link.classList.toggle("is-active", link.dataset.viewLink === page));
+        .querySelectorAll(".site-navigation [data-app-nav]")
+        .forEach((link) => link.classList.toggle("is-active", link.dataset.appNav === page));
 }
 
 async function init() {

@@ -133,6 +133,9 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
       row.put("date", str(game, "date"));
       row.put("opponent", str(game, "opponent"));
       row.put("result", str(game, "result"));
+      row.put(
+          "participation",
+          stat.isEmpty() || "DNP".equals(str(stat, "participation")) ? "DNP" : "PLAYED");
       row.put("points", longValue(stat, "points", 0));
       row.put("REB", longValue(stat, "REB", 0));
       row.put("AST", longValue(stat, "AST", 0));
@@ -292,6 +295,20 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     game.put("createdAt", n(now));
     game.put("teamGameSk", s("GAME#" + date + "#" + id));
     game.put("teamId", s(teamId));
+    List<String> rosterPlayerIds =
+        rows(teamPartition, "PLAYER#").stream()
+            .filter(player -> !player.containsKey("active") || bool(player, "active"))
+            .map(
+                player -> {
+                  String rosterPlayerId = str(player, "playerId");
+                  return rosterPlayerId.isBlank()
+                      ? str(player, "sk").replaceFirst("^PLAYER#", "")
+                      : rosterPlayerId;
+                })
+            .filter(rosterPlayerId -> !rosterPlayerId.isBlank())
+            .toList();
+    if (!rosterPlayerIds.isEmpty())
+      game.put("rosterPlayerIds", AttributeValue.builder().ss(rosterPlayerIds).build());
     if (!linkedMonth.isBlank()) game.put("scheduleMonth", s(linkedMonth));
     if (!linkedStart.isBlank()) game.put("startDateTime", s(linkedStart));
     if (!competitionName.isBlank()) game.put("competitionName", s(competitionName));
@@ -435,7 +452,9 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
           && opponent.equalsIgnoreCase(str(existing, "opponent")))
         throw new ApiException(409, "DUPLICATE_IMPORT", "同じ日付・対戦相手の過去試合はすでに取り込まれています");
     int opponentScore = b.path("opponentScore").asInt(-1), teamScore = 0;
-    for (JsonNode p : inputPlayers) teamScore += importNumber(p.path("stats"), "PTS", "points");
+    for (JsonNode p : inputPlayers)
+      if (!"DNP".equalsIgnoreCase(p.path("participation").asText()))
+        teamScore += importNumber(p.path("stats"), "PTS", "points");
     String result =
         opponentScore < 0
             ? "U"
@@ -493,10 +512,17 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
       Map<String, AttributeValue> gameStats = key("GAME#" + id, "PLAYER#" + playerId);
       gameStats.put("playerId", s(playerId));
       gameStats.put("playerName", s(str(player, "name")));
+      boolean didNotPlay = "DNP".equalsIgnoreCase(input.path("participation").asText());
+      gameStats.put("participation", s(didNotPlay ? "DNP" : "PLAYED"));
       if (!str(player, "position").isBlank()) gameStats.put("position", s(str(player, "position")));
       Map<String, Long> totals = importStats(input.path("stats"));
+      if (didNotPlay) totals.replaceAll((field, value) -> 0L);
       totals.forEach((field, value) -> gameStats.put(field, n(value)));
       db.putItem(PutItemRequest.builder().tableName(TABLE).item(gameStats).build());
+      if (didNotPlay) {
+        imported++;
+        continue;
+      }
       totals.put("GP", 1L);
       totals.put("W", "W".equals(result) ? 1L : 0L);
       totals.put("L", "L".equals(result) ? 1L : 0L);
@@ -558,7 +584,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
             .build());
     writes.add(
         TransactWriteItem.builder()
-            .update(addUpdate("GAME#" + gameId, "PLAYER#" + playerId, delta))
+            .update(addUpdate("GAME#" + gameId, "PLAYER#" + playerId, delta, true))
             .build());
     long points = delta.getOrDefault("points", 0L);
     if (points != 0) {
@@ -611,6 +637,9 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
       }
       default -> throw new IllegalArgumentException("時計操作が不正です");
     }
+    if ("start".equals(command) && !str(meta, "onCourt").isBlank())
+      for (String player : str(meta, "onCourt").split(","))
+        set("GAME#" + id, "PLAYER#" + player, Map.of("participation", s("PLAYED")));
     Map<String, AttributeValue> clockChanges = new HashMap<>();
     clockChanges.put("period", n(period));
     clockChanges.put("remainingSeconds", n(remaining));
@@ -648,6 +677,15 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
             .tableName(TABLE)
             .key(key("GAME#" + id, str(last, "sk")))
             .build());
+    boolean hasEarlierActionForPlayer =
+        events.subList(0, events.size() - 1).stream()
+            .anyMatch(event -> player.equals(str(event, "playerId")));
+    Map<String, AttributeValue> playerStats = item("GAME#" + id, "PLAYER#" + player);
+    boolean isOnCourt = List.of(str(meta, "onCourt").split(",")).contains(player);
+    if (!hasEarlierActionForPlayer
+        && !isOnCourt
+        && longValue(playerStats, "minutesSeconds", 0) == 0)
+      set("GAME#" + id, "PLAYER#" + player, Map.of("participation", s("DNP")));
     return Map.of("undone", type, "playerId", player);
   }
 
@@ -667,6 +705,9 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     for (String player : next)
       if (item(teamPartition, "PLAYER#" + player).isEmpty())
         throw new ApiException(404, "PLAYER_NOT_FOUND", "登録されていない選手が含まれています");
+    if (bool(meta, "clockRunning"))
+      for (String player : next)
+        set("GAME#" + id, "PLAYER#" + player, Map.of("participation", s("PLAYED")));
     long now = Instant.now().getEpochSecond();
     List<String> old =
         str(meta, "onCourt").isBlank() ? List.of() : List.of(str(meta, "onCourt").split(","));
@@ -691,6 +732,8 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     if (meta.isEmpty()) throw new ApiException(404, "GAME_NOT_FOUND", "試合が見つかりません");
     if ("FINAL".equals(str(meta, "status")))
       throw new ApiException(409, "ALREADY_FINAL", "この試合は確定済みです");
+    if (bool(meta, "clockRunning"))
+      addCurrentLineupMinutes(id, meta, Instant.now().getEpochSecond());
     int opponentScore = Math.max(0, b.path("opponentScore").asInt(0));
     List<Map<String, AttributeValue>> players = rows("GAME#" + id, "PLAYER#");
     String result =
@@ -702,6 +745,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
             ? str(meta, "date").substring(0, 4)
             : LocalDate.now().toString().substring(0, 4);
     for (Map<String, AttributeValue> p : players) {
+      if ("DNP".equals(str(p, "participation"))) continue;
       String player = str(p, "sk").substring("PLAYER#".length());
       Map<String, Long> totals = new HashMap<>();
       for (String field : STAT_FIELDS) totals.put(field, longValue(p, field, 0));
@@ -811,9 +855,19 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
   }
 
   private Update addUpdate(String pk, String sk, Map<String, Long> deltas) {
-    StringBuilder update = new StringBuilder("ADD ");
+    return addUpdate(pk, sk, deltas, false);
+  }
+
+  private Update addUpdate(
+      String pk, String sk, Map<String, Long> deltas, boolean markPlayerPlayed) {
+    StringBuilder update =
+        new StringBuilder(markPlayerPlayed ? "SET #participation = :played ADD " : "ADD ");
     Map<String, String> names = new HashMap<>();
     Map<String, AttributeValue> values = new HashMap<>();
+    if (markPlayerPlayed) {
+      names.put("#participation", "participation");
+      values.put(":played", s("PLAYED"));
+    }
     int i = 0;
     for (var e : deltas.entrySet()) {
       if (e.getValue() == 0) continue;
