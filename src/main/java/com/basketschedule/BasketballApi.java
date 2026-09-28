@@ -26,8 +26,12 @@ import software.amazon.awssdk.services.dynamodb.model.TransactWriteItemsRequest;
 import software.amazon.awssdk.services.dynamodb.model.Update;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 
-/** Team roster, live basketball scorekeeping, and season totals. */
+/** バスケットボールのチーム、選手、試合、スタッツを扱う API です。 */
 public class BasketballApi implements RequestHandler<Map<String, Object>, Map<String, Object>> {
+
+  /** Lambda が API ハンドラーを作成するときに使うコンストラクターです。 */
+  public BasketballApi() {}
+
   private static final String TABLE = "BasketballData";
   private static final String TEAM_INDEX_PK = "BASKETBALL";
   private static final ObjectMapper JSON = new ObjectMapper();
@@ -1065,6 +1069,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
   }
 
   private static final class ApiException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
     final int status;
     final String code;
 

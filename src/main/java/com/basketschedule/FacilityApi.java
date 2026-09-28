@@ -15,7 +15,11 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
 
+/** 施設情報の一覧取得、登録、更新、削除を行う Lambda API です。 */
 public class FacilityApi implements RequestHandler<Map<String, Object>, Map<String, Object>> {
+
+  /** Lambda が施設 API ハンドラーを作成するときに使うコンストラクターです。 */
+  public FacilityApi() {}
 
   private final DynamoDbClient dynamoDbClient =
       DynamoDbClient.builder().region(Region.AP_NORTHEAST_1).build();

@@ -17,8 +17,12 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 
+/** 施設選択済みの手入力予定を登録する Lambda API です。 */
 public class ScheduleRegisterApi
     implements RequestHandler<Map<String, Object>, Map<String, Object>> {
+
+  /** Lambda が手入力登録 API ハンドラーを作成するときに使うコンストラクターです。 */
+  public ScheduleRegisterApi() {}
 
   private final DynamoDbClient dynamoDbClient =
       DynamoDbClient.builder().region(Region.AP_NORTHEAST_1).build();

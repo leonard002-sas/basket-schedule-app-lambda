@@ -23,7 +23,11 @@ import software.amazon.awssdk.services.s3.model.PutObjectTaggingRequest;
 import software.amazon.awssdk.services.s3.model.Tag;
 import software.amazon.awssdk.services.s3.model.Tagging;
 
+/** S3 にアップロードされた予定表画像を解析して予定データを登録します。 */
 public class ImageProcessor implements RequestHandler<S3Event, String> {
+
+  /** Lambda が画像処理ハンドラーを作成するときに使うコンストラクターです。 */
+  public ImageProcessor() {}
 
   @Override
   public String handleRequest(S3Event event, Context context) {

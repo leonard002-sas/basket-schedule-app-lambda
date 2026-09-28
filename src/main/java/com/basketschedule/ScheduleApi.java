@@ -22,7 +22,11 @@ import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
 
+/** スケジュールの取得、登録、編集、削除を行う Lambda API です。 */
 public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<String, Object>> {
+
+  /** Lambda がスケジュール API ハンドラーを作成するときに使うコンストラクターです。 */
+  public ScheduleApi() {}
 
   private static final String SCHEDULE_TABLE = "BasketSchedule";
 

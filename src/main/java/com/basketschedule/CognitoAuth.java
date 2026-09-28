@@ -38,6 +38,13 @@ public final class CognitoAuth {
 
   private CognitoAuth() {}
 
+  /**
+   * リクエストの Bearer トークンを検証し、認証済みユーザーを返します。
+   *
+   * @param request Lambda に渡されたリクエスト
+   * @return 検証済みのユーザー情報
+   * @throws AuthException トークンがない、または検証に失敗した場合
+   */
   public static User requireUser(Map<String, Object> request) {
     String token = bearerToken(request);
     if (token == null) {
@@ -46,6 +53,13 @@ public final class CognitoAuth {
     return verify(token);
   }
 
+  /**
+   * リクエストを認証し、管理者グループに所属するユーザーだけを許可します。
+   *
+   * @param request Lambda に渡されたリクエスト
+   * @return 検証済みの管理者情報
+   * @throws AuthException 未認証、または管理者ではない場合
+   */
   public static User requireAdmin(Map<String, Object> request) {
     User user = requireUser(request);
     if (!user.groups().contains("admins")) {
@@ -212,8 +226,14 @@ public final class CognitoAuth {
     return new AuthException(401, "認証情報が無効または期限切れです", code);
   }
 
-  /** Cognito が確認した利用者 ID とユーザーグループを表します。 */
+  /**
+   * Cognito が検証したユーザーの識別情報です。
+   *
+   * @param subject Cognito が発行したユーザー ID
+   * @param groups Cognito の署名付きトークンで確認したグループ
+   */
   public record User(String subject, Set<String> groups) {
+    /** グループ集合をコピーし、作成後に外部から変更されないようにします。 */
     public User {
       groups = Set.copyOf(groups);
     }
@@ -221,25 +241,53 @@ public final class CognitoAuth {
 
   private record CachedKeys(Map<String, RSAPublicKey> keys, Instant expiresAt) {}
 
+  /** 認証または認可に失敗したことを API 層へ伝える例外です。 */
   public static final class AuthException extends RuntimeException {
     private static final long serialVersionUID = 1L;
+
+    /** HTTP 応答に使うステータスコードです。 */
     private final int statusCode;
+
+    /** クライアント側でエラーを判別するためのコードです。 */
     private final String code;
 
+    /**
+     * 認証・認可エラーを作成します。
+     *
+     * @param statusCode HTTP ステータスコード
+     * @param message 利用者向けのエラーメッセージ
+     */
     public AuthException(int statusCode, String message) {
       this(statusCode, message, "AUTHORIZATION_FAILED");
     }
 
+    /**
+     * エラーコードを指定して認証・認可エラーを作成します。
+     *
+     * @param statusCode HTTP ステータスコード
+     * @param message 利用者向けのエラーメッセージ
+     * @param code クライアント側で使うエラーコード
+     */
     public AuthException(int statusCode, String message, String code) {
       super(message);
       this.statusCode = statusCode;
       this.code = code;
     }
 
+    /**
+     * HTTP ステータスコードを返します。
+     *
+     * @return HTTP 応答に使うコード
+     */
     public int statusCode() {
       return statusCode;
     }
 
+    /**
+     * クライアント側のエラー識別コードを返します。
+     *
+     * @return エラーコード
+     */
     public String code() {
       return code;
     }

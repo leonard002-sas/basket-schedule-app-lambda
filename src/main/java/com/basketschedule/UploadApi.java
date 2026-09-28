@@ -15,7 +15,11 @@ import software.amazon.awssdk.services.s3.model.Tag;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 
+/** 予定表画像を S3 にアップロードするための署名付き URL を発行します。 */
 public class UploadApi implements RequestHandler<Map<String, Object>, Map<String, Object>> {
+
+  /** Lambda がアップロード API ハンドラーを作成するときに使うコンストラクターです。 */
+  public UploadApi() {}
 
   private final ObjectMapper mapper = new ObjectMapper();
 
