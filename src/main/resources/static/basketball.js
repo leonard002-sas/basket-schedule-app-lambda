@@ -17,7 +17,7 @@ function isAdmin() { return (claims()?.["cognito:groups"] || []).includes("admin
 function api(resource, method="GET", body=null, extra={}) {
     const params = new URLSearchParams({feature:"basketball",resource,...(activeTeamId?{teamId:activeTeamId}:{}),...extra});
     return fetch(`${SCORE_API}?${params}`, {method,headers:{Authorization:`Bearer ${token}`,...(body?{"Content-Type":"application/json"}:{})},body:body?JSON.stringify(body):undefined})
-        .then(async r=>{ const d=await r.json(); if(!r.ok) throw new Error(d.message||`APIエラー ${r.status}`); return d; })
+        .then(async r=>{ const d=await r.json(); if(!r.ok) throw new Error(`${d.message||`APIエラー ${r.status}`}${d.code?` (${d.code})`:""}`); return d; })
         .catch(e=>{if(e instanceof TypeError)throw new Error("APIに接続できません。しばらく待って再読み込みしてください。");throw e;});
 }
 function toast(message) { const el=document.getElementById("scorebookToast");el.textContent=message;el.classList.add("is-visible");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("is-visible"),2500); }

@@ -55,8 +55,12 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
         } catch (IllegalArgumentException e) {
             return response(400, Map.of("message", e.getMessage()));
         } catch (Exception e) {
-            context.getLogger().log("Basketball API error: " + e.getMessage());
-            return response(500, Map.of("message", "スコア情報を保存できませんでした"));
+            StringBuilder details = new StringBuilder("Basketball API error [")
+                    .append(method(input)).append(" ").append(query(input).getOrDefault("resource", ""))
+                    .append("]: ").append(e.getClass().getName()).append(": ").append(e.getMessage());
+            for (StackTraceElement frame : e.getStackTrace()) details.append("\n  at ").append(frame);
+            context.getLogger().log(details.toString());
+            return response(500, Map.of("message", "スコア情報を保存できませんでした", "code", "INTERNAL_ERROR"));
         }
     }
 
