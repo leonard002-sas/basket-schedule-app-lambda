@@ -1,8 +1,4 @@
-
 package com.basketschedule;
-
-import java.util.Map;
-import java.util.List;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
@@ -16,7 +12,8 @@ import com.google.genai.types.Part;
 import com.google.genai.types.Schema;
 import com.google.genai.types.ThinkingConfig;
 import com.google.genai.types.ThinkingLevel;
-
+import java.util.List;
+import java.util.Map;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -26,79 +23,78 @@ import software.amazon.awssdk.services.s3.model.PutObjectTaggingRequest;
 import software.amazon.awssdk.services.s3.model.Tag;
 import software.amazon.awssdk.services.s3.model.Tagging;
 
+/** S3へアップロードされた画像をGeminiで解析し、バスケットボールの予定を抽出します。 */
 public class ImageProcessor implements RequestHandler<S3Event, String> {
 
-	@Override
-	public String handleRequest(
-			S3Event event,
-			Context context) {
+  /** S3イベントで起動するLambdaハンドラーを作成します。 */
+  public ImageProcessor() {}
 
-		String apiKey = System.getenv("GEMINI_API_KEY");
-		String currentBucket = null;
-		String currentKey = null;
-		int completedEntries = 0;
-		int totalEntries = 0;
+  /**
+   * S3で作成された画像ごとに解析を実行し、オブジェクトの進捗タグを更新します。
+   *
+   * @param event アップロードされた画像を特定するS3通知
+   * @param context 進捗やエラーの記録に使うLambda実行コンテキスト
+   * @return Lambdaの実行ログに記録する短い処理結果
+   */
+  @Override
+  public String handleRequest(S3Event event, Context context) {
 
-		try (
-				S3Client s3Client = S3Client.builder()
-						.region(Region.AP_NORTHEAST_1)
-						.build();
+    String apiKey = System.getenv("GEMINI_API_KEY");
+    String currentBucket = null;
+    String currentKey = null;
+    int completedEntries = 0;
+    int totalEntries = 0;
 
-				Client geminiClient = Client.builder()
-						.apiKey(apiKey)
-						.build()) {
+    try (S3Client s3Client = S3Client.builder().region(Region.AP_NORTHEAST_1).build();
+        Client geminiClient = Client.builder().apiKey(apiKey).build()) {
 
-			for (var record : event.getRecords()) {
+      for (var record : event.getRecords()) {
 
-				// ========================================
-				// ① S3情報
-				// ========================================
+        // ========================================
+        // ① S3情報
+        // ========================================
 
-				String bucketName = record.getS3().getBucket().getName();
+        String bucketName = record.getS3().getBucket().getName();
 
-				String objectKey = record.getS3().getObject().getUrlDecodedKey();
-				currentBucket = bucketName;
-				currentKey = objectKey;
-				completedEntries = 0;
-				totalEntries = 0;
-				updateJobStatus(s3Client, bucketName, objectKey, "PROCESSING", "ANALYZING", 0, 0, context);
+        String objectKey = record.getS3().getObject().getUrlDecodedKey();
+        currentBucket = bucketName;
+        currentKey = objectKey;
+        completedEntries = 0;
+        totalEntries = 0;
+        updateJobStatus(s3Client, bucketName, objectKey, "PROCESSING", "ANALYZING", 0, 0, context);
 
-				context.getLogger().log(
-						"Bucket: " + bucketName);
+        context.getLogger().log("Bucket: " + bucketName);
 
-				context.getLogger().log(
-						"Object: " + objectKey);
+        context.getLogger().log("Object: " + objectKey);
 
-				// ========================================
-				// ② S3から画像取得
-				// ========================================
+        // ========================================
+        // ② S3から画像取得
+        // ========================================
 
-				GetObjectRequest request = GetObjectRequest.builder()
-						.bucket(bucketName)
-						.key(objectKey)
-						.build();
+        GetObjectRequest request =
+            GetObjectRequest.builder().bucket(bucketName).key(objectKey).build();
 
-				ResponseBytes<GetObjectResponse> image = s3Client.getObjectAsBytes(request);
+        ResponseBytes<GetObjectResponse> image = s3Client.getObjectAsBytes(request);
 
-				byte[] imageData = image.asByteArray();
-				String mimeType = image.response().contentType();
-				if (mimeType == null || !("image/jpeg".equals(mimeType)
-						|| "image/png".equals(mimeType)
-						|| "image/webp".equals(mimeType))) {
-					throw new IllegalArgumentException("対応していない画像形式です");
-				}
+        byte[] imageData = image.asByteArray();
+        String mimeType = image.response().contentType();
+        if (mimeType == null
+            || !("image/jpeg".equals(mimeType)
+                || "image/png".equals(mimeType)
+                || "image/webp".equals(mimeType))) {
+          throw new IllegalArgumentException("対応していない画像形式です");
+        }
 
-				context.getLogger().log(
-						"Image size: "
-								+ imageData.length
-								+ " bytes");
+        context.getLogger().log("Image size: " + imageData.length + " bytes");
 
-				// ========================================
-				// ③ Geminiへ画像解析依頼
-				// ========================================
+        // ========================================
+        // ③ Geminiへ画像解析依頼
+        // ========================================
 
-				Content content = Content.fromParts(
-				        Part.fromText("""
+        Content content =
+            Content.fromParts(
+                Part.fromText(
+                    """
 				                あなたはカレンダー画像から予定を抽出する専用プログラムです。
 
 				                画像を確認し、指定されたJSON Schemaに従って予定だけを返してください。
@@ -134,236 +130,202 @@ public class ImageProcessor implements RequestHandler<S3Event, String> {
 
 				                JSON Schemaに従ったJSONのみを返してください。
 				                """),
-				        Part.fromBytes(
-				                imageData,
-				                mimeType)
-				);
-				
-				
-				
-				// ========================================
-				// ⑤ Gemini API呼び出し設定
-				// ========================================
-				GenerateContentConfig config = GenerateContentConfig.builder()
-				        .responseMimeType("application/json")
+                Part.fromBytes(imageData, mimeType));
 
-				        .thinkingConfig(
-				                ThinkingConfig.builder()
-				                        .thinkingLevel(new ThinkingLevel("medium"))
-				                        .build()
-				        )
+        // ========================================
+        // ⑤ Gemini API呼び出し設定
+        // ========================================
+        GenerateContentConfig config =
+            GenerateContentConfig.builder()
+                .responseMimeType("application/json")
+                .thinkingConfig(
+                    ThinkingConfig.builder().thinkingLevel(new ThinkingLevel("medium")).build())
+                .responseSchema(
+                    Schema.builder()
+                        .type("OBJECT")
+                        .properties(
+                            Map.of(
+                                "scheduleMonth",
+                                Schema.builder()
+                                    .type("STRING")
+                                    .description("対象年月。YYYY-MM形式の7文字のみ。例: 2026-09")
+                                    .build(),
+                                "entries",
+                                Schema.builder()
+                                    .type("ARRAY")
+                                    .items(
+                                        Schema.builder()
+                                            .type("OBJECT")
+                                            .properties(
+                                                Map.of(
+                                                    "date",
+                                                    Schema.builder()
+                                                        .type("STRING")
+                                                        .description("日付。1日から31日まで。例: 5日")
+                                                        .build(),
+                                                    "timeZone",
+                                                    Schema.builder()
+                                                        .type("STRING")
+                                                        .description("時間帯。午前、午後、夜間のいずれか")
+                                                        .build()))
+                                            .build())
+                                    .build()))
+                        .build())
+                .build();
 
-				        .responseSchema(
-				                Schema.builder()
-				                        .type("OBJECT")
-				                        .properties(
-				                                Map.of(
+        // ========================================
+        // ⑥ Gemini API呼び出し
+        // ========================================
 
-				                                        "scheduleMonth",
-				                                        Schema.builder()
-				                                                .type("STRING")
-				                                                .description(
-				                                                        "対象年月。YYYY-MM形式の7文字のみ。例: 2026-09"
-				                                                )
-				                                                .build(),
+        context.getLogger().log("Gemini API呼び出し開始");
+        context.getLogger().log("構文の中身です：" + content.text());
 
-				                                        "entries",
-				                                        Schema.builder()
-				                                                .type("ARRAY")
-				                                                .items(
-				                                                        Schema.builder()
-				                                                                .type("OBJECT")
-				                                                                .properties(
-				                                                                        Map.of(
+        // 統合した config を渡す
+        GenerateContentResponse response =
+            geminiClient.models.generateContent("gemini-3.6-flash", content, config);
 
-				                                                                                "date",
-				                                                                                Schema.builder()
-				                                                                                        .type("STRING")
-				                                                                                        .description(
-				                                                                                                "日付。1日から31日まで。例: 5日"
-				                                                                                        )
-				                                                                                        .build(),
+        context.getLogger().log("Gemini API呼び出し完了");
 
-				                                                                                "timeZone",
-				                                                                                Schema.builder()
-				                                                                                        .type("STRING")
-				                                                                                        .description(
-				                                                                                                "時間帯。午前、午後、夜間のいずれか"
-				                                                                                        )
-				                                                                                        .build()
+        // ========================================
+        // ⑥ JSON解析
+        // ========================================
 
-				                                                                        )
-				                                                                )
-				                                                                .build()
-				                                                )
-				                                                .build()
-				                                )
-				                        )
-				                        .build()
-				        )
+        String json = response.text();
 
-				        .build();
+        context.getLogger().log("Gemini JSON: " + json);
 
+        ObjectMapper mapper = new ObjectMapper();
 
-				// ========================================
-				// ⑥ Gemini API呼び出し
-				// ========================================
+        CalendarResponse calendarResponse;
 
-				context.getLogger().log("Gemini API呼び出し開始");
-				context.getLogger().log("構文の中身です：" + content.text());
+        try {
 
-				// 統合した config を渡す
-				GenerateContentResponse response = geminiClient.models.generateContent(
-						"gemini-3.6-flash",
-				        content,
-				        config);
+          calendarResponse = mapper.readValue(json, CalendarResponse.class);
 
-				context.getLogger().log("Gemini API呼び出し完了");
+        } catch (Exception e) {
 
-				// ========================================
-				// ⑥ JSON解析
-				// ========================================
-				
-				String json = response.text();
+          context.getLogger().log("JSON解析エラー: " + e.getMessage());
 
-				context.getLogger().log(
-						"Gemini JSON: " + json);
+          throw new RuntimeException(e);
+        }
 
-				ObjectMapper mapper = new ObjectMapper();
+        // ========================================
+        // ⑦ 対象月チェック
+        // ========================================
+        String scheduleMonth = calendarResponse.getScheduleMonth();
+        if (calendarResponse.getEntries() == null) {
+          throw new IllegalArgumentException("解析結果に予定一覧がありません");
+        }
+        totalEntries = calendarResponse.getEntries().size();
+        updateJobStatus(
+            s3Client, bucketName, objectKey, "PROCESSING", "SAVING", 0, totalEntries, context);
 
-				CalendarResponse calendarResponse;
+        if (scheduleMonth == null || !scheduleMonth.matches("\\d{4}-\\d{2}")) {
 
-				try {
+          throw new IllegalArgumentException("対象月の形式が不正です: " + scheduleMonth);
+        }
 
-					calendarResponse = mapper.readValue(
-							json,
-							CalendarResponse.class);
+        context.getLogger().log("対象月: " + scheduleMonth);
 
-				} catch (Exception e) {
+        // ========================================
+        // ⑧ DynamoDB保存
+        // ========================================
 
-					context.getLogger().log(
-							"JSON解析エラー: "
-									+ e.getMessage());
+        DynamoDbService dynamoDbService = new DynamoDbService();
 
-					throw new RuntimeException(e);
-				}
+        for (CalendarEntry entry : calendarResponse.getEntries()) {
+          String timeZone = entry.getTimeZone();
+          if (!"午前".equals(timeZone) && !"午後".equals(timeZone) && !"夜間".equals(timeZone)) {
+            throw new IllegalArgumentException("時間帯が不正です: " + timeZone);
+          }
+          String date = entry.getDate();
+          if (date == null || !date.matches("([1-9]|[12][0-9]|3[01])日")) {
+            throw new IllegalArgumentException("日付が不正です: " + date);
+          }
 
-				// ========================================
-				// ⑦ 対象月チェック
-				// ========================================
-				String scheduleMonth = calendarResponse.getScheduleMonth();
-				if (calendarResponse.getEntries() == null) {
-					throw new IllegalArgumentException("解析結果に予定一覧がありません");
-				}
-				totalEntries = calendarResponse.getEntries().size();
-				updateJobStatus(s3Client, bucketName, objectKey, "PROCESSING", "SAVING", 0, totalEntries, context);
+          CalendarEvent event2 = CalendarConverter.convert(entry, scheduleMonth);
 
-				if (scheduleMonth == null
-						|| !scheduleMonth.matches("\\d{4}-\\d{2}")) {
+          context.getLogger().log("開始: " + event2.getStart() + " / 終了: " + event2.getEnd());
 
-					throw new IllegalArgumentException(
-							"対象月の形式が不正です: "
-									+ scheduleMonth);
-				}
+          String OCHIGO_ID = "facility001";
 
-				context.getLogger().log(
-						"対象月: " + scheduleMonth);
+          dynamoDbService.saveEvent(event2, entry.getTimeZone(), OCHIGO_ID, "PRACTICE");
+          completedEntries++;
+          updateJobStatus(
+              s3Client,
+              bucketName,
+              objectKey,
+              "PROCESSING",
+              "SAVING",
+              completedEntries,
+              totalEntries,
+              context);
+        }
 
-				// ========================================
-				// ⑧ DynamoDB保存
-				// ========================================
+        dynamoDbService.close();
+        updateJobStatus(
+            s3Client,
+            bucketName,
+            objectKey,
+            "COMPLETED",
+            "COMPLETE",
+            totalEntries,
+            totalEntries,
+            context);
+      }
 
-				DynamoDbService dynamoDbService = new DynamoDbService();
+    } catch (Exception e) {
+      if (currentBucket != null && currentKey != null) {
+        updateJobStatusForFailure(
+            currentBucket, currentKey, completedEntries, totalEntries, context);
+      }
 
-				for (CalendarEntry entry : calendarResponse.getEntries()) {
-					String timeZone = entry.getTimeZone();
-					if (!"午前".equals(timeZone)
-					        && !"午後".equals(timeZone)
-					        && !"夜間".equals(timeZone)) {
-					    throw new IllegalArgumentException("時間帯が不正です: " + timeZone);
-					}
-					String date = entry.getDate();
-					if (date == null || !date.matches("([1-9]|[12][0-9]|3[01])日")) {
-					    throw new IllegalArgumentException("日付が不正です: " + date);
-					}
+      context.getLogger().log("ERROR: " + e.getMessage());
 
-					CalendarEvent event2 = CalendarConverter.convert(
-							entry,
-							scheduleMonth);
+      throw e;
+    }
 
-					context.getLogger().log(
-							"開始: "
-									+ event2.getStart()
-									+ " / 終了: "
-									+ event2.getEnd());
-					
-					String OCHIGO_ID= "facility001";
-					
-					dynamoDbService.saveEvent(
-							event2,
-							entry.getTimeZone(),
-							OCHIGO_ID,
-							"PRACTICE");
-					completedEntries++;
-					updateJobStatus(s3Client, bucketName, objectKey, "PROCESSING", "SAVING", completedEntries, totalEntries, context);
-				
-				}
+    return "OK";
+  }
 
-				dynamoDbService.close();
-				updateJobStatus(s3Client, bucketName, objectKey, "COMPLETED", "COMPLETE", totalEntries, totalEntries, context);
-			}
+  private void updateJobStatus(
+      S3Client s3Client,
+      String bucket,
+      String key,
+      String status,
+      String stage,
+      int completed,
+      int total,
+      Context context) {
+    try {
+      s3Client.putObjectTagging(
+          PutObjectTaggingRequest.builder()
+              .bucket(bucket)
+              .key(key)
+              .tagging(
+                  Tagging.builder()
+                      .tagSet(
+                          List.of(
+                              Tag.builder().key("jobStatus").value(status).build(),
+                              Tag.builder().key("jobStage").value(stage).build(),
+                              Tag.builder()
+                                  .key("jobCompleted")
+                                  .value(Integer.toString(completed))
+                                  .build(),
+                              Tag.builder().key("jobTotal").value(Integer.toString(total)).build()))
+                      .build())
+              .build());
+    } catch (Exception e) {
+      context.getLogger().log("JOB_STATUS_UPDATE_FAILED: " + e.getClass().getSimpleName());
+    }
+  }
 
-		} catch (Exception e) {
-			if (currentBucket != null && currentKey != null) {
-				updateJobStatusForFailure(currentBucket, currentKey, completedEntries, totalEntries, context);
-			}
-
-			context.getLogger().log(
-					"ERROR: " + e.getMessage());
-
-			throw e;
-		}
-
-		return "OK";
-	}
-
-	private void updateJobStatus(
-			S3Client s3Client,
-			String bucket,
-			String key,
-			String status,
-			String stage,
-			int completed,
-			int total,
-			Context context) {
-		try {
-			s3Client.putObjectTagging(
-					PutObjectTaggingRequest.builder()
-							.bucket(bucket)
-							.key(key)
-							.tagging(Tagging.builder().tagSet(List.of(
-									Tag.builder().key("jobStatus").value(status).build(),
-									Tag.builder().key("jobStage").value(stage).build(),
-									Tag.builder().key("jobCompleted").value(Integer.toString(completed)).build(),
-									Tag.builder().key("jobTotal").value(Integer.toString(total)).build()
-							)).build())
-							.build()
-			);
-		} catch (Exception e) {
-			context.getLogger().log("JOB_STATUS_UPDATE_FAILED: " + e.getClass().getSimpleName());
-		}
-	}
-
-	private void updateJobStatusForFailure(
-			String bucket,
-			String key,
-			int completed,
-			int total,
-			Context context) {
-		try (S3Client s3Client = S3Client.builder().region(Region.AP_NORTHEAST_1).build()) {
-			updateJobStatus(s3Client, bucket, key, "FAILED", "FAILED", completed, total, context);
-		} catch (Exception e) {
-			context.getLogger().log("JOB_STATUS_FAILURE_WRITE_FAILED: " + e.getClass().getSimpleName());
-		}
-	}
+  private void updateJobStatusForFailure(
+      String bucket, String key, int completed, int total, Context context) {
+    try (S3Client s3Client = S3Client.builder().region(Region.AP_NORTHEAST_1).build()) {
+      updateJobStatus(s3Client, bucket, key, "FAILED", "FAILED", completed, total, context);
+    } catch (Exception e) {
+      context.getLogger().log("JOB_STATUS_FAILURE_WRITE_FAILED: " + e.getClass().getSimpleName());
+    }
+  }
 }

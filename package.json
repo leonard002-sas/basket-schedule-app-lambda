@@ -1,0 +1,13 @@
+{
+    "name": "basket-schedule-app-lambda",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "test": "node --test src/test/js/*.test.cjs",
+        "format": "prettier --write \"src/main/resources/static/**/*.{js,css,html}\" \"*.md\" \"docs/**/*.md\"",
+        "format:check": "prettier --check \"src/main/resources/static/**/*.{js,css,html}\" \"*.md\" \"docs/**/*.md\""
+    },
+    "devDependencies": {
+        "prettier": "3.9.9"
+    }
+}

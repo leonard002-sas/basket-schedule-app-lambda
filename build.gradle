@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id 'com.diffplug.spotless' version '8.10.2'
 }
 
 group = 'com.basketschedule'
@@ -12,11 +13,12 @@ repositories {
 dependencies {
     implementation 'com.amazonaws:aws-lambda-java-core:1.2.3'
     implementation 'com.amazonaws:aws-lambda-java-events:3.16.1'
-	implementation 'software.amazon.awssdk:s3:2.34.8'
-	implementation 'com.google.genai:google-genai:1.64.0'
-	implementation 'com.fasterxml.jackson.core:jackson-databind:2.19.2'
-	implementation 'software.amazon.awssdk:dynamodb:2.34.8'
+    implementation 'software.amazon.awssdk:s3:2.34.8'
+    implementation 'com.google.genai:google-genai:1.64.0'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.19.2'
+    implementation 'software.amazon.awssdk:dynamodb:2.34.8'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.0'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.0'
 }
 
 java {
@@ -27,6 +29,33 @@ java {
 
 test {
     useJUnitPlatform()
+    testLogging {
+        events 'failed', 'skipped'
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('spotlessCheck')
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.compilerArgs += ['-Xlint:all']
+}
+
+tasks.withType(Javadoc).configureEach {
+    options.encoding = 'UTF-8'
+    options.charSet = 'UTF-8'
+    options.docEncoding = 'UTF-8'
+    options.addBooleanOption('Xdoclint:all', true)
+    failOnError = true
+}
+
+spotless {
+    java {
+        googleJavaFormat('1.34.0')
+        removeUnusedImports()
+    }
 }
 
 jar {

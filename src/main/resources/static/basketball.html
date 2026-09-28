@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#101d31" />
+        <title>チームスコアブック · COURTSIDE</title>
+        <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+        <link rel="stylesheet" href="app.css" />
+        <link rel="stylesheet" href="basketball.css" />
+        <link rel="stylesheet" href="theme.css" />
+        <script src="theme.js"></script>
+    </head>
+    <body class="scorebook-body auth-pending">
+        <div class="app-shell scorebook-shell">
+            <header class="site-header">
+                <a class="brand-lockup" href="index.html"
+                    ><span class="brand-mark" aria-hidden="true"
+                        ><svg viewBox="0 0 32 32" fill="none">
+                            <circle
+                                cx="16"
+                                cy="16"
+                                r="12.2"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                            />
+                            <path
+                                d="M5.3 10.1c7.1 1.8 14.3 1.8 21.4 0M5.3 21.9c7.1-1.8 14.3-1.8 21.4 0M16 3.8c-4.1 3.1-6.2 7.2-6.2 12.2S11.9 25.1 16 28.2M16 3.8c4.1 3.1 6.2 7.2 6.2 12.2S20.1 25.1 16 28.2"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            /></svg></span
+                    ><span
+                        ><span class="brand-name">COURTSIDE</span
+                        ><span class="brand-caption">Team scorebook</span></span
+                    ></a
+                >
+                <nav class="header-actions" aria-label="アカウント操作">
+                    <button type="button" class="theme-toggle" data-theme-toggle></button>
+                    <details class="account-menu" id="accountMenu" hidden>
+                        <summary id="accountMenuTrigger" aria-label="アカウントメニューを開く">
+                            <span class="account-avatar" aria-hidden="true">🏀</span
+                            ><span class="account-menu-identity"
+                                ><strong id="accountDisplayName">アカウント</strong
+                                ><small id="accountRoleLabel">メンバー</small></span
+                            ><span class="account-menu-chevron" aria-hidden="true">⌄</span>
+                        </summary>
+                        <div class="account-menu-panel" aria-label="アカウント操作">
+                            <div class="account-profile">
+                                <strong id="accountEmail"></strong
+                                ><span id="accountAccessDescription"></span>
+                            </div>
+                            <button
+                                type="button"
+                                class="account-delete-button"
+                                id="deleteAccountButton"
+                            >
+                                アカウントを削除</button
+                            ><button type="button" class="account-logout-button" id="logoutButton">
+                                ログアウト
+                            </button>
+                        </div>
+                    </details>
+                </nav>
+            </header>
+
+            <nav class="site-navigation" aria-label="メインナビゲーション">
+                <a href="index.html#calendarArea" data-app-nav="calendar">予定表</a>
+                <a href="register.html?screen=schedule" data-app-nav="schedule">予定登録</a>
+                <a href="register.html?screen=facility" data-app-nav="facility">施設登録</a>
+                <a href="index.html#announcementsArea" data-app-nav="announcements">周知事項</a>
+                <a href="index.html#videoArchive" data-app-nav="videos">練習動画</a>
+                <a href="basketball.html?view=teams" data-app-nav="teams">チーム</a>
+                <a href="basketball.html?view=games" data-app-nav="games">試合</a>
+                <a href="basketball.html?view=rankings" data-app-nav="rankings">ランキング</a>
+            </nav>
+
+            <section class="scorebook-hero">
+                <span class="eyebrow">TEAM SCOREBOOK</span>
+                <h1 id="scorebookPageTitle">チーム管理</h1>
+                <p id="scorebookPageDescription">チームを登録して、選手と試合を管理します。</p>
+                <p id="memberViewNote" class="member-view-note" hidden>
+                    メンバー閲覧モード：チーム、登録メンバー、試合結果、ランキングを確認できます。登録・編集は管理者のみ行えます。
+                </p>
+            </section>
+
+            <div class="team-select-row global-team-select">
+                <label
+                    >管理するチーム<select id="teamSelect">
+                        <option value="">チームを読み込み中</option>
+                    </select></label
+                >
+            </div>
+
+            <!-- ゲストには閲覧画面を表示し、書き込み権限はJava APIで検証します。 -->
+            <main class="scorebook-grid">
+                <section class="section score-card" id="teamCard">
+                    <div class="score-section-title">
+                        <span class="score-icon">♧</span>
+                        <div>
+                            <h2>チーム</h2>
+                            <p>チームを選択するか、新しいチームを登録します。</p>
+                        </div>
+                    </div>
+                    <button
+                        id="newTeamButton"
+                        type="button"
+                        class="button-light team-create-button"
+                    >
+                        ＋ チームを登録
+                    </button>
+                    <button
+                        id="deleteTeamButton"
+                        type="button"
+                        class="button-danger team-delete-button"
+                        hidden
+                    >
+                        このチームを削除
+                    </button>
+                    <form id="teamForm" class="team-form">
+                        <label
+                            >チーム名<input
+                                id="teamName"
+                                maxlength="80"
+                                required
+                                placeholder="例：COURTSIDE" /></label
+                        ><button id="saveTeamButton" class="button-accent">チームを保存</button>
+                    </form>
+                    <div id="teamStatus" class="score-status" role="status"></div>
+                </section>
+
+                <section class="section score-card" id="rosterCard">
+                    <div class="score-section-title">
+                        <span class="score-icon">♟</span>
+                        <div>
+                            <h2>メンバー登録</h2>
+                            <p>選手名とポジションを登録します。背番号は任意です。</p>
+                        </div>
+                    </div>
+                    <form id="playerForm" class="player-form">
+                        <input id="playerEditingId" type="hidden" /><label
+                            >選手名<input
+                                id="playerName"
+                                maxlength="80"
+                                required
+                                placeholder="選手名" /></label
+                        ><label
+                            >ポジション<select id="playerPosition" required>
+                                <option value="">選択</option>
+                                <option>PG</option>
+                                <option>SG</option>
+                                <option>SF</option>
+                                <option>PF</option>
+                                <option>C</option>
+                            </select></label
+                        ><label
+                            >背番号<input
+                                id="playerNumber"
+                                type="number"
+                                min="0"
+                                max="99"
+                                placeholder="任意" /></label
+                        ><button id="savePlayerButton" class="button-accent">選手を追加</button
+                        ><button id="cancelPlayerEdit" type="button" class="button-light" hidden>
+                            キャンセル
+                        </button>
+                    </form>
+                    <div id="rosterList" class="roster-list"></div>
+                </section>
+
+                <section class="section score-card" id="newGameCard">
+                    <div class="score-section-title">
+                        <span class="score-icon score-icon-orange">◉</span>
+                        <div>
+                            <h2>試合を登録</h2>
+                            <p>クォーター時間は試合に合わせて変更できます。</p>
+                        </div>
+                    </div>
+                    <form id="gameForm" class="game-form">
+                        <label class="schedule-game-label"
+                            >予定表の試合<select id="scheduleGameSelect">
+                                <option value="">予定表から選択（任意）</option>
+                            </select></label
+                        ><label>試合日<input id="gameDate" type="date" required /></label
+                        ><label
+                            >対戦相手<input
+                                id="opponent"
+                                maxlength="100"
+                                required
+                                placeholder="相手チーム" /></label
+                        ><label
+                            >1Qの時間（分）<input
+                                id="quarterMinutes"
+                                type="number"
+                                min="1"
+                                max="20"
+                                value="10"
+                                required /></label
+                        ><button class="button-accent">試合を作成</button>
+                    </form>
+                    <div id="gameStatus" class="score-status" role="status"></div>
+                </section>
+
+                <section class="section score-card" id="gamesCard">
+                    <div class="games-list-heading">
+                        <div class="score-section-title">
+                            <span class="score-icon">▤</span>
+                            <div>
+                                <h2>試合</h2>
+                                <p>日付順に表示します。大会別にまとめることもできます。</p>
+                            </div>
+                        </div>
+                        <div class="games-list-tools">
+                            <label
+                                >表示順<select id="gameGrouping">
+                                    <option value="date">日付順</option>
+                                    <option value="competition">大会別</option>
+                                </select></label
+                            ><button id="exportGamesButton" type="button" class="button-light">
+                                試合一覧CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div id="gamesList" class="games-list"></div>
+                    <p class="autosave-note">
+                        試合中のスコアや記録は操作ごとにアカウントへ自動保存されます。画面を閉じても、一覧の「記録を再開」から続けられます。
+                    </p>
+                    <details class="csv-import-panel">
+                        <summary>Googleスプレッドシートから過去試合を取り込む</summary>
+                        <p>
+                            複数試合をまとめて移行できます。テンプレートCSVは1選手につき1行で、DATE
+                            と OPPONENT
+                            を試合ごとに繰り返してください。旧形式の1試合CSVは、日付と対戦相手を下に入力すれば取り込めます。選手名が登録済みメンバーと一致すると、その選手に紐づきます。
+                        </p>
+                        <div class="csv-import-actions">
+                            <button
+                                id="downloadImportTemplateButton"
+                                type="button"
+                                class="button-light"
+                            >
+                                CSVテンプレート
+                            </button>
+                        </div>
+                        <form id="csvImportForm" class="csv-import-form">
+                            <label
+                                >試合日（旧形式用）<input id="importGameDate" type="date" /></label
+                            ><label
+                                >対戦相手（旧形式用）<input
+                                    id="importOpponent"
+                                    maxlength="100" /></label
+                            ><label
+                                >大会名（任意）<input
+                                    id="importCompetition"
+                                    maxlength="80"
+                                    list="basketballCompetitionNames"
+                                    placeholder="例：2026秋北区大会" /></label
+                            ><datalist id="basketballCompetitionNames"></datalist
+                            ><label
+                                >相手得点（旧形式用）<input
+                                    id="importOpponentScore"
+                                    type="number"
+                                    min="0"
+                                    placeholder="不明なら空欄" /></label
+                            ><label class="csv-file-label"
+                                >CSVファイル<input
+                                    id="statsCsvFile"
+                                    type="file"
+                                    accept=".csv,text/csv"
+                                    required /></label
+                            ><button class="button-accent">過去試合を取り込む</button>
+                        </form>
+                        <div id="csvImportStatus" class="score-status" role="status"></div>
+                    </details>
+                </section>
+
+                <section class="section score-card scorekeeper-card" id="scorekeeperCard" hidden>
+                    <div class="scorekeeper-top">
+                        <div>
+                            <span class="eyebrow">LIVE GAME</span>
+                            <h2 id="liveGameTitle">試合</h2>
+                        </div>
+                        <button type="button" id="closeGameButton" class="button-light">
+                            一覧へ戻る
+                        </button>
+                    </div>
+                    <div class="scoreboard">
+                        <div class="score-team">
+                            <span id="liveTeamName">TEAM</span><strong id="liveTeamScore">0</strong>
+                        </div>
+                        <div class="score-clock">
+                            <span id="livePeriod">1Q</span><strong id="liveClock">10:00</strong>
+                            <div class="clock-controls">
+                                <button id="clockToggle" type="button" class="button-accent">
+                                    開始</button
+                                ><button id="nextPeriod" type="button" class="button-light">
+                                    次のQ
+                                </button>
+                            </div>
+                        </div>
+                        <div class="score-team opponent-score">
+                            <span id="liveOpponent">OPPONENT</span
+                            ><strong id="liveOpponentScore">0</strong>
+                        </div>
+                    </div>
+                    <div class="lineup-panel">
+                        <div>
+                            <strong>コート上の5人</strong
+                            ><span>交代のたびに更新すると出場時間を記録できます</span>
+                        </div>
+                        <button id="saveLineup" type="button" class="button-light">
+                            出場選手を保存
+                        </button>
+                    </div>
+                    <div id="lineupChoices" class="lineup-choices"></div>
+                    <div class="stat-entry">
+                        <div class="stat-entry-heading">
+                            <strong>記録する選手を選択</strong
+                            ><span>同時に一人だけ選択できます</span>
+                        </div>
+                        <div
+                            id="playerStatCards"
+                            class="player-select-grid"
+                            role="group"
+                            aria-label="スタッツを記録する選手"
+                        ></div>
+                        <p id="playerSelectionHint" class="player-selection-hint">
+                            選手を選ぶと、その選手の記録ボタンが表示されます。
+                        </p>
+                        <section
+                            id="selectedPlayerPanel"
+                            class="selected-player-panel"
+                            aria-label="選択中の選手のスタッツ"
+                            hidden
+                        >
+                            <div class="selected-player-heading">
+                                <div>
+                                    <span>記録対象</span><strong id="selectedPlayerName"></strong>
+                                </div>
+                                <button id="clearSelectedPlayer" type="button" class="button-light">
+                                    選択解除
+                                </button>
+                            </div>
+                            <div class="stat-group">
+                                <span class="stat-group-label">シュート</span>
+                                <div class="stat-buttons">
+                                    <button data-stat="FG2_MADE" class="stat-button stat-positive">
+                                        2P 成功 <b>+2</b></button
+                                    ><button data-stat="FG2_MISS" class="stat-button">
+                                        2P 失敗
+                                    </button>
+                                    <button data-stat="FG3_MADE" class="stat-button stat-positive">
+                                        3P 成功 <b>+3</b></button
+                                    ><button data-stat="FG3_MISS" class="stat-button">
+                                        3P 失敗
+                                    </button>
+                                    <button data-stat="FT_MADE" class="stat-button stat-positive">
+                                        FT 成功 <b>+1</b></button
+                                    ><button data-stat="FT_MISS" class="stat-button">
+                                        FT 失敗
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="stat-group">
+                                <span class="stat-group-label">プレー</span>
+                                <div class="stat-buttons stat-play-buttons">
+                                    <button data-stat="OREB" class="stat-button">
+                                        OFリバウンド</button
+                                    ><button data-stat="DREB" class="stat-button">
+                                        DFリバウンド
+                                    </button>
+                                    <button data-stat="AST" class="stat-button">アシスト</button
+                                    ><button data-stat="STL" class="stat-button">スティール</button>
+                                    <button data-stat="BLK" class="stat-button">ブロック</button
+                                    ><button data-stat="TO" class="stat-button">
+                                        ターンオーバー</button
+                                    ><button data-stat="PF" class="stat-button">ファウル</button>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                    <div class="scorekeeper-bottom">
+                        <button id="undoAction" type="button" class="button-light">
+                            ↶ 直前の記録を取り消す
+                        </button>
+                        <div class="opponent-final">
+                            <label
+                                >相手の最終得点<input
+                                    id="finalOpponentScore"
+                                    type="number"
+                                    min="0"
+                                    value="0" /></label
+                            ><button id="finishGame" type="button" class="button-finish">
+                                試合を終了して保存
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        id="scorekeeperStatus"
+                        class="score-status"
+                        role="status"
+                        aria-live="polite"
+                    ></div>
+                    <div id="recentActions" class="recent-actions"></div>
+                    <h3 class="game-boxscore-heading">この試合のボックススコア</h3>
+                    <div class="table-scroll">
+                        <table class="boxscore-table">
+                            <thead>
+                                <tr>
+                                    <th>選手</th>
+                                    <th>POS</th>
+                                    <th>MIN</th>
+                                    <th>PTS</th>
+                                    <th>REB</th>
+                                    <th>AST</th>
+                                    <th>STL</th>
+                                    <th>BLK</th>
+                                    <th>FGM/FGA</th>
+                                    <th>FG%</th>
+                                    <th>2PM/2PA</th>
+                                    <th>2P%</th>
+                                    <th>3PM/3PA</th>
+                                    <th>3P%</th>
+                                    <th>FTM/FTA</th>
+                                    <th>FT%</th>
+                                    <th>OREB</th>
+                                    <th>DREB</th>
+                                    <th>TO</th>
+                                    <th>PF</th>
+                                    <th>EFF</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gameBoxscoreBody"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="section score-card leaderboard-card" id="leaderboardCard">
+                    <div class="ranking-title-row">
+                        <div class="score-section-title">
+                            <span class="score-icon score-icon-orange">★</span>
+                            <div>
+                                <h2>シーズンランキング</h2>
+                                <p id="rankingSeasonLabel">今シーズンの確定試合</p>
+                            </div>
+                        </div>
+                        <div class="ranking-tools">
+                            <label class="ranking-sort"
+                                >シーズン<select id="seasonSelect"></select></label
+                            ><label class="ranking-sort"
+                                >順位を見る項目<select id="rankingMetric">
+                                    <option value="points">得点</option>
+                                    <option value="REB">リバウンド</option>
+                                    <option value="AST">アシスト</option>
+                                    <option value="STL">スティール</option>
+                                    <option value="BLK">ブロック</option>
+                                    <option value="3PM">3P成功</option>
+                                    <option value="FGM">FG成功</option>
+                                    <option value="minutesSeconds">出場時間</option>
+                                    <option value="EFF">EFF</option>
+                                </select></label
+                            ><button id="exportStatsButton" type="button" class="button-light">
+                                CSVを書き出す
+                            </button>
+                        </div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="boxscore-table">
+                            <thead>
+                                <tr>
+                                    <th>選手</th>
+                                    <th>POS</th>
+                                    <th>GP</th>
+                                    <th>W-L-D</th>
+                                    <th>MIN</th>
+                                    <th>PTS</th>
+                                    <th>REB</th>
+                                    <th>AST</th>
+                                    <th>STL</th>
+                                    <th>BLK</th>
+                                    <th>FGM/FGA</th>
+                                    <th>FG%</th>
+                                    <th>2PM/2PA</th>
+                                    <th>2P%</th>
+                                    <th>3PM/3PA</th>
+                                    <th>3P%</th>
+                                    <th>FTM/FTA</th>
+                                    <th>FT%</th>
+                                    <th>OREB</th>
+                                    <th>DREB</th>
+                                    <th>TO</th>
+                                    <th>PF</th>
+                                    <th>EFF</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboardBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="leaderboardEmpty" class="empty-state" hidden>
+                        試合を確定すると、選手ランキングが表示されます。
+                    </div>
+                    <section
+                        id="playerTrendPanel"
+                        class="player-trend-panel"
+                        hidden
+                        aria-live="polite"
+                    >
+                        <div class="player-trend-heading">
+                            <div>
+                                <span class="eyebrow">PLAYER FORM</span>
+                                <h3 id="playerTrendTitle">個人スタッツの推移</h3>
+                            </div>
+                            <div class="player-trend-controls">
+                                <label
+                                    >項目<select id="playerTrendMetric">
+                                        <option value="points">得点</option>
+                                        <option value="REB">リバウンド</option>
+                                        <option value="AST">アシスト</option>
+                                        <option value="minutesSeconds">出場時間</option>
+                                    </select></label
+                                ><button id="closePlayerTrend" type="button" class="button-light">
+                                    閉じる
+                                </button>
+                            </div>
+                        </div>
+                        <div id="playerTrendChart" class="player-trend-chart"></div>
+                        <div id="playerTrendGames" class="player-trend-games"></div>
+                    </section>
+                </section>
+            </main>
+            <div id="scorebookToast" class="scorebook-toast" role="status" aria-live="polite"></div>
+        </div>
+        <dialog id="editGameDialog" class="scorebook-dialog">
+            <form id="editGameForm" method="dialog">
+                <h2>試合内容を編集</h2>
+                <input id="editingGameId" type="hidden" /><label
+                    >試合日<input id="editGameDate" type="date" required /></label
+                ><label>対戦相手<input id="editOpponent" maxlength="100" required /></label
+                ><label
+                    >1Qの時間（分）<input
+                        id="editQuarterMinutes"
+                        type="number"
+                        min="1"
+                        max="20"
+                        required /></label
+                ><label id="editOpponentScoreLabel" hidden
+                    >相手得点<input
+                        id="editOpponentScore"
+                        type="number"
+                        min="0"
+                        placeholder="未入力の試合は空欄のまま"
+                /></label>
+                <p id="editGameHint" class="field-hint"></p>
+                <div class="dialog-actions">
+                    <button type="button" id="cancelGameEdit" class="button-light">
+                        キャンセル</button
+                    ><button class="button-accent">変更を保存</button>
+                </div>
+            </form>
+        </dialog>
+        <dialog
+            id="accountDeleteDialog"
+            class="account-delete-dialog"
+            aria-labelledby="accountDeleteTitle"
+        >
+            <form id="accountDeleteForm">
+                <span class="eyebrow">ACCOUNT CONTROL</span>
+                <h2 id="accountDeleteTitle">アカウントを削除しますか？</h2>
+                <p>
+                    この操作は取り消せません。Cognitoのログインアカウントを削除します。共有の予定・チーム・試合データは削除されません。
+                </p>
+                <p id="adminDeletionWarning" hidden>
+                    管理者の場合、削除前に別の管理者を追加してください。管理者がいなくなると、登録や編集を行えなくなります。
+                </p>
+                <label
+                    >確認のため「削除する」と入力してください<input
+                        id="accountDeleteConfirmation"
+                        autocomplete="off"
+                        required
+                /></label>
+                <p id="accountDeleteStatus" role="status" aria-live="polite"></p>
+                <div class="account-delete-actions">
+                    <button type="button" class="button-light" id="cancelAccountDelete">
+                        キャンセル</button
+                    ><button type="submit" class="button-danger" id="confirmAccountDelete" disabled>
+                        アカウントを削除
+                    </button>
+                </div>
+            </form>
+        </dialog>
+        <script src="account-menu.js"></script>
+        <script src="basketball-data-utils.js"></script>
+        <script src="basketball.js"></script>
+    </body>
+</html>

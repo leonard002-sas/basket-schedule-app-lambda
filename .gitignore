@@ -6,5 +6,8 @@ bin/
 
 # Gradle
 .gradle/
+node_modules/
+.gradle-home-*/
+gradle-home-*/
 build/
 .kotlin/
