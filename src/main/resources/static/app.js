@@ -1766,12 +1766,6 @@ async function showScheduleDetail(
         const videoTags = String(detail.videoTags || "").split(",").map(tag => tag.trim()).filter(Boolean);
         document.getElementById("detailVideoTags").textContent = videoTags.join(" · ");
         document.getElementById("detailVideoTagsRow").hidden = videoTags.length === 0;
-        const competitionRow = document.getElementById("detailCompetitionRow");
-        const roundRow = document.getElementById("detailRoundRow");
-        document.getElementById("detailCompetition").textContent = detail.competitionName || "";
-        document.getElementById("detailRound").textContent = detail.round || "";
-        competitionRow.hidden = detail.eventType !== "GAME" || !detail.competitionName;
-        roundRow.hidden = detail.eventType !== "GAME" || !detail.round;
 
 
         document.getElementById(
