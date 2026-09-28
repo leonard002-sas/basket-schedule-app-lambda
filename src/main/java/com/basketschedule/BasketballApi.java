@@ -180,6 +180,8 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
         int quarterMinutes = b.path("quarterMinutes").asInt(10);
         if (quarterMinutes < 1 || quarterMinutes > 20) throw new IllegalArgumentException("クォーター時間は1〜20分で指定してください");
         String linkedMonth=b.path("scheduleMonth").asText(""); String linkedStart=b.path("startDateTime").asText("");
+        String competitionName=b.path("competitionName").asText("").trim(); String round=b.path("round").asText("").trim();
+        if(competitionName.length()>80||round.length()>40)throw new IllegalArgumentException("大会名は80文字、ラウンドは40文字以内で入力してください");
         String teamPartition = teamPk(teamId);
         if(!linkedMonth.isBlank()&&!linkedStart.isBlank()) for(var existing:rows(teamPartition,"GAME#")) {
             if(linkedMonth.equals(str(existing,"scheduleMonth"))&&linkedStart.equals(str(existing,"startDateTime"))) throw new ApiException(409,"GAME_EXISTS","この試合予定はすでにスコア記録へ登録されています");
@@ -195,6 +197,8 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
         game.put("teamId", s(teamId));
         if (!linkedMonth.isBlank()) game.put("scheduleMonth", s(linkedMonth));
         if (!linkedStart.isBlank()) game.put("startDateTime", s(linkedStart));
+        if(!competitionName.isBlank())game.put("competitionName",s(competitionName));
+        if(!round.isBlank())game.put("round",s(round));
         db.putItem(PutItemRequest.builder().tableName(TABLE).item(game).build());
         Map<String, AttributeValue> meta = new HashMap<>(game);
         meta.put("pk", s("GAME#" + id)); meta.put("sk", s("META"));

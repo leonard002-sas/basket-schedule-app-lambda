@@ -626,6 +626,9 @@
 
 					</div>
 
+					<div class="detail-row" id="detailCompetitionRow" hidden><span class="detail-label">大会</span><span id="detailCompetition" class="detail-value"></span></div>
+					<div class="detail-row" id="detailRoundRow" hidden><span class="detail-label">ラウンド</span><span id="detailRound" class="detail-value"></span></div>
+
 
 					<div class="detail-row">
 
@@ -755,6 +758,8 @@
 							<option value="GAME">試合</option>
 						</select>
 					</div>
+					<div class="detail-row schedule-game-meta" id="editCompetitionRow" hidden><span class="detail-label">大会名</span><input id="editCompetitionName" type="text" maxlength="80" placeholder="例：2026秋北区大会"></div>
+					<div class="detail-row schedule-game-meta" id="editRoundRow" hidden><span class="detail-label">ラウンド</span><input id="editRound" type="text" maxlength="40" list="basketballRoundOptions" placeholder="例：1回戦"></div>
 
 					<div class="detail-row">
 
@@ -951,6 +956,7 @@
 	</div>
 	<script src="image-jobs.js"></script>
 	<script src="app.js"></script>
+	<datalist id="basketballRoundOptions"><option value="1回戦"><option value="2回戦"><option value="準々決勝"><option value="準決勝"><option value="決勝"><option value="3位決定戦"></datalist>
 
 </body>
 

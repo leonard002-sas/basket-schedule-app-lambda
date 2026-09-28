@@ -103,6 +103,12 @@ public class ScheduleRegisterApi
                 if (!"PRACTICE".equals(eventType) && !"GAME".equals(eventType)) {
                     throw new IllegalArgumentException("予定種別が不正です");
                 }
+                String competitionName = optionalText(schedule, "competitionName", 80);
+                String round = optionalText(schedule, "round", 40);
+                if (!"GAME".equals(eventType)) {
+                    competitionName = "";
+                    round = "";
+                }
 
                 // ------------------------------------
                 // 日付・時刻チェック
@@ -210,6 +216,8 @@ public class ScheduleRegisterApi
                                 .s(eventType)
                                 .build()
                 );
+                if (!competitionName.isBlank()) item.put("competitionName", AttributeValue.builder().s(competitionName).build());
+                if (!round.isBlank()) item.put("round", AttributeValue.builder().s(round).build());
 
                 PutItemRequest request =
                         PutItemRequest.builder()
@@ -313,6 +321,14 @@ public class ScheduleRegisterApi
         }
 
         return value.asText();
+    }
+
+    private String optionalText(JsonNode node, String fieldName, int maxLength) {
+        JsonNode value = node.get(fieldName);
+        if (value == null || value.isNull()) return "";
+        String text = value.asText().trim();
+        if (text.length() > maxLength) throw new IllegalArgumentException(fieldName + "は" + maxLength + "文字以内で入力してください");
+        return text;
     }
 
     // ========================================

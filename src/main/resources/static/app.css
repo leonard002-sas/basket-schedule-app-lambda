@@ -219,6 +219,11 @@ input:focus, select:focus, textarea:focus {
 .schedule-row { display: grid !important; grid-template-columns: minmax(96px, .7fr) minmax(140px, 1fr) minmax(105px, .75fr) 16px minmax(105px, .75fr) minmax(190px, 1.2fr) auto; gap: 8px !important; min-width: 790px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: #fafbfd; }
 .schedule-row input, .schedule-row select { width: 100% !important; min-width: 0; }
 .schedule-row > span { color: var(--muted); }
+.schedule-game-fields { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(220px, 1.4fr) minmax(180px, 1fr); gap: 10px; padding-top: 4px; }
+.schedule-game-fields label { display: grid; gap: 5px; color: #526177; font-size: 11px; font-weight: 700; }
+.schedule-game-fields input { background: #fff; }
+.schedule-game-meta { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; gap: 10px; }
+.schedule-game-meta[hidden] { display: none !important; }
 .event-dot.event-practice { color: #263c5b; background: #eff8dc !important; }
 .event-dot.event-game { color: #8b4525; background: #fff0e8 !important; border-left: 3px solid #ff8a4c; }
 .event-dot.event-practice:hover { background: #e4f3c5 !important; }
@@ -227,6 +232,7 @@ input:focus, select:focus, textarea:focus {
 .upcoming-schedule.event-game { border-left: 4px solid #ff8a4c; padding-left: 14px; }
 .upcoming-kind { display: inline-flex; margin-bottom: 6px; padding: 3px 9px; border-radius: 99px; color: #263c5b; background: #eff8dc; font-size: 11px; font-weight: 800; }
 .upcoming-schedule.event-game .upcoming-kind { color: #8b4525; background: #fff0e8; }
+.upcoming-competition { margin-top: 8px; color: #8b4525; font-size: 12px; }
 .delete-button { min-height: 38px; padding: 7px 10px !important; color: #9c3e35; background: #fff; border-color: #f0d6d3; box-shadow: none; font-size: 12px; }
 #addScheduleButton { margin: 4px 0 17px; color: #41537a; background: #f1f4fa; border-color: #e3e9f1; box-shadow: none; }
 .registration-grid #registerButton { min-width: 150px; }

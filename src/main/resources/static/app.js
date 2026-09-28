@@ -432,6 +432,7 @@ function displayCalendar() {
 
             event.textContent =
                 `${formatTime(start)}～${formatTime(end)}`;
+            event.title = [schedule.competitionName, schedule.round].filter(Boolean).join(" · ");
 
 
             // ========================================
@@ -678,6 +679,7 @@ function displaySchedule() {
             <div class="upcoming-time-zone">
                 ${schedule.timeZone}
             </div>
+            ${schedule.competitionName ? `<div class="upcoming-competition"><strong>${escapeHtml(schedule.competitionName)}</strong>${schedule.round ? ` · ${escapeHtml(schedule.round)}` : ""}</div>` : ""}
         `;
 
 
@@ -1004,7 +1006,8 @@ async function exportCurrentMonthToIcs() {
         const start = new Date(schedule.startDateTime);
         const end = new Date(schedule.endDateTime);
         const facility = facilities.find(item => item.facilityId === schedule.facilityId);
-        const title = schedule.eventType === "GAME" ? "試合" : "練習";
+        const title = [schedule.eventType === "GAME" ? "試合" : "練習", schedule.competitionName, schedule.round]
+            .filter(Boolean).join(" · ");
         const location = [facility?.facilityName, facility?.address]
             .filter(Boolean)
             .join(" ");
@@ -1618,6 +1621,12 @@ async function showScheduleDetail(
 
         document.getElementById("detailEventType").textContent =
             detail.eventType === "GAME" ? "試合" : "練習";
+        const competitionRow = document.getElementById("detailCompetitionRow");
+        const roundRow = document.getElementById("detailRoundRow");
+        document.getElementById("detailCompetition").textContent = detail.competitionName || "";
+        document.getElementById("detailRound").textContent = detail.round || "";
+        competitionRow.hidden = detail.eventType !== "GAME" || !detail.competitionName;
+        roundRow.hidden = detail.eventType !== "GAME" || !detail.round;
 
 
         document.getElementById(
@@ -2216,6 +2225,9 @@ function enterEditMode() {
 
     document.getElementById("editEventType").value =
         currentScheduleDetail.eventType === "GAME" ? "GAME" : "PRACTICE";
+    document.getElementById("editCompetitionName").value = currentScheduleDetail.competitionName || "";
+    document.getElementById("editRound").value = currentScheduleDetail.round || "";
+    updateScheduleGameFields();
 
 
     if (editDate) {
@@ -2282,6 +2294,14 @@ function enterEditMode() {
     );
 
 }
+
+function updateScheduleGameFields() {
+    const isGame = document.getElementById("editEventType")?.value === "GAME";
+    document.getElementById("editCompetitionRow").hidden = !isGame;
+    document.getElementById("editRoundRow").hidden = !isGame;
+}
+
+document.getElementById("editEventType")?.addEventListener("change", updateScheduleGameFields);
 
 // ========================================
 // 保存
@@ -2444,7 +2464,13 @@ if (saveScheduleButton) {
                                         facilityId,
 
                                     eventType:
-                                        document.getElementById("editEventType").value
+                                        document.getElementById("editEventType").value,
+
+                                    competitionName:
+                                        document.getElementById("editCompetitionName").value.trim(),
+
+                                    round:
+                                        document.getElementById("editRound").value.trim()
 
                                 })
                         }

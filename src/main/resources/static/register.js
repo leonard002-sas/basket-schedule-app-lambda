@@ -290,6 +290,11 @@ if (addScheduleButton) {
                 >
                     削除
                 </button>
+
+                <div class="schedule-game-fields" hidden>
+                    <label>大会名（任意）<input type="text" class="competition-name-input" maxlength="80" placeholder="例：2026秋北区大会"></label>
+                    <label>ラウンド（任意）<input type="text" class="round-input" maxlength="40" list="basketballRoundOptions" placeholder="例：1回戦"></label>
+                </div>
             `;
 
 
@@ -318,6 +323,15 @@ if (addScheduleButton) {
 // ========================================
 
 if (scheduleRows) {
+
+    scheduleRows.addEventListener("change", event => {
+        if (!event.target.matches(".event-type-select")) return;
+        const row = event.target.closest(".schedule-row");
+        const fields = row?.querySelector(".schedule-game-fields");
+        if (!fields) return;
+        fields.hidden = event.target.value !== "GAME";
+        if (fields.hidden) fields.querySelectorAll("input").forEach(input => { input.value = ""; });
+    });
 
     scheduleRows.addEventListener(
         "click",
@@ -412,6 +426,8 @@ if (registerButton) {
 
                         const eventType =
                             row.querySelector(".event-type-select").value;
+                        const competitionName = row.querySelector(".competition-name-input")?.value.trim() || "";
+                        const round = row.querySelector(".round-input")?.value.trim() || "";
 
                         const facilityName =
                             facilitySelect
@@ -438,7 +454,13 @@ if (registerButton) {
                                 facilityName,
 
                             eventType:
-                                eventType
+                                eventType,
+
+                            competitionName:
+                                eventType === "GAME" ? competitionName : "",
+
+                            round:
+                                eventType === "GAME" ? round : ""
 
                         });
 

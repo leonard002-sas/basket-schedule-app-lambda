@@ -211,6 +211,9 @@ public class ScheduleApi
                     eventTypeOrDefault(item)
             );
 
+            schedule.put("competitionName", getString(item, "competitionName"));
+            schedule.put("round", getString(item, "round"));
+
             result.add(schedule);
         }
 
@@ -307,6 +310,8 @@ public class ScheduleApi
         schedule.put(
                 "eventType",
                 eventTypeOrDefault(item));
+        schedule.put("competitionName", getString(item, "competitionName"));
+        schedule.put("round", getString(item, "round"));
 
         // ========================================
         // 曜日
@@ -498,6 +503,10 @@ public class ScheduleApi
         if (!"PRACTICE".equals(eventType) && !"GAME".equals(eventType)) {
             throw new IllegalArgumentException("予定種別が不正です");
         }
+        String competitionName = body.hasNonNull("competitionName") ? body.get("competitionName").asText().trim() : getString(oldItem.item(), "competitionName");
+        String round = body.hasNonNull("round") ? body.get("round").asText().trim() : getString(oldItem.item(), "round");
+        if (competitionName.length() > 80 || round.length() > 40) throw new IllegalArgumentException("大会名は80文字、ラウンドは40文字以内で入力してください");
+        if (!"GAME".equals(eventType)) { competitionName = ""; round = ""; }
 
         // ========================================
         // 旧データ削除
@@ -562,6 +571,8 @@ public class ScheduleApi
                         .s(eventType)
                         .build()
         );
+        if (!competitionName.isBlank()) newItem.put("competitionName", AttributeValue.builder().s(competitionName).build());
+        if (!round.isBlank()) newItem.put("round", AttributeValue.builder().s(round).build());
 
         dynamoDbClient.putItem(
                 PutItemRequest.builder()

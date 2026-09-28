@@ -20,6 +20,7 @@
         <span class="eyebrow">TEAM SCOREBOOK</span>
         <h1 id="scorebookPageTitle">チーム管理</h1>
         <p id="scorebookPageDescription">チームを登録して、選手と試合を管理します。</p>
+        <p id="memberViewNote" class="member-view-note" hidden>メンバー閲覧モード：チーム、登録メンバー、試合結果、ランキングを確認できます。登録・編集は管理者のみ行えます。</p>
     </section>
 
     <nav class="scorebook-nav" aria-label="スコアブックメニュー">
@@ -52,7 +53,7 @@
         </section>
 
         <section class="section score-card" id="gamesCard">
-            <div class="score-section-title"><span class="score-icon">▤</span><div><h2>試合</h2><p>試合を選ぶと記録画面を開きます。</p></div></div>
+            <div class="games-list-heading"><div class="score-section-title"><span class="score-icon">▤</span><div><h2>試合</h2><p>日付順に表示します。大会別にまとめることもできます。</p></div></div><div class="games-list-tools"><label>表示順<select id="gameGrouping"><option value="date">日付順</option><option value="competition">大会別</option></select></label><button id="exportGamesButton" type="button" class="button-light">試合一覧CSV</button></div></div>
             <div id="gamesList" class="games-list"></div>
         </section>
 

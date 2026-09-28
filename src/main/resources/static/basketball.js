@@ -52,7 +52,7 @@ async function loadEverything() {
     select.value=activeTeamId;
     if(activeTeamId)localStorage.setItem("basket_team_id",activeTeamId);else localStorage.removeItem("basket_team_id");
     team=selectedTeamData?.team||{}; players=activeTeamId?statRows(selectedTeamData?.players).map(p=>({...p,playerId:playerId(p)})):[];
-    games=view==="games"&&activeTeamId?statRows(extraData[0]).sort((a,b)=>String(b.date).localeCompare(String(a.date))):[];
+    games=view==="games"&&activeTeamId?statRows(extraData[0]).sort((a,b)=>String(a.date).localeCompare(String(b.date))):[];
     const rankingData=view==="rankings"&&activeTeamId?statRows(extraData[0]):[];
     document.getElementById("teamName").value=team.name||"";
     document.getElementById("liveTeamName").textContent=team.name||"チーム";
@@ -98,7 +98,7 @@ async function loadScheduleOptions() {
         const linked=new Set(games.filter(g=>g.scheduleMonth&&g.startDateTime).map(scheduleId));
         const available=scheduleRows.filter(s=>!linked.has(scheduleId(s))).sort((a,b)=>String(a.startDateTime).localeCompare(String(b.startDateTime)));
         const wanted=selectedSchedule?scheduleId(selectedSchedule):[qs.get("scheduleMonth"),qs.get("startDateTime")].filter(Boolean).join("|");
-        select.innerHTML=`<option value="">予定表から選択（任意）</option>${available.length?available.map(s=>`<option value="${escapeAttr(scheduleId(s))}">${escapeHtml(s.startDateTime?.replace("T"," ")||"日時未設定")} · ${escapeHtml(s.facilityName||"試合予定")}</option>`).join(""):"<option disabled>紐づけ可能な試合予定はありません</option>"}`;
+        select.innerHTML=`<option value="">予定表から選択（任意）</option>${available.length?available.map(s=>`<option value="${escapeAttr(scheduleId(s))}">${escapeHtml(s.startDateTime?.replace("T"," ")||"日時未設定")} · ${escapeHtml(s.competitionName?`${s.competitionName}${s.round?` · ${s.round}`:""}`:s.facilityName||"試合予定")}</option>`).join(""):"<option disabled>紐づけ可能な試合予定はありません</option>"}`;
         selectedSchedule=available.find(s=>scheduleId(s)===wanted)||null;
         select.value=selectedSchedule?scheduleId(selectedSchedule):"";
         if(selectedSchedule)document.getElementById("gameDate").value=selectedSchedule.startDateTime.slice(0,10);
@@ -110,8 +110,20 @@ async function loadScheduleOptions() {
 
 function renderGames() {
     const box=document.getElementById("gamesList");
+    document.getElementById("exportGamesButton").disabled=games.length===0;
     if(!games.length){box.innerHTML="<div class='empty-state'>試合はまだありません。</div>";return;}
-    box.innerHTML=games.map(g=>{const done=g.status==="FINAL",admin=isAdmin(),resultText=g.result==="U"?"結果未入力":g.result||"";return `<div class="game-item"><div><strong>${escapeHtml(g.date||"")} · ${escapeHtml(team.name||"チーム")} vs ${escapeHtml(g.opponent||"相手")}</strong><span>${g.scheduleMonth?"予定表と連携済み · ":""}${done?`${g.teamScore||0} - ${g.result==="U"?"—":g.opponentScore||0} · ${resultText}`:g.status==="LIVE"?"記録中":"未開始"}</span></div><div class="game-item-actions"><button type="button" data-open-game="${escapeAttr(g.gameId)}" class="${done?"button-light":admin?"button-accent":"button-light"}">${done?"結果を見る":admin?g.status==="LIVE"?"記録を再開":"スコア記録":"詳細を見る"}</button>${admin?`<button type="button" data-edit-game="${escapeAttr(g.gameId)}" class="button-light">編集</button>`:""}</div></div>`;}).join("");
+    const itemHtml=g=>{const done=g.status==="FINAL",admin=isAdmin(),resultText=g.result==="U"?"結果未入力":g.result||"";return `<div class="game-item"><div><strong>${escapeHtml(g.date||"")} · ${escapeHtml(team.name||"チーム")} vs ${escapeHtml(g.opponent||"相手")}</strong><span>${done?`${g.teamScore||0} - ${g.result==="U"?"—":g.opponentScore||0} · ${resultText}`:g.status==="LIVE"?"記録中":"未開始"}</span>${g.round?`<div class="game-item-meta"><span class="game-meta-chip game-competition-chip">${escapeHtml(g.round)}</span></div>`:""}</div><div class="game-item-actions"><button type="button" data-open-game="${escapeAttr(g.gameId)}" class="${done?"button-light":admin?"button-accent":"button-light"}">${done?"結果を見る":admin?g.status==="LIVE"?"記録を再開":"スコア記録":"詳細を見る"}</button>${admin?`<button type="button" data-edit-game="${escapeAttr(g.gameId)}" class="button-light">編集</button>`:""}</div></div>`;};
+    if(document.getElementById("gameGrouping").value==="date"){box.innerHTML=games.map(itemHtml).join("");return;}
+    const groups=new Map();
+    games.forEach(g=>{const name=g.competitionName||"大会未設定";if(!groups.has(name))groups.set(name,[]);groups.get(name).push(g);});
+    box.innerHTML=[...groups.entries()].map(([competition,rows])=>`<section class="game-competition-group"><h3 class="game-competition-heading">${escapeHtml(competition)}</h3>${rows.map(itemHtml).join("")}</section>`).join("");
+}
+
+function exportGamesCsv() {
+    const headers=["DATE","COMPETITION","ROUND","TEAM","OPPONENT","TEAM_SCORE","OPPONENT_SCORE","RESULT","STATUS"];
+    const data=games.map(g=>[g.date||"",g.competitionName||"",g.round||"",team.name||"",g.opponent||"",g.status==="FINAL"?g.teamScore??0:"",g.status==="FINAL"&&g.result!=="U"?g.opponentScore??0:"",g.result==="U"?"":g.result||"",g.status||""]);
+    const csv=[headers,...data].map(row=>row.map(csvCell).join(",")).join("\r\n");
+    const url=URL.createObjectURL(new Blob(["\uFEFF",csv],{type:"text/csv;charset=utf-8"}));const link=document.createElement("a");link.href=url;link.download=`games-${activeTeamId}.csv`;link.click();URL.revokeObjectURL(url);
 }
 
 function renderLeaderboard(rows) {
@@ -177,9 +189,12 @@ async function openGame(id) {
         selectedPlayerId="";
         document.getElementById("scorekeeperCard").hidden=false;
         const admin=isAdmin();
-        ["clockToggle","nextPeriod","saveLineup","undoAction","finishGame","finalOpponentScore"].forEach(key=>{const el=document.getElementById(key);if(el)el.closest(".clock-controls,.lineup-panel,.scorekeeper-bottom")?.classList.toggle("viewer-hidden",!admin);});
-        document.querySelector(".stat-entry").classList.toggle("viewer-hidden",!admin);
-        document.getElementById("lineupChoices").classList.toggle("viewer-hidden",!admin);
+        const readOnly=!admin||currentGame.status==="FINAL";
+        document.getElementById("scorekeeperCard").classList.toggle("is-readonly",readOnly);
+        ["clockToggle","nextPeriod","saveLineup","undoAction","finishGame","finalOpponentScore"].forEach(key=>{const el=document.getElementById(key);if(el)el.closest(".clock-controls,.lineup-panel,.scorekeeper-bottom")?.classList.toggle("viewer-hidden",readOnly);});
+        document.querySelector(".stat-entry").classList.toggle("viewer-hidden",readOnly);
+        document.getElementById("lineupChoices").classList.toggle("viewer-hidden",readOnly);
+        document.querySelector("#scorekeeperCard .eyebrow").textContent=readOnly?"GAME RESULT":"LIVE GAME";
         document.getElementById("liveGameTitle").textContent=`${currentGame.date} · vs ${currentGame.opponent}`;
         document.getElementById("liveTeamName").textContent=team.name||"チーム";
         document.getElementById("liveOpponent").textContent=currentGame.opponent||"相手";
@@ -230,7 +245,7 @@ document.getElementById("playerForm").addEventListener("submit",async e=>{e.prev
 document.getElementById("cancelPlayerEdit").addEventListener("click",resetPlayerForm);
 document.getElementById("rosterList").addEventListener("click",async e=>{const edit=e.target.closest("[data-edit-player]");if(edit){const player=players.find(p=>p.playerId===edit.dataset.editPlayer);if(!player)return;document.getElementById("playerEditingId").value=player.playerId;document.getElementById("playerName").value=player.name||"";document.getElementById("playerPosition").value=player.position||"";document.getElementById("playerNumber").value=Number(player.number)||"";document.getElementById("savePlayerButton").textContent="変更を保存";document.getElementById("cancelPlayerEdit").hidden=false;document.getElementById("playerName").focus();return;}const remove=e.target.closest("[data-remove-player]");if(remove){const player=players.find(p=>p.playerId===remove.dataset.removePlayer);if(!player||!confirm(`${player.name}をメンバー一覧から削除しますか？過去の試合記録は残ります。`))return;try{await api("player","DELETE",null,{playerId:player.playerId});await loadEverything();toast("メンバーを一覧から削除しました");}catch(err){toast(err.message);}}});
 document.getElementById("scheduleGameSelect").addEventListener("change",e=>{selectedSchedule=scheduleRows.find(s=>scheduleId(s)===e.target.value)||null;if(selectedSchedule)document.getElementById("gameDate").value=selectedSchedule.startDateTime.slice(0,10);});
-document.getElementById("gameForm").addEventListener("submit",async e=>{e.preventDefault();if(!activeTeamId){toast("先にチームを登録してください");return;}try{const body={date:document.getElementById("gameDate").value,opponent:document.getElementById("opponent").value.trim(),quarterMinutes:Number(document.getElementById("quarterMinutes").value)||10};if(selectedSchedule){body.scheduleMonth=selectedSchedule.scheduleMonth;body.startDateTime=selectedSchedule.startDateTime;}await api("game","PUT",body);e.target.reset();selectedSchedule=null;document.getElementById("quarterMinutes").value=10;await loadEverything();document.getElementById("gameStatus").textContent="試合を登録しました。予定表の試合と紐づけました。";}catch(err){document.getElementById("gameStatus").textContent=err.message;}});
+document.getElementById("gameForm").addEventListener("submit",async e=>{e.preventDefault();if(!activeTeamId){toast("先にチームを登録してください");return;}try{const body={date:document.getElementById("gameDate").value,opponent:document.getElementById("opponent").value.trim(),quarterMinutes:Number(document.getElementById("quarterMinutes").value)||10};if(selectedSchedule){body.scheduleMonth=selectedSchedule.scheduleMonth;body.startDateTime=selectedSchedule.startDateTime;body.competitionName=selectedSchedule.competitionName||"";body.round=selectedSchedule.round||"";}await api("game","PUT",body);e.target.reset();selectedSchedule=null;document.getElementById("quarterMinutes").value=10;await loadEverything();document.getElementById("gameStatus").textContent="試合を登録しました。予定表の大会・ラウンド情報も紐づけました。";}catch(err){document.getElementById("gameStatus").textContent=err.message;}});
 document.getElementById("gamesList").addEventListener("click",e=>{const edit=e.target.closest("[data-edit-game]");if(edit){const game=games.find(g=>g.gameId===edit.dataset.editGame);if(!game)return;document.getElementById("editingGameId").value=game.gameId;document.getElementById("editGameDate").value=game.date||"";document.getElementById("editOpponent").value=game.opponent||"";document.getElementById("editQuarterMinutes").value=Number(game.quarterMinutes)||10;document.getElementById("editQuarterMinutes").disabled=game.status!=="READY";document.getElementById("editOpponentScoreLabel").hidden=game.status!=="FINAL";document.getElementById("editOpponentScore").value=game.result==="U"?"":Number(game.opponentScore)||0;document.getElementById("editGameHint").textContent=game.status==="READY"?"試合開始前のため、クォーター時間も変更できます。":game.status==="FINAL"?"試合日・対戦相手と、必要なら相手得点を修正できます。":"試合開始後はクォーター時間を変更できません。";document.getElementById("editGameDialog").showModal();return;}const b=e.target.closest("[data-open-game]");if(b)openGame(b.dataset.openGame);});
 document.getElementById("cancelGameEdit").addEventListener("click",()=>document.getElementById("editGameDialog").close());
 document.getElementById("editGameForm").addEventListener("submit",async e=>{e.preventDefault();const gameId=document.getElementById("editingGameId").value;try{const body={gameId,date:document.getElementById("editGameDate").value,opponent:document.getElementById("editOpponent").value.trim(),quarterMinutes:Number(document.getElementById("editQuarterMinutes").value)||10},existing=games.find(g=>g.gameId===gameId);if(existing?.status==="FINAL"&&document.getElementById("editOpponentScore").value!=="")body.opponentScore=Number(document.getElementById("editOpponentScore").value);await api("game","PUT",body);document.getElementById("editGameDialog").close();await loadEverything();toast("試合内容を更新しました");}catch(err){toast(err.message);}});
@@ -244,6 +259,8 @@ document.getElementById("undoAction").addEventListener("click",async()=>{if(!cur
 document.getElementById("finishGame").addEventListener("click",async()=>{if(!currentGame)return;const score=Number(document.getElementById("finalOpponentScore").value);if(!Number.isInteger(score)||score<0){toast("相手の得点を確認してください");return;}if(!confirm("試合を終了し、ランキングに反映します。よろしいですか？"))return;try{const checked=[...document.querySelectorAll("#lineupChoices input:checked")].map(i=>i.value);await api("lineup","PUT",{gameId:currentGame.gameId,playerIds:[]});const result=await api("finish","PUT",{gameId:currentGame.gameId,opponentScore:score});toast(`試合を保存しました（${result.teamScore} - ${result.opponentScore}）`);currentGame=null;document.getElementById("scorekeeperCard").hidden=true;await loadEverything();}catch(e){toast(e.message);}});
 document.getElementById("closeGameButton").addEventListener("click",()=>{currentGame=null;document.getElementById("scorekeeperCard").hidden=true;});
 document.getElementById("rankingMetric").addEventListener("change",()=>renderLeaderboard(leaderboardRows));
+document.getElementById("gameGrouping").addEventListener("change",renderGames);
+document.getElementById("exportGamesButton").addEventListener("click",exportGamesCsv);
 document.getElementById("seasonSelect").addEventListener("change",async e=>{seasonYear=Number(e.target.value)||new Date().getFullYear();document.getElementById("rankingSeasonLabel").textContent=`${seasonYear}年シーズン · 確定試合の累計`;try{await loadEverything();}catch(err){toast(err.message);}});
 document.getElementById("exportStatsButton").addEventListener("click",downloadSeasonCsv);
 document.getElementById("csvImportForm").addEventListener("submit",async e=>{e.preventDefault();const status=document.getElementById("csvImportStatus"),file=document.getElementById("statsCsvFile").files[0];if(!file)return;status.textContent="CSVを読み込んでいます…";try{const text=await file.text();const importedPlayers=parseStatsCsv(text);const body={date:document.getElementById("importGameDate").value,opponent:document.getElementById("importOpponent").value.trim(),players:importedPlayers};const opponentScore=document.getElementById("importOpponentScore").value;if(opponentScore!=="")body.opponentScore=Number(opponentScore);seasonYear=Number(body.date.slice(0,4));const seasonSelect=document.getElementById("seasonSelect");if(![...seasonSelect.options].some(option=>Number(option.value)===seasonYear))seasonSelect.add(new Option(`${seasonYear}年`,String(seasonYear)));seasonSelect.value=String(seasonYear);document.getElementById("rankingSeasonLabel").textContent=`${seasonYear}年シーズン · 確定試合の累計`;const result=await api("import-game","PUT",body);await loadEverything();status.textContent=`過去試合を取り込みました。${result.playersImported}名の記録を${seasonYear}年ランキングに反映しました。`;e.target.reset();}catch(err){status.textContent=err.message;}});
@@ -265,8 +282,10 @@ function applyView() {
 async function init() {
     if(!token){location.replace("index.html");return;}
     document.body.style.display="block";
+    document.getElementById("memberViewNote").hidden=isAdmin();
     if(!isAdmin()) ["teamForm","playerForm","gameForm","newTeamButton","deleteTeamButton","csvImportForm"].forEach(id=>document.getElementById(id).classList.add("viewer-hidden"));
     applyView();
+    if(!isAdmin()){document.getElementById("newGameCard").hidden=true;document.querySelector(".csv-import-panel").classList.add("viewer-hidden");}
     const date=qs.get("date");document.getElementById("gameDate").value=date||new Date().toISOString().slice(0,10);
     document.getElementById("importGameDate").value=new Date().toISOString().slice(0,10);
     const seasonSelect=document.getElementById("seasonSelect");seasonSelect.innerHTML=Array.from({length:21},(_,i)=>new Date().getFullYear()-i).map(year=>`<option value="${year}">${year}年</option>`).join("");seasonSelect.value=String(seasonYear);
