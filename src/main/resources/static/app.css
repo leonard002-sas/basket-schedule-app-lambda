@@ -192,7 +192,7 @@ input:focus, select:focus, textarea:focus {
 .weekday { padding: 12px 4px !important; color: #637087; background: #f6f8fa !important; font-size: 11px; letter-spacing: .04em; }
 .calendar-day { min-height: 94px; background: #fff; }
 #scheduleList { margin-top: 20px; padding: 21px; }
-#scheduleRegisterButton { margin: 5px 0 18px; }
+#scheduleRegisterButton { margin: 0; }
 
 .section { padding: 25px !important; margin: 0 !important; }
 .section h2 { margin: 0 0 19px; font-size: 19px; letter-spacing: -.03em; }

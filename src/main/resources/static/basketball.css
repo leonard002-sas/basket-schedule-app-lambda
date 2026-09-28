@@ -12,6 +12,7 @@
 .global-team-select { margin:0 0 18px; }
 .team-create-button { margin-bottom:14px; color:#34445a; background:#fff; border-color:var(--line); box-shadow:none; }
 #newTeamButton { color:#34445a; background:#fff; border-color:var(--line); box-shadow:none; }
+.team-delete-button { min-height:38px; margin:0 0 14px 7px; padding:6px 10px; font-size:11px; }
 .scorebook-panel[hidden] { display:none!important; }
 .scorebook-hero { position: relative; overflow: hidden; margin: 8px 0 22px; padding: 24px 29px; border-radius: 22px; color: white; background: linear-gradient(112deg,#101d31,#1b3956); box-shadow: 0 16px 34px rgba(16,29,49,.13); }
 .scorebook-hero::after { position:absolute; top:-65px; right:5%; width:190px; height:190px; content:""; border:1px solid rgba(255,138,76,.45); border-radius:50%; background:linear-gradient(90deg,transparent 49.5%,rgba(255,138,76,.3) 50%,transparent 50.5%),linear-gradient(0deg,transparent 49.5%,rgba(255,138,76,.3) 50%,transparent 50.5%); pointer-events:none; }
@@ -28,16 +29,26 @@
 .team-form,.player-form,.game-form { display:flex; flex-wrap:wrap; align-items:end; gap:10px; }
 .team-form label,.player-form label,.game-form label,.player-picker-label,.opponent-final label { display:grid; flex:1 1 130px; gap:5px; color:#526177; font-size:11px; font-weight:750; }
 .team-form button,.player-form button,.game-form button { min-height:42px; color:var(--navy); background:var(--lime); }
-.player-form label:nth-child(2),.player-form label:nth-child(3) { flex:0 1 92px; }
+.player-form label:nth-child(2),.player-form label:nth-child(3) { flex:0 1 110px; }
+.game-form .schedule-game-label { flex-basis:100%; }
+.game-form .schedule-game-label select { max-width:100%; }
 .score-status { min-height:19px; margin-top:8px; color:var(--muted); font-size:12px; }
-.roster-list { display:flex; flex-wrap:wrap; gap:7px; margin-top:7px; }
+.roster-list { display:grid; gap:7px; margin-top:12px; }
 .roster-chip { display:inline-flex; align-items:center; gap:7px; padding:6px 10px; border:1px solid var(--line); border-radius:99px; color:#39485b; background:#fafbfd; font-size:11px; }
 .roster-chip strong { color:#b35b30; }
+.roster-member { display:flex; align-items:center; justify-content:space-between; gap:10px; min-width:0; padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:#fbfcfd; }
+.roster-member>div:first-child { min-width:0; }
+.roster-member strong,.roster-member span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.roster-member strong { font-size:12px; }
+.roster-member span { margin-top:2px; color:var(--muted); font-size:10px; }
+.roster-member-actions { display:flex; flex:0 0 auto; gap:5px; }
+.roster-member-actions button { min-height:34px; padding:5px 9px; font-size:10px; }
 .games-list { display:grid; gap:8px; }
 .game-item { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 12px; border:1px solid var(--line); border-radius:13px; background:#fbfcfd; }
 .game-item strong { display:block; font-size:13px; }
 .game-item span { color:var(--muted); font-size:11px; }
 .game-item button { min-height:34px; padding:6px 11px; font-size:11px; }
+.game-item-actions { display:flex; flex:0 0 auto; gap:5px; }
 .scorekeeper-card { grid-column:1/-1; border-top-color:var(--orange) !important; }
 .scorekeeper-top { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .scorekeeper-top h2 { margin:3px 0 0; font-size:20px; }
@@ -61,8 +72,35 @@
 .lineup-choice:has(input:checked) { border-color:#a8cf56; background:#f2f9e6; }
 .lineup-choice input { min-height:0 !important; width:15px; height:15px; accent-color:#79a82e; }
 .stat-entry { margin-top:16px; }
+.stat-entry-heading { display:flex; align-items:baseline; gap:9px; margin-bottom:9px; }
+.stat-entry-heading strong { font-size:13px; }
+.stat-entry-heading span { color:var(--muted); font-size:10px; }
+.player-select-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:7px; }
+.player-select-button { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:9px; min-height:58px; padding:8px 10px; border:1px solid var(--line); border-radius:13px; color:#34445a; background:#fff; box-shadow:none; text-align:left; touch-action:manipulation; }
+.player-select-button:hover:not(:disabled) { border-color:#b9d18e; background:#fbfdf7; box-shadow:none; }
+.player-select-button.is-selected { border:2px solid #7eaa37; padding:7px 9px; color:#203313; background:#f1f8e4; box-shadow:0 0 0 3px rgba(126,170,55,.12); }
+.player-select-number { color:#a8582d; font-size:12px; font-weight:850; }
+.player-select-copy { min-width:0; }
+.player-select-copy strong,.player-select-copy small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.player-select-copy strong { font-size:12px; }
+.player-select-copy small { margin-top:2px; color:var(--muted); font-size:10px; }
+.player-select-check { display:grid; width:21px; height:21px; place-items:center; border:1px solid #d9e1d0; border-radius:50%; color:#fff; background:#fff; font-size:12px; font-weight:900; }
+.is-selected .player-select-check { border-color:#719b32; background:#719b32; }
+.player-selection-hint { margin:9px 2px 0; color:var(--muted); font-size:11px; }
+.player-selection-hint[hidden] { display:none; }
+.selected-player-panel { display:grid; gap:14px; margin-top:12px; padding:15px; border:1px solid #dce8c9; border-radius:16px; background:linear-gradient(145deg,#fbfdf7,#f4f8eb); }
+.selected-player-panel[hidden] { display:none; }
+.selected-player-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-bottom:11px; border-bottom:1px solid #e2ead6; }
+.selected-player-heading span,.selected-player-heading strong { display:block; }
+.selected-player-heading span { margin-bottom:3px; color:#778466; font-size:10px; font-weight:750; }
+.selected-player-heading strong { color:#314523; font-size:15px; }
+.selected-player-heading button { min-height:36px; padding:6px 10px; font-size:11px; }
+.stat-group { display:grid; gap:6px; }
+.stat-group-label { color:#667354; font-size:10px; font-weight:850; letter-spacing:.04em; }
+.stat-buttons { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:7px; }
+.stat-play-buttons { grid-template-columns:repeat(auto-fit,minmax(115px,1fr)); }
 .player-picker-label { max-width:340px; margin-bottom:10px; }
-.stat-buttons { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+.stat-buttons { display:grid; gap:8px; }
 .stat-button { display:flex; align-items:center; justify-content:center; gap:6px; min-height:46px; padding:8px; border:1px solid #e3e8ee; border-radius:12px; color:#334257; background:#fff; box-shadow:none; font-size:11px; }
 .stat-button:hover:not(:disabled) { color:#172231; background:#f3f6f8; box-shadow:0 4px 10px rgba(16,29,49,.08); }
 .stat-button.stat-positive { border-color:#dbeabf; background:#f5f9ec; }
@@ -79,8 +117,24 @@
 .leaderboard-card { grid-column:1/-1; border-top-color:var(--orange) !important; }
 .ranking-title-row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .ranking-title-row .score-section-title { margin-bottom:15px; }
+.ranking-tools { display:flex; align-items:end; gap:8px; }
 .ranking-sort { display:grid; flex:0 0 180px; gap:4px; color:#657287; font-size:10px; font-weight:750; }
 .ranking-sort select { min-height:36px !important; padding:6px 9px !important; font-size:11px; }
+.ranking-tools>button { min-height:36px; padding:6px 10px; font-size:11px; }
+.csv-import-panel { margin-top:18px; padding:14px; border:1px solid var(--line); border-radius:14px; background:#fbfcfd; }
+.csv-import-panel summary { color:#34445a; cursor:pointer; font-size:12px; font-weight:800; }
+.csv-import-panel>p { color:var(--muted); font-size:11px; line-height:1.7; }
+.csv-import-form { display:flex; align-items:end; flex-wrap:wrap; gap:9px; }
+.csv-import-form label { display:grid; flex:1 1 150px; gap:5px; color:#526177; font-size:10px; font-weight:750; }
+.csv-import-form button { min-height:40px; color:var(--navy); background:var(--lime); }
+.scorebook-dialog { width:min(460px,calc(100vw - 30px)); padding:22px; border:1px solid var(--line); border-radius:18px; color:var(--ink); box-shadow:0 24px 70px rgba(13,26,43,.25); }
+.scorebook-dialog::backdrop { background:rgba(10,22,36,.55); backdrop-filter:blur(3px); }
+.scorebook-dialog form { display:grid; gap:12px; }
+.scorebook-dialog h2 { margin:0 0 4px; font-size:19px; }
+.scorebook-dialog label { display:grid; gap:5px; color:#526177; font-size:11px; font-weight:750; }
+.scorebook-dialog .field-hint { margin:0; }
+.dialog-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:5px; }
+.dialog-actions button { min-height:40px; }
 .game-boxscore-heading { margin:15px 0 8px; font-size:13px; }
 .table-scroll { width:100%; overflow:auto; }
 .boxscore-table { width:100%; border-collapse:collapse; white-space:nowrap; font-size:11px; }
@@ -92,6 +146,5 @@
 .scorebook-toast.is-visible { transform:translateY(0); opacity:1; }
 .viewer-hidden { display:none !important; }
 @media(max-width:760px) { .scorebook-grid { grid-template-columns:1fr; } .scorekeeper-card,.leaderboard-card { grid-column:auto; } }
-@media(max-width:560px) { .scorebook-hero { padding:20px; } .score-card { padding:16px !important; } .scoreboard { grid-template-columns:1fr 1fr; padding:13px 8px; } .score-clock { grid-column:1/-1; grid-row:1; } .score-team { grid-row:2; } .stat-buttons { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; } .stat-button { min-height:45px; padding:6px 3px; font-size:10px; } .scorekeeper-bottom { align-items:stretch; flex-direction:column; } .opponent-final { justify-content:flex-end; } .lineup-panel { align-items:flex-start; flex-direction:column; } .ranking-title-row { align-items:stretch; flex-direction:column; } .ranking-sort { flex-basis:auto; } }
+@media(max-width:560px) { .scorebook-hero { padding:20px; } .score-card { padding:16px !important; } .scoreboard { grid-template-columns:1fr 1fr; padding:13px 8px; } .score-clock { grid-column:1/-1; grid-row:1; } .score-team { grid-row:2; } .player-select-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; } .player-select-button { min-height:62px; padding:8px 7px; gap:6px; } .player-select-button.is-selected { padding:7px 6px; } .player-select-copy strong { font-size:11px; } .selected-player-panel { padding:12px; } .stat-buttons { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; } .stat-play-buttons { grid-template-columns:repeat(2,minmax(0,1fr)); } .stat-button { min-height:48px; padding:6px 4px; font-size:10px; } .scorekeeper-bottom { align-items:stretch; flex-direction:column; } .opponent-final { justify-content:flex-end; } .lineup-panel { align-items:flex-start; flex-direction:column; } .ranking-title-row { align-items:stretch; flex-direction:column; } .ranking-tools { align-items:stretch; flex-wrap:wrap; } .ranking-sort { flex:1 1 120px; } .ranking-tools>button { flex:1 0 100%; } .game-item { align-items:flex-start; } .game-item-actions { flex-direction:column; } .game-item-actions button { min-height:40px; } .roster-member-actions button { min-height:40px; } .csv-import-form button { flex:1 0 100%; } }
 @media(max-width:600px) { .scorebook-nav { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; } .scorebook-nav a { justify-content:center; padding-inline:6px; font-size:12px; } .team-select-row { align-items:stretch; flex-direction:column; } .team-select-row label { width:100%; } #newTeamButton { align-self:flex-start; } }
-
