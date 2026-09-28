@@ -399,3 +399,26 @@ input:focus, select:focus, textarea:focus {
     *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
+
+
+/* Workspace destinations */
+.workspace-menu { position: relative; }
+.workspace-menu-list {
+    position: absolute; z-index: 30; top: calc(100% + 8px); right: 0;
+    display: grid; min-width: 210px; padding: 7px;
+    border: 1px solid var(--line, #dce5dc); border-radius: 14px;
+    background: var(--surface, #fff); box-shadow: 0 14px 36px rgba(18, 42, 29, .16);
+}
+.workspace-menu-list[hidden] { display: none !important; }
+.workspace-menu-list button {
+    padding: 11px 13px; border: 0; border-radius: 9px; background: transparent;
+    color: inherit; text-align: left; font: inherit; cursor: pointer;
+}
+.workspace-menu-list button:hover, .workspace-menu-list button:focus-visible {
+    background: var(--surface-soft, #eef5ee); outline: none;
+}
+.workspace-screen[hidden], [data-workspace-screen][hidden] { display: none !important; }
+.workspace-screen { min-height: 55vh; padding: 24px 0 48px; }
+.workspace-screen-heading { margin-bottom: 22px; }
+.workspace-screen-heading h2 { margin: 6px 0; }
+.workspace-screen-heading p { margin: 0; color: var(--muted, #647168); }

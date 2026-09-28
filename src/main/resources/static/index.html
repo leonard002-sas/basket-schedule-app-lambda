@@ -495,6 +495,7 @@
 		</section>
 
 	<main id="calendarContent" hidden>
+		<section id="homeScreen" data-workspace-screen>
 		<section class="page-intro">
 			<div>
 				<span class="eyebrow">Team calendar</span>
@@ -502,6 +503,14 @@
 				<p>チームの練習・試合予定を確認できます。</p>
 			</div>
 			<div class="page-intro-actions">
+				<div class="workspace-menu">
+					<button type="button" id="workspaceMenuButton" class="button-light" aria-expanded="false" aria-controls="workspaceMenuList">チームメニュー <span aria-hidden="true">⌄</span></button>
+					<div id="workspaceMenuList" class="workspace-menu-list" hidden>
+						<button type="button" data-workspace-target="homeScreen">予定表</button>
+						<button type="button" id="announcementMenuItem" data-workspace-target="announcementScreen" hidden>周知事項を管理</button>
+						<button type="button" data-workspace-target="videoScreen">練習動画</button>
+					</div>
+				</div>
 				<button type="button" id="basketballButton" class="button-accent" style="display:none;">チーム・試合・ランキング</button>
 				<button id="scheduleRegisterButton" class="button-accent" style="display: none;">予定表を登録</button>
 			</div>
@@ -510,20 +519,13 @@
 		<section id="announcementsArea" class="announcements-area" hidden aria-labelledby="announcementsHeading">
 			<div class="announcements-heading"><div><span class="eyebrow">TEAM BULLETIN</span><h2 id="announcementsHeading">チームへのお知らせ</h2></div><span class="announcement-count" id="announcementCount"></span></div>
 			<div id="announcementList" class="announcement-list"></div>
-			<details id="announcementManager" class="announcement-manager" hidden>
-				<summary>周知事項を管理</summary>
-				<form id="announcementForm" class="announcement-form"><input id="announcementId" type="hidden"><label>見出し<input id="announcementTitle" maxlength="100" required placeholder="例：今週の集合場所について"></label><label>緊急度<select id="announcementUrgency"><option value="NORMAL">通常</option><option value="IMPORTANT">重要</option><option value="URGENT">緊急</option></select></label><label>表示期限<input id="announcementVisibleUntil" type="date" required></label><label class="announcement-content-label">本文<textarea id="announcementContent" maxlength="2000" rows="3" required placeholder="メンバーに伝える内容"></textarea></label><div class="announcement-form-actions"><span id="announcementStatus" role="status" aria-live="polite"></span><button type="button" id="cancelAnnouncementEdit" class="button-light" hidden>編集をやめる</button><button class="button-accent">周知を保存</button></div></form>
-				<h3>登録済み</h3><div id="announcementAdminList" class="announcement-admin-list"></div>
-			</details>
+
 		</section>
 		<section class="home-agenda" aria-label="今日と今週の予定">
 			<div class="home-agenda-heading"><div><span class="eyebrow">YOUR COURTSIDE</span><h2>今日・今週の予定</h2></div><span class="home-agenda-note">ログイン後すぐにチームの予定を確認</span></div>
 			<div class="home-agenda-grid"><article class="home-agenda-card home-agenda-today"><h3>今日</h3><div id="todayAgendaList" class="home-agenda-list"></div></article><article class="home-agenda-card"><h3>今週</h3><div id="weekAgendaList" class="home-agenda-list"></div></article></div>
 		</section>
-		<section class="video-archive" aria-label="練習動画">
-			<div class="video-archive-heading"><div><span class="eyebrow">FILM ROOM</span><h2>練習動画</h2><p>予定に登録した動画をタグで探せます。</p></div><label>タグで絞り込む<select id="videoTagFilter"><option value="">すべて</option></select></label></div>
-			<div id="videoArchiveList" class="video-archive-list"></div>
-		</section>
+
 
 	<!-- =========================
          予定表登録
@@ -651,6 +653,8 @@
 
 					<div class="detail-row" id="detailCompetitionRow" hidden><span class="detail-label">大会</span><span id="detailCompetition" class="detail-value"></span></div>
 					<div class="detail-row" id="detailRoundRow" hidden><span class="detail-label">ラウンド</span><span id="detailRound" class="detail-value"></span></div>
+					<div class="detail-row" id="detailEventVideoRow" hidden><span class="detail-label">動画</span><a id="detailEventVideo" class="detail-value" target="_blank" rel="noopener noreferrer">動画を開く</a></div>
+					<div class="detail-row" id="detailVideoTagsRow" hidden><span class="detail-label">動画タグ</span><span id="detailVideoTags" class="detail-value"></span></div>
 
 
 					<div class="detail-row">
@@ -974,6 +978,21 @@
 		</div>
 
 	</div>
+
+		</section>
+		<section id="announcementScreen" class="workspace-screen" data-workspace-screen hidden aria-labelledby="announcementScreenHeading">
+			<div class="workspace-screen-heading"><div><span class="eyebrow">TEAM BULLETIN</span><h2 id="announcementScreenHeading">周知事項の管理</h2><p>緊急度と表示期限を設定して、チームにお知らせします。</p></div></div>
+			<div id="announcementManager" class="announcement-manager" hidden>
+<form id="announcementForm" class="announcement-form"><input id="announcementId" type="hidden"><label>見出し<input id="announcementTitle" maxlength="100" required placeholder="例：今週の集合場所について"></label><label>緊急度<select id="announcementUrgency"><option value="NORMAL">通常</option><option value="IMPORTANT">重要</option><option value="URGENT">緊急</option></select></label><label>表示期限<input id="announcementVisibleUntil" type="date" required></label><label class="announcement-content-label">本文<textarea id="announcementContent" maxlength="2000" rows="3" required placeholder="メンバーに伝える内容"></textarea></label><div class="announcement-form-actions"><span id="announcementStatus" role="status" aria-live="polite"></span><button type="button" id="cancelAnnouncementEdit" class="button-light" hidden>編集をやめる</button><button class="button-accent">周知を保存</button></div></form>
+				<h3>登録済み</h3><div id="announcementAdminList" class="announcement-admin-list"></div>
+			</div>
+		</section>
+		<section id="videoScreen" class="workspace-screen" data-workspace-screen hidden aria-label="練習動画">
+		<section class="video-archive" aria-label="練習動画">
+			<div class="video-archive-heading"><div><span class="eyebrow">FILM ROOM</span><h2>練習動画</h2><p>予定に登録した動画をタグで探せます。</p></div><label>タグで絞り込む<select id="videoTagFilter"><option value="">すべて</option></select></label></div>
+			<div id="videoArchiveList" class="video-archive-list"></div>
+		</section>
+		</section>
 
 	</main>
 

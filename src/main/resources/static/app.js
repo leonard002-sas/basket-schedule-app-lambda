@@ -46,6 +46,38 @@ const calendarExportStatus =
 let schedules = [];
 let announcements = [];
 
+const workspaceScreenIds = ["homeScreen", "announcementScreen", "videoScreen"];
+function showWorkspaceScreen(screenId) {
+    workspaceScreenIds.forEach(id => {
+        const screen = document.getElementById(id);
+        if (screen) screen.hidden = id !== screenId;
+    });
+    const menu = document.getElementById("workspaceMenuList");
+    const menuButton = document.getElementById("workspaceMenuButton");
+    if (menu) menu.hidden = true;
+    if (menuButton) menuButton.setAttribute("aria-expanded", "false");
+    if (screenId === "videoScreen") renderVideoArchive();
+}
+document.getElementById("workspaceMenuButton")?.addEventListener("click", () => {
+    const menu = document.getElementById("workspaceMenuList");
+    const button = document.getElementById("workspaceMenuButton");
+    menu.hidden = !menu.hidden;
+    button.setAttribute("aria-expanded", String(!menu.hidden));
+});
+document.getElementById("workspaceMenuList")?.addEventListener("click", event => {
+    const item = event.target.closest("[data-workspace-target]");
+    if (item) showWorkspaceScreen(item.dataset.workspaceTarget);
+});
+document.addEventListener("click", event => {
+    const menu = document.getElementById("workspaceMenuList");
+    const wrapper = document.querySelector(".workspace-menu");
+    if (menu && wrapper && !wrapper.contains(event.target)) {
+        menu.hidden = true;
+        document.getElementById("workspaceMenuButton")?.setAttribute("aria-expanded", "false");
+    }
+});
+
+
 // 施設マスタ
 let facilities = [];
 
@@ -230,6 +262,8 @@ function renderAnnouncements(admin = isCalendarAdmin()) {
     list.innerHTML = active.map(item => `<article class="announcement-card urgency-${escapeHtml(item.urgency)}"><div class="announcement-meta"><span>${item.urgency === "URGENT" ? "緊急" : item.urgency === "IMPORTANT" ? "重要" : "お知らせ"}</span><span>${escapeHtml(item.visibleUntil)}まで</span></div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.content).replace(/\n/g,"<br>")}</p></article>`).join("");
     const manager = document.getElementById("announcementManager");
     manager.hidden = !admin;
+    const announcementMenuItem = document.getElementById("announcementMenuItem");
+    if (announcementMenuItem) announcementMenuItem.hidden = !admin;
     if (!admin) return;
     const adminList = document.getElementById("announcementAdminList");
     adminList.innerHTML = announcements.length ? announcements.map(item => `<div class="announcement-admin-item${item.visible ? "" : " is-expired"}"><span><strong>${escapeHtml(item.title)}</strong><small>${item.visible ? `表示中 · ${escapeHtml(item.visibleUntil)}まで` : `期限切れ · ${escapeHtml(item.visibleUntil)}まで`}</small></span><span class="announcement-admin-actions"><button type="button" class="button-light" data-edit-announcement="${escapeHtml(item.id)}">編集</button><button type="button" class="button-danger" data-delete-announcement="${escapeHtml(item.id)}">削除</button></span></div>`).join("") : "<p class='announcement-empty'>周知事項はまだありません。</p>";
@@ -1756,16 +1790,20 @@ async function showScheduleDetail(
         const roundRow = document.getElementById("detailRoundRow");
         document.getElementById("detailCompetition").textContent = detail.competitionName || "";
         document.getElementById("detailRound").textContent = detail.round || "";
-        competitionRow.hidden = detail.eventType !== "GAME" || !detail.competitionName;
-        roundRow.hidden = detail.eventType !== "GAME" || !detail.round;
+        if (competitionRow) competitionRow.hidden = detail.eventType !== "GAME" || !detail.competitionName;
+        if (roundRow) roundRow.hidden = detail.eventType !== "GAME" || !detail.round;
         const eventVideoRow = document.getElementById("detailEventVideoRow");
         const eventVideo = document.getElementById("detailEventVideo");
-        eventVideoRow.hidden = !detail.videoUrl;
-        if (detail.videoUrl) eventVideo.href = detail.videoUrl;
-        else eventVideo.removeAttribute("href");
+        if (eventVideoRow) eventVideoRow.hidden = !detail.videoUrl;
+        if (eventVideo) {
+            if (detail.videoUrl) eventVideo.href = detail.videoUrl;
+            else eventVideo.removeAttribute("href");
+        }
         const videoTags = String(detail.videoTags || "").split(",").map(tag => tag.trim()).filter(Boolean);
-        document.getElementById("detailVideoTags").textContent = videoTags.join(" · ");
-        document.getElementById("detailVideoTagsRow").hidden = videoTags.length === 0;
+        const detailVideoTags = document.getElementById("detailVideoTags");
+        const detailVideoTagsRow = document.getElementById("detailVideoTagsRow");
+        if (detailVideoTags) detailVideoTags.textContent = videoTags.join(" · ");
+        if (detailVideoTagsRow) detailVideoTagsRow.hidden = videoTags.length === 0;
 
 
         document.getElementById(
