@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#101d31">
+    <title>チームスコアブック · COURTSIDE</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="app.css">
+    <link rel="stylesheet" href="basketball.css">
+</head>
+<body class="scorebook-body" style="display:none">
+<div class="app-shell scorebook-shell">
+    <header class="site-header">
+        <a class="brand-lockup" href="index.html"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12.2" stroke="currentColor" stroke-width="1.8"/><path d="M5.3 10.1c7.1 1.8 14.3 1.8 21.4 0M5.3 21.9c7.1-1.8 14.3-1.8 21.4 0M16 3.8c-4.1 3.1-6.2 7.2-6.2 12.2S11.9 25.1 16 28.2M16 3.8c4.1 3.1 6.2 7.2 6.2 12.2S20.1 25.1 16 28.2" stroke="currentColor" stroke-width="1.5"/></svg></span><span><span class="brand-name">COURTSIDE</span><span class="brand-caption">Team scorebook</span></span></a>
+        <a class="button-light scorebook-back" href="index.html">← カレンダー</a>
+    </header>
+
+    <section class="scorebook-hero">
+        <span class="eyebrow">TEAM SCOREBOOK</span>
+        <h1>チームスコアブック</h1>
+        <p>試合を記録して、シーズンのスタッツを積み上げます。</p>
+    </section>
+
+    <main class="scorebook-grid">
+        <section class="section score-card" id="teamCard">
+            <div class="score-section-title"><span class="score-icon">♧</span><div><h2>チーム</h2><p>最初にチーム名を登録してください。</p></div></div>
+            <form id="teamForm" class="team-form"><label>チーム名<input id="teamName" maxlength="80" required placeholder="例：COURTSIDE"></label><button class="button-accent">保存</button></form>
+            <div id="teamStatus" class="score-status" role="status"></div>
+        </section>
+
+        <section class="section score-card" id="rosterCard">
+            <div class="score-section-title"><span class="score-icon">♟</span><div><h2>選手登録</h2><p>背番号と年齢は任意です。</p></div></div>
+            <form id="playerForm" class="player-form"><label>選手名<input id="playerName" maxlength="80" required placeholder="選手名"></label><label>背番号<input id="playerNumber" type="number" min="0" max="99" placeholder="番号"></label><label>年齢<input id="playerAge" type="number" min="0" max="99" placeholder="任意"></label><button class="button-accent">選手を追加</button></form>
+            <div id="rosterList" class="roster-list"></div>
+        </section>
+
+        <section class="section score-card" id="newGameCard">
+            <div class="score-section-title"><span class="score-icon score-icon-orange">◉</span><div><h2>試合を登録</h2><p>クォーター時間は試合に合わせて変更できます。</p></div></div>
+            <form id="gameForm" class="game-form"><label>試合日<input id="gameDate" type="date" required></label><label>対戦相手<input id="opponent" maxlength="100" required placeholder="相手チーム"></label><label>1Qの時間（分）<input id="quarterMinutes" type="number" min="1" max="20" value="10" required></label><button class="button-accent">試合を作成</button></form>
+            <div id="gameStatus" class="score-status" role="status"></div>
+        </section>
+
+        <section class="section score-card" id="gamesCard">
+            <div class="score-section-title"><span class="score-icon">▤</span><div><h2>試合</h2><p>試合を選ぶと記録画面を開きます。</p></div></div>
+            <div id="gamesList" class="games-list"></div>
+        </section>
+
+        <section class="section score-card scorekeeper-card" id="scorekeeperCard" hidden>
+            <div class="scorekeeper-top"><div><span class="eyebrow">LIVE GAME</span><h2 id="liveGameTitle">試合</h2></div><button type="button" id="closeGameButton" class="button-light">一覧へ戻る</button></div>
+            <div class="scoreboard">
+                <div class="score-team"><span id="liveTeamName">TEAM</span><strong id="liveTeamScore">0</strong></div>
+                <div class="score-clock"><span id="livePeriod">1Q</span><strong id="liveClock">10:00</strong><div class="clock-controls"><button id="clockToggle" type="button" class="button-accent">開始</button><button id="nextPeriod" type="button" class="button-light">次のQ</button></div></div>
+                <div class="score-team opponent-score"><span id="liveOpponent">OPPONENT</span><strong id="liveOpponentScore">0</strong></div>
+            </div>
+            <div class="lineup-panel"><div><strong>コート上の5人</strong><span>交代のたびに更新すると出場時間を記録できます</span></div><button id="saveLineup" type="button" class="button-light">出場選手を保存</button></div>
+            <div id="lineupChoices" class="lineup-choices"></div>
+            <div class="stat-entry">
+                <label class="player-picker-label">スタッツを付ける選手<select id="activePlayer"></select></label>
+                <div class="stat-buttons">
+                    <button data-stat="FG2_MADE" class="stat-button stat-positive">2P 成功 <b>+2</b></button><button data-stat="FG2_MISS" class="stat-button">2P 失敗</button>
+                    <button data-stat="FG3_MADE" class="stat-button stat-positive">3P 成功 <b>+3</b></button><button data-stat="FG3_MISS" class="stat-button">3P 失敗</button>
+                    <button data-stat="FT_MADE" class="stat-button stat-positive">FT 成功 <b>+1</b></button><button data-stat="FT_MISS" class="stat-button">FT 失敗</button>
+                    <button data-stat="OREB" class="stat-button">OF リバウンド</button><button data-stat="DREB" class="stat-button">DF リバウンド</button>
+                    <button data-stat="AST" class="stat-button">アシスト</button><button data-stat="STL" class="stat-button">スティール</button>
+                    <button data-stat="BLK" class="stat-button">ブロック</button><button data-stat="TO" class="stat-button">ターンオーバー</button><button data-stat="PF" class="stat-button">ファウル</button>
+                </div>
+            </div>
+            <div class="scorekeeper-bottom"><button id="undoAction" type="button" class="button-light">↶ 直前の記録を取り消す</button><div class="opponent-final"><label>相手の最終得点<input id="finalOpponentScore" type="number" min="0" value="0"></label><button id="finishGame" type="button" class="button-finish">試合を終了して保存</button></div></div>
+            <div id="scorekeeperStatus" class="score-status" role="status" aria-live="polite"></div>
+            <div id="recentActions" class="recent-actions"></div>
+            <h3 class="game-boxscore-heading">この試合のボックススコア</h3>
+            <div class="table-scroll"><table class="boxscore-table"><thead><tr><th>選手</th><th>年齢</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>FGM/FGA</th><th>FG%</th><th>2PM/2PA</th><th>2P%</th><th>3PM/3PA</th><th>3P%</th><th>FTM/FTA</th><th>FT%</th><th>OREB</th><th>DREB</th><th>TO</th><th>PF</th><th>EFF</th></tr></thead><tbody id="gameBoxscoreBody"></tbody></table></div>
+        </section>
+
+        <section class="section score-card leaderboard-card">
+            <div class="ranking-title-row"><div class="score-section-title"><span class="score-icon score-icon-orange">★</span><div><h2>シーズンランキング</h2><p id="rankingSeasonLabel">今シーズンの確定試合</p></div></div><label class="ranking-sort">順位を見る項目<select id="rankingMetric"><option value="points">得点</option><option value="REB">リバウンド</option><option value="AST">アシスト</option><option value="STL">スティール</option><option value="BLK">ブロック</option><option value="3PM">3P成功</option><option value="FGM">FG成功</option><option value="minutesSeconds">出場時間</option><option value="EFF">EFF</option></select></label></div>
+            <div class="table-scroll"><table class="boxscore-table"><thead><tr><th>選手</th><th>年齢</th><th>GP</th><th>W-L-D</th><th>MIN</th><th>PTS</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th><th>FGM/FGA</th><th>FG%</th><th>2PM/2PA</th><th>2P%</th><th>3PM/3PA</th><th>3P%</th><th>FTM/FTA</th><th>FT%</th><th>OREB</th><th>DREB</th><th>TO</th><th>PF</th><th>EFF</th></tr></thead><tbody id="leaderboardBody"></tbody></table></div>
+            <div id="leaderboardEmpty" class="empty-state" hidden>試合を確定すると、選手ランキングが表示されます。</div>
+        </section>
+    </main>
+    <div id="scorebookToast" class="scorebook-toast" role="status" aria-live="polite"></div>
+</div>
+<script src="basketball.js"></script>
+</body>
+</html>
+

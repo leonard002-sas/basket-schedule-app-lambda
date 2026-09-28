@@ -1245,6 +1245,7 @@ function updateAuthUI() {
         document.getElementById(
             "scheduleRegisterButton"
         );
+    const basketballButton = document.getElementById("basketballButton");
 
 
     // =========================
@@ -1288,6 +1289,8 @@ function updateAuthUI() {
                 "none";
 
         }
+
+        if (basketballButton) basketballButton.style.display = "none";
 
         return;
     }
@@ -1349,6 +1352,7 @@ function updateAuthUI() {
                     : "none";
 
         }
+        if (basketballButton) basketballButton.style.display = "inline-block";
 
     } catch (error) {
 
@@ -1363,6 +1367,7 @@ function updateAuthUI() {
                 "none";
 
         }
+        if (basketballButton) basketballButton.style.display = "none";
 
     }
 
@@ -1503,6 +1508,19 @@ const deleteScheduleButton =
     document.getElementById(
         "deleteScheduleButton"
     );
+
+const startBasketballButton = document.getElementById("startBasketballButton");
+if (startBasketballButton) {
+    startBasketballButton.addEventListener("click", () => {
+        if (!currentScheduleDetail) return;
+        const params = new URLSearchParams({
+            date: String(currentScheduleDetail.startDateTime || "").slice(0, 10),
+            scheduleMonth: currentScheduleDetail.scheduleMonth || "",
+            startDateTime: currentScheduleDetail.startDateTime || ""
+        });
+        location.href = `basketball.html?${params}`;
+    });
+}
 
 // ========================================
 // 詳細ダイアログを閉じる
@@ -1735,6 +1753,10 @@ async function showScheduleDetail(
                     ? "inline-block"
                     : "none";
 
+        }
+
+        if (startBasketballButton) {
+            startBasketballButton.style.display = isAdmin && detail.eventType === "GAME" ? "inline-block" : "none";
         }
 
         scheduleDetailModal.classList.add(
@@ -2605,3 +2627,4 @@ function exitEditMode() {
     }
 
 }
+

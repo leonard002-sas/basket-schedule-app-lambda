@@ -45,6 +45,11 @@ public class ScheduleApi
 
         try {
 
+            Map<String, String> routeQuery = getQueryParameters(input);
+            if ("basketball".equals(routeQuery.get("feature"))) {
+                return new BasketballApi().handleRequest(input, context);
+            }
+
             CognitoAuth.User user = CognitoAuth.requireUser(input);
 
             String method =
@@ -944,3 +949,4 @@ public class ScheduleApi
         return response;
     }
 }
+
