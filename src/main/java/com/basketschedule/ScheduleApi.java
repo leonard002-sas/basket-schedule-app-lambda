@@ -237,6 +237,8 @@ public class ScheduleApi
 
             schedule.put("competitionName", getString(item, "competitionName"));
             schedule.put("round", getString(item, "round"));
+            schedule.put("videoUrl", getString(item, "videoUrl"));
+            schedule.put("videoTags", getString(item, "videoTags"));
 
             result.add(schedule);
         }
@@ -364,6 +366,8 @@ public class ScheduleApi
                 eventTypeOrDefault(item));
         schedule.put("competitionName", getString(item, "competitionName"));
         schedule.put("round", getString(item, "round"));
+        schedule.put("videoUrl", getString(item, "videoUrl"));
+        schedule.put("videoTags", getString(item, "videoTags"));
 
         // ========================================
         // 曜日
@@ -557,7 +561,20 @@ public class ScheduleApi
         }
         String competitionName = body.hasNonNull("competitionName") ? body.get("competitionName").asText().trim() : getString(oldItem.item(), "competitionName");
         String round = body.hasNonNull("round") ? body.get("round").asText().trim() : getString(oldItem.item(), "round");
+        String videoUrl = body.hasNonNull("videoUrl") ? body.get("videoUrl").asText().trim() : getString(oldItem.item(), "videoUrl");
+        String videoTags = body.hasNonNull("videoTags") ? body.get("videoTags").asText().trim() : getString(oldItem.item(), "videoTags");
         if (competitionName.length() > 80 || round.length() > 40) throw new IllegalArgumentException("大会名は80文字、ラウンドは40文字以内で入力してください");
+        if (videoUrl.length() > 2048 || videoTags.length() > 120) throw new IllegalArgumentException("動画URLは2048文字、タグは120文字以内で入力してください");
+        if (!videoUrl.isBlank()) {
+            try {
+                URI parsedVideoUrl = URI.create(videoUrl);
+                if (!"https".equalsIgnoreCase(parsedVideoUrl.getScheme()) || parsedVideoUrl.getHost() == null) {
+                    throw new IllegalArgumentException("動画URLにはHTTPSの共有リンクを入力してください");
+                }
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("動画URLを確認してください。YouTubeの共有リンクを入力できます");
+            }
+        }
         if (!"GAME".equals(eventType)) { competitionName = ""; round = ""; }
 
         // ========================================
@@ -625,6 +642,8 @@ public class ScheduleApi
         );
         if (!competitionName.isBlank()) newItem.put("competitionName", AttributeValue.builder().s(competitionName).build());
         if (!round.isBlank()) newItem.put("round", AttributeValue.builder().s(round).build());
+        if (!videoUrl.isBlank()) newItem.put("videoUrl", AttributeValue.builder().s(videoUrl).build());
+        if (!videoTags.isBlank()) newItem.put("videoTags", AttributeValue.builder().s(videoTags).build());
 
         dynamoDbClient.putItem(
                 PutItemRequest.builder()

@@ -422,3 +422,87 @@ input:focus, select:focus, textarea:focus {
 .workspace-screen-heading { margin-bottom: 22px; }
 .workspace-screen-heading h2 { margin: 6px 0; }
 .workspace-screen-heading p { margin: 0; color: var(--muted, #647168); }
+
+/* Improve contrast for the workspace navigation menu */
+.workspace-menu-list button {
+    display: block;
+    width: 100%;
+    color: #172231;
+    background: #fff;
+    box-shadow: none;
+}
+.workspace-menu-list button:hover:not(:disabled),
+.workspace-menu-list button:focus-visible {
+    color: #172231;
+    background: #edf4e8;
+    box-shadow: none;
+}
+
+/* Announcement management screen */
+#announcementScreen { max-width: 900px; margin: 0 auto; }
+#announcementScreen .workspace-screen-heading { margin: 8px 0 26px; }
+#announcementScreen .announcement-manager { display: grid; gap: 26px; }
+#announcementScreen .announcement-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 17px 20px;
+    padding: clamp(20px, 4vw, 32px);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: var(--shadow);
+}
+#announcementScreen .announcement-form > label {
+    display: grid;
+    align-content: start;
+    gap: 7px;
+    color: #34445a;
+    font-size: 13px;
+    font-weight: 750;
+}
+#announcementScreen .announcement-form input,
+#announcementScreen .announcement-form select,
+#announcementScreen .announcement-form textarea { width: 100%; }
+#announcementScreen .announcement-form textarea { min-height: 132px; resize: vertical; }
+#announcementScreen .announcement-content-label,
+#announcementScreen .announcement-form-actions { grid-column: 1 / -1; }
+#announcementScreen .announcement-form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 4px;
+}
+#announcementScreen .announcement-form-actions span { margin-right: auto; color: #4b5c4f; font-size: 13px; }
+#announcementScreen #announcementAdminList { display: grid; gap: 11px; }
+#announcementScreen .announcement-admin-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: #fff;
+}
+#announcementScreen .announcement-admin-item > span:first-child { display: grid; gap: 3px; }
+#announcementScreen .announcement-admin-item small { color: var(--muted); }
+#announcementScreen .announcement-admin-actions { display: flex; gap: 8px; }
+#announcementScreen h3 { margin: 0; }
+#announcementScreen .announcement-empty { color: var(--muted); }
+
+.schedule-video-field { display: grid !important; grid-template-columns: 125px minmax(0, 1fr); align-items: center !important; }
+.schedule-video-field > label { font-weight: 750; }
+.schedule-video-field > small { grid-column: 2; margin-top: -6px; color: var(--muted); font-size: 12px; }
+.schedule-video-field > input { width: 100% !important; }
+
+@media (max-width: 620px) {
+    #announcementScreen .announcement-form { grid-template-columns: 1fr; padding: 18px; }
+    #announcementScreen .announcement-content-label,
+    #announcementScreen .announcement-form-actions { grid-column: auto; }
+    #announcementScreen .announcement-form-actions { justify-content: flex-start; }
+    #announcementScreen .announcement-form-actions span { flex-basis: 100%; }
+    #announcementScreen .announcement-admin-item { align-items: flex-start; flex-direction: column; }
+    .schedule-video-field { grid-template-columns: 1fr; gap: 7px; }
+    .schedule-video-field > small { grid-column: auto; margin-top: 0; }
+}

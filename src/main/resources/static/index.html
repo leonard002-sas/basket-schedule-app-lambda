@@ -522,7 +522,7 @@
 
 		</section>
 		<section class="home-agenda" aria-label="今日と今週の予定">
-			<div class="home-agenda-heading"><div><span class="eyebrow">YOUR COURTSIDE</span><h2>今日・今週の予定</h2></div><span class="home-agenda-note">ログイン後すぐにチームの予定を確認</span></div>
+			<div class="home-agenda-heading"><div><span class="eyebrow">YOUR COURTSIDE</span><h2>今日・今週の予定</h2></div></div>
 			<div class="home-agenda-grid"><article class="home-agenda-card home-agenda-today"><h3>今日</h3><div id="todayAgendaList" class="home-agenda-list"></div></article><article class="home-agenda-card"><h3>今週</h3><div id="weekAgendaList" class="home-agenda-list"></div></article></div>
 		</section>
 
@@ -788,6 +788,8 @@
 					</div>
 					<div class="detail-row schedule-game-meta" id="editCompetitionRow" hidden><span class="detail-label">大会名</span><input id="editCompetitionName" type="text" maxlength="80" placeholder="例：2026秋北区大会"></div>
 					<div class="detail-row schedule-game-meta" id="editRoundRow" hidden><span class="detail-label">ラウンド</span><input id="editRound" type="text" maxlength="40" list="basketballRoundOptions" placeholder="例：1回戦"></div>
+					<div class="detail-row schedule-video-field"><label for="editVideoUrl">練習動画URL</label><input id="editVideoUrl" type="url" maxlength="2048" placeholder="YouTube限定公開リンクを貼り付け"><small>YouTubeで「限定公開」にした動画の共有リンクを登録できます。</small></div>
+					<div class="detail-row schedule-video-field"><label for="editVideoTags">動画タグ（任意）</label><input id="editVideoTags" type="text" maxlength="120" placeholder="例：練習全体、シュート"></div>
 
 					<div class="detail-row">
 
