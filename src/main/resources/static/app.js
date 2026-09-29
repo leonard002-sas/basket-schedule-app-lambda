@@ -1172,6 +1172,21 @@ async function handleCognitoCallback() {
     const params = new URLSearchParams(window.location.search);
 
     const code = params.get("code");
+    const oauthError = params.get("error");
+
+    if (!code && oauthError) {
+        const linkState = sessionStorage.getItem("google_link_state");
+        if (linkState && params.get("state") === linkState) {
+            sessionStorage.removeItem("google_link_state");
+            sessionStorage.removeItem("google_link_native_token");
+            window.history.replaceState({}, document.title, window.location.pathname);
+            alert(
+                params.get("error_description") ||
+                    "Googleアカウント連携に失敗しました。Cognitoの設定を確認してください。",
+            );
+        }
+        return;
+    }
 
     // ログイン後でなければ何もしない
     if (!code) {

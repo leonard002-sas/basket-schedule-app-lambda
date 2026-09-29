@@ -92,7 +92,8 @@
         const url = new URL(`${cognitoDomain}/oauth2/authorize`);
         url.searchParams.set("client_id", clientId);
         url.searchParams.set("response_type", "code");
-        url.searchParams.set("scope", "openid email profile");
+        // 現在のCognitoアプリクライアントで許可しているスコープだけを要求します。
+        url.searchParams.set("scope", "openid email phone");
         url.searchParams.set("redirect_uri", redirectUri);
         url.searchParams.set("identity_provider", "Google");
         url.searchParams.set("state", state);
