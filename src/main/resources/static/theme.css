@@ -1197,13 +1197,15 @@ textarea:focus {
     position: relative;
     z-index: 1;
     display: block;
-    width: auto;
+    width: min(100%, 560px);
     height: clamp(280px, 35vw, 410px);
-    max-width: 125%;
+    max-width: none;
     align-self: end;
     justify-self: center;
     margin: 0 -22px -32px;
-    object-fit: contain;
+    object-fit: cover;
+    object-position: right center;
+    border-radius: 24px;
     filter: drop-shadow(0 20px 17px rgba(4, 22, 15, 0.2));
     transform-origin: 50% 82%;
     animation: mascot-hover 3.4s ease-in-out infinite;
