@@ -359,15 +359,50 @@ body::before {
 
 .day-number {
     margin-bottom: 5px;
+    color: var(--text-main);
+    font-size: 0.9rem;
+    font-weight: 650;
 }
 
 .event-dot {
     min-width: 0;
     overflow: hidden;
     margin-top: 4px;
-    padding: 5px 6px;
+    padding: 7px 8px;
+    border-radius: 7px;
+    font-size: 0.82rem;
+    font-weight: 750;
+    line-height: 1.25;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.calendar-day.sunday .day-number,
+.calendar-day.holiday .day-number,
+.holiday-name {
+    color: #c44747 !important;
+}
+
+.holiday-name {
+    display: block;
+    overflow: hidden;
+    margin-top: 1px;
+    font-size: 0.68rem;
+    font-weight: 550;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.calendar-interaction-note {
+    margin: 0 0 12px;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}
+
+#scheduleOverviewHeading,
+#scheduleList {
+    display: none !important;
 }
 
 .site-header {
@@ -639,6 +674,15 @@ tbody tr:hover {
     .site-navigation a {
         min-height: 38px;
         padding-inline: 11px;
+    }
+
+    .event-dot {
+        padding: 5px 6px;
+        font-size: 0.73rem;
+    }
+
+    .holiday-name {
+        font-size: 0.6rem;
     }
 
     .site-header {

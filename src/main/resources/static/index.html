@@ -196,6 +196,9 @@
                                 >会議</span
                             >
                         </div>
+                        <p class="calendar-interaction-note">
+                            予定のない日をダブルクリックすると、その日付で予定を登録できます。
+                        </p>
                         <div class="calendar-export-area">
                             <button id="exportMonthCalendar" type="button" class="button-light">
                                 この月をGoogleカレンダー用に保存
@@ -217,9 +220,9 @@
          今後の予定
          ========================= -->
 
-                    <h2>今後の予定</h2>
+                    <h2 id="scheduleOverviewHeading" hidden>今後の予定</h2>
 
-                    <div id="scheduleList">予定を取得しています...</div>
+                    <div id="scheduleList" hidden>予定を取得しています...</div>
 
                     <!-- =========================
          予定詳細ダイアログ

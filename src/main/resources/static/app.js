@@ -598,7 +598,7 @@ function displayCalendar() {
             element.title = "クリックしてこの日に予定を登録";
         }
 
-        element.addEventListener("click", () => {
+        element.addEventListener("dblclick", () => {
             if (daySchedules.length === 0 && isCalendarAdmin()) {
                 window.location.href = `register.html?date=${encodeURIComponent(dateKey)}`;
                 return;
