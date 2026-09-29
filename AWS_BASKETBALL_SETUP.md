@@ -14,13 +14,13 @@ Create a table in `ap-northeast-1` with:
 
 ## Cognito root administrators
 
-Use the Cognito user pool `ap-northeast-1_Cd5fxLwj3`. Create a group named `root-admins` and manually add one or two trusted operator accounts. Do not use the AWS account root user for this application role. Keep membership small: this group can promote and demote administrators, disable or delete Cognito users, and view the user directory.
+Use the Cognito user pool `ap-northeast-1_Cd5fxLwj3`. Create a group named `root-admins` and manually add one or two trusted operator accounts. Do not use the AWS account root user for this application role. Keep membership small: this group can promote and demote administrators, disable or delete Cognito users, and view the user directory. Members of the `admins` group can also manage ordinary users from the site; root administrators and the last enabled administrator remain protected.
 
 The existing `admins` group remains the normal team-management role. New Cognito users are guests until an administrator promotes them. A root administrator is also treated as an application administrator for schedule, roster, and scorebook operations. Root administrators cannot delete or disable themselves or other root administrators through the site.
 
 ## Lambda execution-role permissions
 
-Attach the following Cognito permissions to the execution role used by `basket-schedule-get`. The API checks the signed-in user's `root-admins` claim before calling these operations. Limit the resource to the application user pool.
+Attach the following Cognito permissions to the **execution role shown in Lambda > basket-schedule-get > Configuration > Permissions**. Attaching this policy to a Cognito user-pool role or a different Lambda role does not grant the permission. The API checks the signed-in user's administrator claim before calling these operations. Limit the resource to the application user pool.
 
 ```json
 {

@@ -96,13 +96,17 @@ public final class CognitoUserAdminService {
   /**
    * 一般管理者への昇格、または一般メンバーへの降格を行います。
    *
+   * @param requesterSub 操作者の Cognito sub
    * @param username Cognito のユーザー名
    * @param action promote-admin または demote-admin
    * @return 変更後のロール
    */
-  public Map<String, Object> changeRole(String username, String action) {
+  public Map<String, Object> changeRole(String requesterSub, String username, String action) {
     TargetUser target = requireTarget(username);
     Set<String> groups = groupsFor(username);
+    if (requesterSub.equals(target.sub())) {
+      throw new UserAdminException(409, "SELF_MANAGEMENT_BLOCKED", "自分自身の権限は変更できません");
+    }
     if (groups.contains(ROOT_ADMIN_GROUP)) {
       throw new UserAdminException(409, "ROOT_ADMIN_PROTECTED", "root 管理者の権限はここから変更できません");
     }
@@ -172,8 +176,7 @@ public final class CognitoUserAdminService {
     Set<String> groups = groupsFor(username);
     protectRootAndSelf(requesterSub, target, groups);
     if (groups.contains(ADMIN_GROUP)) requireAnotherEnabledAdministrator(username);
-    cognito.adminDeleteUser(
-        AdminDeleteUserRequest.builder().userPoolId(USER_POOL_ID).username(username).build());
+    deleteCognitoUser(username, "USER_DELETE");
     return Map.of("username", username, "deleted", true);
   }
 
@@ -190,9 +193,52 @@ public final class CognitoUserAdminService {
       throw new UserAdminException(409, "ROOT_ADMIN_PROTECTED", "root 管理者アカウントはこの画面から削除できません");
     }
     if (groups.contains(ADMIN_GROUP)) requireAnotherEnabledAdministratorBySub(requesterSub);
-    cognito.adminDeleteUser(
-        AdminDeleteUserRequest.builder().userPoolId(USER_POOL_ID).username(username).build());
+    String actualUsername = resolveUsernameBySub(requesterSub, username);
+    deleteCognitoUser(actualUsername, "ACCOUNT_DELETE");
     return Map.of("deleted", true);
+  }
+
+  /** Cognito の sub から実ユーザー名を解決します。外部 IdP の内部ユーザー名にも対応します。 */
+  private String resolveUsernameBySub(String sub, String preferredUsername) {
+    if (sub == null || sub.isBlank()) {
+      throw new UserAdminException(400, "ACCOUNT_ID_INVALID", "アカウント情報を確認できません");
+    }
+    if (preferredUsername != null && !preferredUsername.isBlank()) {
+      try {
+        TargetUser target = requireTarget(preferredUsername);
+        if (sub.equals(target.sub())) return preferredUsername.trim();
+      } catch (UserAdminException ignored) {
+        // sub 検索で解決を続けます。
+      }
+    }
+    try {
+      var response =
+          cognito.listUsers(
+              ListUsersRequest.builder()
+                  .userPoolId(USER_POOL_ID)
+                  .filter("sub = \"" + sub.replace("\"", "") + "\"")
+                  .limit(1)
+                  .build());
+      if (!response.users().isEmpty()) return response.users().get(0).username();
+    } catch (CognitoIdentityProviderException e) {
+      throw new UserAdminException(500, "ACCOUNT_LOOKUP_FAILED", "アカウント情報を確認できません");
+    }
+    throw new UserAdminException(404, "USER_NOT_FOUND", "ログイン中のアカウントが見つかりません");
+  }
+
+  /** Cognito の削除失敗を画面で判断できる安定したエラーへ変換します。 */
+  private void deleteCognitoUser(String username, String operation) {
+    try {
+      cognito.adminDeleteUser(
+          AdminDeleteUserRequest.builder().userPoolId(USER_POOL_ID).username(username).build());
+    } catch (CognitoIdentityProviderException e) {
+      String errorCode = e.awsErrorDetails() == null ? "" : e.awsErrorDetails().errorCode();
+      if ("AccessDeniedException".equals(errorCode)) {
+        throw new UserAdminException(
+            500, operation + "_PERMISSION_MISSING", "Lambda実行ロールにCognitoのアカウント削除権限がありません");
+      }
+      throw new UserAdminException(409, operation + "_FAILED", "アカウントを削除できませんでした");
+    }
   }
 
   /**

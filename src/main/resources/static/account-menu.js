@@ -32,7 +32,7 @@
             <span data-account-email></span>
             <span class="account-role-badge" data-account-role></span>
         </div>
-        <a href="members.html" class="account-menu-item" data-root-admin-link hidden>ユーザー管理</a>
+        <a href="members.html" class="account-menu-item" data-admin-link hidden>ユーザー管理</a>
         <button type="button" class="account-menu-item" data-google-link>Googleアカウントを連携</button>
         <button type="button" class="account-menu-item account-menu-delete" data-delete-account>アカウントを削除</button>
         <button type="button" class="account-menu-item" data-account-logout>ログアウト</button>
@@ -105,9 +105,9 @@
         const claims = readClaims(localStorage.getItem("id_token") || "");
         const valid = claims && Number(claims.exp) * 1000 > Date.now();
         menu.hidden = !valid;
-        const rootLinks = document.querySelectorAll("[data-root-admin-only]");
+        const adminLinks = document.querySelectorAll("[data-admin-only]");
         if (!valid) {
-            rootLinks.forEach((link) => {
+            adminLinks.forEach((link) => {
                 link.hidden = true;
             });
             return;
@@ -125,7 +125,7 @@
             : isAdmin
               ? "管理者"
               : "メンバー閲覧のみ";
-        panel.querySelector("[data-root-admin-link]").hidden = !isRootAdmin;
+        panel.querySelector("[data-admin-link]").hidden = !isAdmin;
         const googleLinked = Array.isArray(claims.identities)
             ? claims.identities.some((identity) => identity.providerName === "Google")
             : sessionStorage.getItem("google_linked") === "1";
@@ -134,8 +134,8 @@
         googleLinkButton.textContent = googleLinked
             ? "Googleアカウント連携済み"
             : "Googleアカウントを連携";
-        rootLinks.forEach((link) => {
-            link.hidden = !isRootAdmin;
+        adminLinks.forEach((link) => {
+            link.hidden = !isAdmin;
         });
         panel.querySelector("[data-account-note]").textContent = isRootAdmin
             ? "ルート管理者アカウントは、この画面から削除できません。"

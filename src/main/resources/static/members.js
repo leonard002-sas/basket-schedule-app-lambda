@@ -128,7 +128,7 @@ async function handleUserAction(event) {
 const currentClaims = readClaims(currentIdToken);
 if (!currentClaims || Number(currentClaims.exp) * 1000 <= Date.now()) {
     window.location.replace("index.html");
-} else if (!(currentClaims["cognito:groups"] || []).includes("root-admins")) {
+} else if (!(currentClaims["cognito:groups"] || []).some((group) => ["admins", "root-admins"].includes(group))) {
     document.getElementById("rootAdminRequired").hidden = false;
 } else {
     document.getElementById("userManagementWorkspace").hidden = false;

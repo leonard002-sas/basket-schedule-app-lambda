@@ -39,7 +39,7 @@
                 <a href="basketball.html?view=teams" data-app-nav="teams">チーム</a>
                 <a href="basketball.html?view=games" data-app-nav="games">試合</a>
                 <a href="basketball.html?view=rankings" data-app-nav="rankings">ランキング</a>
-                <a href="members.html" data-root-admin-only hidden aria-current="page"
+                <a href="members.html" data-admin-only hidden aria-current="page"
                     >ユーザー管理</a
                 >
             </nav>
@@ -58,9 +58,9 @@
                     class="workspace-content-card members-notice"
                     hidden
                 >
-                    <h2>ルート管理者専用の画面です</h2>
+                    <h2>管理者専用の画面です</h2>
                     <p>
-                        ユーザーの管理は、Cognito の root-admins
+                        ユーザーの管理は、Cognito の admins または root-admins
                         グループに登録された担当者のみ実行できます。
                     </p>
                     <a class="button-light" href="index.html">予定表へ戻る</a>
@@ -91,8 +91,7 @@
                     ></p>
                     <div id="userList" class="user-list"></div>
                     <p class="members-footnote">
-                        root
-                        管理者と自分自身は、この一覧から停止・削除できません。最後に残る有効な管理者も降格・停止・削除できません。
+                        root 管理者と自分自身は、この一覧から停止・削除できません。最後に残る有効な管理者も降格・停止・削除できません。
                     </p>
                 </section>
             </main>
