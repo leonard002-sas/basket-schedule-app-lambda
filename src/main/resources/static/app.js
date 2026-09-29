@@ -1364,6 +1364,26 @@ const editScheduleButton = document.getElementById("editScheduleButton");
 const deleteScheduleButton = document.getElementById("deleteScheduleButton");
 
 const startBasketballButton = document.getElementById("startBasketballButton");
+const scheduleViewMode = document.getElementById("scheduleViewMode");
+const scheduleEditMode = document.getElementById("scheduleEditMode");
+const viewModeButtons = document.getElementById("viewModeButtons");
+const editModeButtons = document.getElementById("editModeButtons");
+const saveScheduleButton = document.getElementById("saveScheduleButton");
+const cancelEditScheduleButton = document.getElementById("cancelEditScheduleButton");
+const editEventType = document.getElementById("editEventType");
+const editCompetitionName = document.getElementById("editCompetitionName");
+const editCompetitionRow = document.getElementById("editCompetitionRow");
+const editRound = document.getElementById("editRound");
+const editRoundRow = document.getElementById("editRoundRow");
+const editVideoUrl = document.getElementById("editVideoUrl");
+const editVideoTags = document.getElementById("editVideoTags");
+const editDate = document.getElementById("editDate");
+const editStartTime = document.getElementById("editStartTime");
+const editEndTime = document.getElementById("editEndTime");
+const editFacilityId = document.getElementById("editFacilityId");
+const editDayOfWeek = document.getElementById("editDayOfWeek");
+const editAddress = document.getElementById("editAddress");
+const editFacilityUrl = document.getElementById("editFacilityUrl");
 if (startBasketballButton) {
     startBasketballButton.addEventListener("click", () => {
         if (!currentScheduleDetail) return;
@@ -1382,6 +1402,7 @@ if (startBasketballButton) {
 // ========================================
 
 function closeScheduleDetail() {
+    exitEditMode();
     scheduleDetailModal.classList.remove("active");
 }
 
@@ -1390,6 +1411,7 @@ function closeScheduleDetail() {
 // ========================================
 async function showScheduleDetail(schedule) {
     try {
+        exitEditMode();
         const params = new URLSearchParams({
             scheduleMonth: schedule.scheduleMonth,
 
@@ -1626,6 +1648,12 @@ if (editScheduleButton) {
         }
 
         enterEditMode();
+    });
+}
+
+if (cancelEditScheduleButton) {
+    cancelEditScheduleButton.addEventListener("click", () => {
+        exitEditMode();
     });
 }
 

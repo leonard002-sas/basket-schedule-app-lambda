@@ -753,16 +753,16 @@ tbody tr:hover {
     }
 
     .calendar-area {
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch;
+        overflow-x: hidden !important;
     }
 
     .calendar {
-        min-width: 720px;
+        width: 100%;
+        min-width: 0;
     }
 
     .calendar-interaction-note {
-        max-width: 720px;
+        max-width: 100%;
     }
 
     .modal-content {
@@ -773,6 +773,15 @@ tbody tr:hover {
         grid-template-columns: minmax(76px, 0.3fr) minmax(0, 1fr);
         gap: 12px;
         padding: 11px 0;
+    }
+
+    .event-dot {
+        overflow: visible;
+        padding: 4px 3px;
+        font-size: 0.68rem;
+        line-height: 1.2;
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
 
     .login-copy h1 {
