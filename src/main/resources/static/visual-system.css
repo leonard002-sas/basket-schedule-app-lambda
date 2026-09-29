@@ -448,6 +448,74 @@ body::before {
 
 .modal-content {
     padding: 20px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.detail-row {
+    display: grid;
+    grid-template-columns: minmax(92px, 0.32fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 16px;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.detail-row:last-child {
+    border-bottom: 0;
+}
+
+.detail-label,
+.schedule-video-field label {
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+.detail-value {
+    min-width: 0;
+    color: var(--text-main);
+    font-size: 0.96rem;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+}
+
+.detail-row a.detail-value {
+    color: var(--brand-pine);
+    text-decoration: underline;
+    text-decoration-color: rgba(36, 87, 68, 0.3);
+    text-underline-offset: 3px;
+}
+
+.modal-close-button {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+    place-items: center;
+    border: 1px solid var(--border-soft);
+    border-radius: 11px;
+    color: var(--text-muted);
+    background: var(--surface-muted);
+    font-size: 1.25rem;
+}
+
+.modal-close-button:hover {
+    color: var(--text-main);
+    background: var(--surface-main);
+}
+
+#scheduleEditMode input,
+#scheduleEditMode select,
+#scheduleEditMode textarea {
+    width: 100%;
+    min-width: 0;
+}
+
+#scheduleEditMode .detail-row {
+    align-items: center;
 }
 
 .modal-footer {
@@ -682,6 +750,29 @@ tbody tr:hover {
         grid-column: 1;
         min-width: 0;
         max-width: 100%;
+    }
+
+    .calendar-area {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .calendar {
+        min-width: 720px;
+    }
+
+    .calendar-interaction-note {
+        max-width: 720px;
+    }
+
+    .modal-content {
+        padding: 16px;
+    }
+
+    .detail-row {
+        grid-template-columns: minmax(76px, 0.3fr) minmax(0, 1fr);
+        gap: 12px;
+        padding: 11px 0;
     }
 
     .login-copy h1 {
