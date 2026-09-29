@@ -52,6 +52,21 @@ public final class CognitoUserAdminService {
    * @return メール、状態、作成日時、グループを含むユーザー一覧
    */
   public List<Map<String, Object>> listUsers() {
+    try {
+      return listUsersInternal();
+    } catch (CognitoIdentityProviderException e) {
+      String errorCode = e.awsErrorDetails() == null ? "" : e.awsErrorDetails().errorCode();
+      if ("AccessDeniedException".equals(errorCode)) {
+        throw new UserAdminException(
+            500,
+            "USER_LIST_PERMISSION_MISSING",
+            "Lambda実行ロールにCognitoユーザー一覧の権限がありません（ListUsers / ListUsersInGroup）");
+      }
+      throw new UserAdminException(500, "USER_LIST_FAILED", "Cognitoユーザー一覧を取得できませんでした");
+    }
+  }
+
+  private List<Map<String, Object>> listUsersInternal() {
     Set<String> administrators = groupUsernames(ADMIN_GROUP);
     Set<String> rootAdministrators = groupUsernames(ROOT_ADMIN_GROUP);
     List<Map<String, Object>> result = new ArrayList<>();
@@ -246,19 +261,39 @@ public final class CognitoUserAdminService {
    * 現在のCognitoユーザーへGoogleの外部IDを紐付けます。
    *
    * @param username 既存Cognitoユーザーのユーザー名
+   * @param destinationSub 連携先ユーザーのCognito sub
    * @param googleSubject Google IDトークンから検証済みのsub
    * @return 連携結果
    */
-  public Map<String, Object> linkGoogleAccount(String username, String googleSubject) {
+  public Map<String, Object> linkGoogleAccount(
+      String username, String destinationSub, String googleSubject) {
     if (username == null
         || username.isBlank()
+        || destinationSub == null
+        || destinationSub.isBlank()
         || googleSubject == null
         || googleSubject.isBlank()) {
       throw new UserAdminException(400, "GOOGLE_LINK_INPUT_INVALID", "Google連携情報が不足しています");
     }
     try {
       // 既存ユーザーであることを確認してから、外部IDを連携します。
-      requireTarget(username);
+      TargetUser destination = requireTarget(username);
+      if (!destinationSub.equals(destination.sub())) {
+        throw new UserAdminException(409, "GOOGLE_LINK_TARGET_CHANGED", "ログイン状態が変わりました。再度お試しください");
+      }
+      String existingGoogleUsername = findUsernameBySub(googleSubject);
+      if (existingGoogleUsername != null && !existingGoogleUsername.equals(username)) {
+        Set<String> existingGroups = groupsFor(existingGoogleUsername);
+        if (existingGroups.contains(ADMIN_GROUP) || existingGroups.contains(ROOT_ADMIN_GROUP)) {
+          throw new UserAdminException(
+              409,
+              "GOOGLE_LINK_ALREADY_USED",
+              "このGoogleアカウントは管理者アカウントに連携済みです。先にそのアカウントから連携を解除してください");
+        }
+        // Cognito Hosted UIはGoogle認証時に一時ユーザーを自動作成するため、
+        // 通常メンバーの仮ユーザーだけを削除してから同じsubを連携します。
+        deleteCognitoUser(existingGoogleUsername, "GOOGLE_LINK_TEMPORARY_USER_DELETE");
+      }
       cognito.adminLinkProviderForUser(
           AdminLinkProviderForUserRequest.builder()
               .userPoolId(USER_POOL_ID)
@@ -266,7 +301,7 @@ public final class CognitoUserAdminService {
                   ProviderUserIdentifierType.builder()
                       .providerName("Cognito")
                       .providerAttributeName("Cognito_Subject")
-                      .providerAttributeValue(username)
+                      .providerAttributeValue(destinationSub)
                       .build())
               .sourceUser(
                   ProviderUserIdentifierType.builder()
@@ -285,6 +320,17 @@ public final class CognitoUserAdminService {
           409, "GOOGLE_LINK_FAILED", "このGoogleアカウントは別のユーザーに連携済みか、連携できない状態です");
     }
     return Map.of("linked", true, "provider", "Google");
+  }
+
+  private String findUsernameBySub(String sub) {
+    var response =
+        cognito.listUsers(
+            ListUsersRequest.builder()
+                .userPoolId(USER_POOL_ID)
+                .filter("sub = \"" + sub.replace("\"", "") + "\"")
+                .limit(1)
+                .build());
+    return response.users().isEmpty() ? null : response.users().get(0).username();
   }
 
   private TargetUser requireTarget(String username) {

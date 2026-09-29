@@ -163,7 +163,9 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
       case "users" -> updateManagedUser(b, user);
       case "account-link" ->
           userAdmin.linkGoogleAccount(
-              user.username(), CognitoAuth.requireGoogleSubject(required(b, "googleIdToken")));
+              user.username(),
+              user.subject(),
+              CognitoAuth.requireGoogleSubject(required(b, "googleIdToken")));
       case "team" -> saveTeam(b);
       case "player" -> savePlayer(b, required(query, "teamId"));
       case "game" ->
