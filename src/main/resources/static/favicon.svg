@@ -1,14 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
-  <title id="title">Flight Penguins FPG</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Flight Penguins</title>
+  <desc id="desc">A friendly penguin mascot icon</desc>
   <rect width="64" height="64" rx="18" fill="#d9ef83"/>
-  <path d="M12 30c-4-7-2-13 1-15 5 0 9 6 10 12m28 3c4-7 2-13-1-15-5 0-9 6-10 12" fill="#214b38" stroke="#163a2e" stroke-width="2" stroke-linejoin="round"/>
-  <ellipse cx="32" cy="33" rx="19" ry="22" fill="#183d30"/>
-  <ellipse cx="32" cy="38" rx="12.5" ry="14" fill="#f6f1dc"/>
-  <path d="M26 27c0-3 2-5 4-5s3 2 3 5-2 6-4 6-3-3-3-6Zm10 0c0-3 2-5 4-5s3 2 3 5-2 6-4 6-3-3-3-6Z" fill="#fffdf4"/>
-  <circle cx="29.5" cy="27" r="1.8" fill="#142b23"/>
-  <circle cx="39.5" cy="27" r="1.8" fill="#142b23"/>
-  <path d="m31 32 3-1 4 2-4 3-4-2Z" fill="#eb8b45" stroke="#bd642f" stroke-width=".8" stroke-linejoin="round"/>
-  <path d="M18 39c3 4 5 10 5 14m23-14c-3 4-5 10-5 14" fill="none" stroke="#183d30" stroke-width="5" stroke-linecap="round"/>
-  <path d="M27 55h10" stroke="#eb8b45" stroke-width="4" stroke-linecap="round"/>
-  <text x="32" y="62" fill="#183d30" font-family="Arial,sans-serif" font-size="6" font-weight="900" letter-spacing="1.4" text-anchor="middle">FPG</text>
+  <path d="M16 25 10.5 17.5c-.9-1.2.5-2.8 1.9-2.1l8.2 4.1M48 25l5.5-7.5c.9-1.2-.5-2.8-1.9-2.1l-8.2 4.1" fill="#214b38" stroke="#173d31" stroke-width="2.4" stroke-linecap="round"/>
+  <ellipse cx="32" cy="34" rx="19" ry="23" fill="#173d31"/>
+  <ellipse cx="32" cy="39" rx="12.5" ry="14.5" fill="#fff9e9"/>
+  <circle cx="26.5" cy="27.5" r="5.7" fill="#fff9e9"/>
+  <circle cx="37.5" cy="27.5" r="5.7" fill="#fff9e9"/>
+  <circle cx="27.5" cy="28" r="2" fill="#173027"/>
+  <circle cx="36.5" cy="28" r="2" fill="#173027"/>
+  <path d="m32 31 6 3.5-6 3.5-6-3.5Z" fill="#ef8b55" stroke="#c7663b" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M18 42c-2.4 3.7-3.1 7.6-2.1 11.8M46 42c2.4 3.7 3.1 7.6 2.1 11.8" fill="none" stroke="#173d31" stroke-width="5.5" stroke-linecap="round"/>
+  <path d="M24 56h-5M40 56h5" stroke="#ef8b55" stroke-width="3.6" stroke-linecap="round"/>
 </svg>

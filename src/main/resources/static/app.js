@@ -580,11 +580,22 @@ function displayCalendar() {
                 // 日付セルのクリック処理を止める
                 clickEvent.stopPropagation();
 
+                focusCalendarEvent(schedule);
+                showScheduleDetail(schedule);
+            });
+            event.addEventListener("keydown", (keyboardEvent) => {
+                if (keyboardEvent.key !== "Enter" && keyboardEvent.key !== " ") return;
+                keyboardEvent.preventDefault();
+                focusCalendarEvent(schedule);
                 showScheduleDetail(schedule);
             });
 
             // マウスカーソル
             event.style.cursor = "pointer";
+            event.tabIndex = 0;
+            event.dataset.scheduleStart = schedule.startDateTime;
+            event.setAttribute("role", "button");
+            event.setAttribute("aria-label", `${formatTime(start)}から${formatTime(end)}の予定`);
 
             element.appendChild(event);
         });
@@ -608,6 +619,26 @@ function displayCalendar() {
 
         calendarElement.appendChild(element);
     }
+}
+
+/** カレンダー内の対象予定を目立たせ、一覧から選んだ予定を見失わないようにします。 */
+function focusCalendarEvent(schedule) {
+    const startDate = new Date(schedule.startDateTime);
+    if (startDate.getFullYear() !== currentYear || startDate.getMonth() + 1 !== currentMonth) {
+        currentYear = startDate.getFullYear();
+        currentMonth = startDate.getMonth() + 1;
+        displayCalendar();
+    }
+    const target = [...document.querySelectorAll(".event-dot")].find(
+        (element) => element.dataset.scheduleStart === schedule.startDateTime,
+    );
+    if (!target) return;
+    document.querySelectorAll(".event-dot.is-focused").forEach((element) => {
+        element.classList.remove("is-focused");
+    });
+    target.classList.add("is-focused");
+    target.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+    window.setTimeout(() => target.classList.remove("is-focused"), 1800);
 }
 
 // ========================================
@@ -709,6 +740,9 @@ function displaySchedule() {
         const eventElement = document.createElement("div");
 
         eventElement.className = "upcoming-schedule";
+        eventElement.tabIndex = 0;
+        eventElement.setAttribute("role", "button");
+        eventElement.setAttribute("aria-label", `${formatDate(start)}の予定を表示`);
 
         const eventType = ["GAME", "MEETING"].includes(schedule.eventType)
             ? schedule.eventType
@@ -740,6 +774,17 @@ function displaySchedule() {
         `;
 
         scheduleElement.appendChild(eventElement);
+        const openDetail = () => {
+            focusCalendarEvent(schedule);
+            showScheduleDetail(schedule);
+        };
+        eventElement.addEventListener("click", openDetail);
+        eventElement.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                openDetail();
+            }
+        });
     });
 }
 

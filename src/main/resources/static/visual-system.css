@@ -158,6 +158,7 @@ body::before {
         linear-gradient(125deg, #173d31 0%, #245744 55%, #32664d 100%);
     box-shadow: 0 18px 44px rgba(23, 61, 49, 0.17);
     isolation: isolate;
+    animation: fp-enter 560ms var(--motion-smooth) both;
 }
 
 .page-intro,
@@ -375,6 +376,30 @@ body::before {
     line-height: 1.25;
     text-overflow: ellipsis;
     white-space: nowrap;
+    transition:
+        transform 180ms var(--motion-smooth),
+        box-shadow 180ms ease;
+}
+
+.event-dot:hover,
+.event-dot:focus-visible,
+.event-dot.is-focused {
+    position: relative;
+    z-index: 2;
+    transform: translateY(-1px);
+    outline: none;
+    box-shadow:
+        0 0 0 3px rgba(139, 177, 73, 0.34),
+        0 7px 16px rgba(30, 62, 47, 0.14);
+}
+
+.upcoming-schedule {
+    cursor: pointer;
+}
+
+.upcoming-schedule:focus-visible {
+    outline: 3px solid rgba(139, 177, 73, 0.62);
+    outline-offset: 3px;
 }
 
 .calendar-day.sunday .day-number,
@@ -1029,6 +1054,24 @@ tbody tr:hover {
     color: var(--text-main);
     border-color: #43584a;
     background: #293b30;
+}
+
+:root[data-theme="dark"] .calendar-day:not(.empty-day):hover,
+:root[data-theme="dark"] .calendar-day:not(.empty-day):focus-within {
+    color: #f2f7ee;
+    background: #304a3a !important;
+}
+
+:root[data-theme="dark"] .calendar-day:focus-visible,
+:root[data-theme="dark"] .event-dot:focus-visible,
+:root[data-theme="dark"] .event-dot.is-focused {
+    outline: 3px solid #d9ef83;
+    outline-offset: -2px;
+    box-shadow: 0 0 0 3px rgba(217, 239, 131, 0.18);
+}
+
+:root[data-theme="dark"] .upcoming-schedule:focus-visible {
+    outline-color: #d9ef83;
 }
 
 @media (prefers-reduced-motion: reduce) {
