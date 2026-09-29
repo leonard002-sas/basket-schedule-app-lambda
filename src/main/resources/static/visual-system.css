@@ -1139,6 +1139,48 @@ tbody tr:hover {
     background: rgba(12, 42, 39, 0.58);
 }
 
+/*
+ * 画面見出しの共通モチーフ。
+ * 試合管理で使っているコートの円形オブジェクトを、
+ * カレンダー・予定登録・施設登録・周知事項・動画・チーム管理・
+ * ランキング・ユーザー管理の見出しにも同じ位置と動きで表示します。
+ * ページごとの見出しサイズや本文レイアウトは各画面のスタイルを残し、
+ * 背景オブジェクトだけをここで一元管理します。
+ */
+.page-intro::after,
+.admin-page-heading::after,
+.workspace-screen-heading::after,
+.scorebook-hero::after {
+    top: -65px;
+    right: 5%;
+    width: 190px;
+    height: 190px;
+    border: 1px solid rgba(255, 162, 91, 0.45);
+    border-radius: 50%;
+    background:
+        linear-gradient(
+            90deg,
+            transparent 49.5%,
+            rgba(255, 162, 91, 0.42) 50%,
+            transparent 50.5%
+        ),
+        linear-gradient(
+            0deg,
+            transparent 49.5%,
+            rgba(255, 162, 91, 0.42) 50%,
+            transparent 50.5%
+        );
+    box-shadow:
+        0 0 0 24px rgba(255, 162, 91, 0.055),
+        0 0 0 52px rgba(255, 162, 91, 0.035);
+    animation: fp-orbit 32s linear infinite;
+}
+
+/* workspace-screen-heading previously had a second decorative circle. */
+.workspace-screen-heading::before {
+    display: none;
+}
+
 @media (max-width: 620px) {
     .login-gate {
         background-position: 65% center !important;
