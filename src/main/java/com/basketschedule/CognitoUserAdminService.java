@@ -282,6 +282,7 @@ public final class CognitoUserAdminService {
         throw new UserAdminException(409, "GOOGLE_LINK_TARGET_CHANGED", "ログイン状態が変わりました。再度お試しください");
       }
       String existingGoogleUsername = findUsernameBySub(googleSubject);
+      boolean temporaryUserRemoved = false;
       if (existingGoogleUsername != null && !existingGoogleUsername.equals(username)) {
         Set<String> existingGroups = groupsFor(existingGoogleUsername);
         if (existingGroups.contains(ADMIN_GROUP) || existingGroups.contains(ROOT_ADMIN_GROUP)) {
@@ -293,23 +294,24 @@ public final class CognitoUserAdminService {
         // Cognito Hosted UIはGoogle認証時に一時ユーザーを自動作成するため、
         // 通常メンバーの仮ユーザーだけを削除してから同じsubを連携します。
         deleteCognitoUser(existingGoogleUsername, "GOOGLE_LINK_TEMPORARY_USER_DELETE");
+        temporaryUserRemoved = true;
       }
-      cognito.adminLinkProviderForUser(
-          AdminLinkProviderForUserRequest.builder()
-              .userPoolId(USER_POOL_ID)
-              .destinationUser(
-                  ProviderUserIdentifierType.builder()
-                      .providerName("Cognito")
-                      .providerAttributeName("Cognito_Subject")
-                      .providerAttributeValue(destinationSub)
-                      .build())
-              .sourceUser(
-                  ProviderUserIdentifierType.builder()
-                      .providerName("Google")
-                      .providerAttributeName("Cognito_Subject")
-                      .providerAttributeValue(googleSubject)
-                      .build())
-              .build());
+      int attempts = temporaryUserRemoved ? 4 : 1;
+      for (int attempt = 1; attempt <= attempts; attempt++) {
+        try {
+          linkGoogleProvider(destinationSub, googleSubject);
+          break;
+        } catch (CognitoIdentityProviderException e) {
+          if (attempt == attempts) throw e;
+          try {
+            Thread.sleep(500L);
+          } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new UserAdminException(
+                409, "GOOGLE_LINK_RETRY_INTERRUPTED", "Google連携を完了できませんでした");
+          }
+        }
+      }
     } catch (CognitoIdentityProviderException e) {
       String errorCode = e.awsErrorDetails() == null ? "" : e.awsErrorDetails().errorCode();
       if ("AccessDeniedException".equals(errorCode)) {
@@ -331,6 +333,25 @@ public final class CognitoUserAdminService {
                 .limit(1)
                 .build());
     return response.users().isEmpty() ? null : response.users().get(0).username();
+  }
+
+  private void linkGoogleProvider(String destinationSub, String googleSubject) {
+    cognito.adminLinkProviderForUser(
+        AdminLinkProviderForUserRequest.builder()
+            .userPoolId(USER_POOL_ID)
+            .destinationUser(
+                ProviderUserIdentifierType.builder()
+                    .providerName("Cognito")
+                    .providerAttributeName("Cognito_Subject")
+                    .providerAttributeValue(destinationSub)
+                    .build())
+            .sourceUser(
+                ProviderUserIdentifierType.builder()
+                    .providerName("Google")
+                    .providerAttributeName("Cognito_Subject")
+                    .providerAttributeValue(googleSubject)
+                    .build())
+            .build());
   }
 
   private TargetUser requireTarget(String username) {
@@ -369,18 +390,25 @@ public final class CognitoUserAdminService {
   private Set<String> groupUsernames(String groupName) {
     Set<String> usernames = new HashSet<>();
     String nextToken = null;
-    do {
-      var response =
-          cognito.listUsersInGroup(
-              ListUsersInGroupRequest.builder()
-                  .userPoolId(USER_POOL_ID)
-                  .groupName(groupName)
-                  .limit(PAGE_SIZE)
-                  .nextToken(nextToken)
-                  .build());
-      response.users().forEach(user -> usernames.add(user.username()));
-      nextToken = response.nextToken();
-    } while (nextToken != null && !nextToken.isBlank());
+    try {
+      do {
+        var response =
+            cognito.listUsersInGroup(
+                ListUsersInGroupRequest.builder()
+                    .userPoolId(USER_POOL_ID)
+                    .groupName(groupName)
+                    .limit(PAGE_SIZE)
+                    .nextToken(nextToken)
+                    .build());
+        response.users().forEach(user -> usernames.add(user.username()));
+        nextToken = response.nextToken();
+      } while (nextToken != null && !nextToken.isBlank());
+    } catch (CognitoIdentityProviderException e) {
+      String errorCode = e.awsErrorDetails() == null ? "" : e.awsErrorDetails().errorCode();
+      // グループ未作成の初期状態でも、一般ユーザー一覧は表示できるようにします。
+      if ("ResourceNotFoundException".equals(errorCode)) return usernames;
+      throw e;
+    }
     return usernames;
   }
 

@@ -1,15 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
   <title id="title">Flight Penguins</title>
-  <desc id="desc">A friendly penguin mascot icon</desc>
-  <rect width="64" height="64" rx="18" fill="#d9ef83"/>
-  <path d="M16 25 10.5 17.5c-.9-1.2.5-2.8 1.9-2.1l8.2 4.1M48 25l5.5-7.5c.9-1.2-.5-2.8-1.9-2.1l-8.2 4.1" fill="#214b38" stroke="#173d31" stroke-width="2.4" stroke-linecap="round"/>
-  <ellipse cx="32" cy="34" rx="19" ry="23" fill="#173d31"/>
-  <ellipse cx="32" cy="39" rx="12.5" ry="14.5" fill="#fff9e9"/>
-  <circle cx="26.5" cy="27.5" r="5.7" fill="#fff9e9"/>
-  <circle cx="37.5" cy="27.5" r="5.7" fill="#fff9e9"/>
-  <circle cx="27.5" cy="28" r="2" fill="#173027"/>
-  <circle cx="36.5" cy="28" r="2" fill="#173027"/>
-  <path d="m32 31 6 3.5-6 3.5-6-3.5Z" fill="#ef8b55" stroke="#c7663b" stroke-width="1.2" stroke-linejoin="round"/>
-  <path d="M18 42c-2.4 3.7-3.1 7.6-2.1 11.8M46 42c2.4 3.7 3.1 7.6 2.1 11.8" fill="none" stroke="#173d31" stroke-width="5.5" stroke-linecap="round"/>
-  <path d="M24 56h-5M40 56h5" stroke="#ef8b55" stroke-width="3.6" stroke-linecap="round"/>
+  <desc id="desc">シンプルなペンギンのマーク</desc>
+  <rect width="64" height="64" rx="18" fill="#dff29a"/>
+  <path d="M17 47c-2-9 0-25 7-31 2-2 5-3 8-3s6 1 8 3c7 6 9 22 7 31-2 8-8 12-15 12S19 55 17 47Z" fill="#214b38"/>
+  <path d="M23 39c0-8 4-14 9-14s9 6 9 14c0 9-3 15-9 15s-9-6-9-15Z" fill="#fff9e9"/>
+  <circle cx="26.5" cy="25.5" r="4.5" fill="#fff9e9"/>
+  <circle cx="37.5" cy="25.5" r="4.5" fill="#fff9e9"/>
+  <circle cx="27" cy="26" r="1.7" fill="#173027"/>
+  <circle cx="37" cy="26" r="1.7" fill="#173027"/>
+  <path d="m32 29 5 3-5 3-5-3 5-3Z" fill="#ef8b55"/>
+  <path d="M25 57h-5M39 57h5" fill="none" stroke="#ef8b55" stroke-width="3.5" stroke-linecap="round"/>
 </svg>
