@@ -157,6 +157,16 @@
     panel.querySelector("[data-delete-account]").addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
+        // Android WebViewなどではdialogが画面外になる場合があるため、タッチ端末は
+        // 標準の確認入力を使って確実に操作できるようにします。
+        if (globalThis.matchMedia?.("(pointer: coarse)").matches) {
+            const confirmation = globalThis.prompt(
+                "アカウントを削除します。確認のため「削除」と入力してください。",
+                "",
+            );
+            if (confirmation === "削除") deleteAccount();
+            return;
+        }
         panel.querySelector("[data-delete-status]").textContent = "";
         dialog.querySelector("[name=confirmation]").value = "";
         dialog.querySelector("[data-confirm-delete]").disabled = true;
@@ -181,8 +191,7 @@
         dialog.querySelector("[data-confirm-delete]").disabled =
             event.target.value.trim() !== "削除";
     });
-    dialog.querySelector("[data-delete-form]").addEventListener("submit", async (event) => {
-        event.preventDefault();
+    async function deleteAccount() {
         const button = dialog.querySelector("[data-confirm-delete]");
         const status = dialog.querySelector("[data-delete-status]");
         button.disabled = true;
@@ -201,7 +210,15 @@
         } catch (error) {
             status.textContent = error.message;
             button.disabled = false;
+            if (globalThis.matchMedia?.("(pointer: coarse)").matches) {
+                globalThis.alert(error.message);
+            }
         }
+    }
+
+    dialog.querySelector("[data-delete-form]").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        await deleteAccount();
     });
 
     refresh();
