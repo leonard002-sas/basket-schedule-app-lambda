@@ -190,9 +190,10 @@ public final class CognitoUserAdminService {
   public Map<String, Object> deleteOwnAccount(
       String requesterSub, String username, Set<String> groups) {
     if (groups.contains(ROOT_ADMIN_GROUP)) {
-      throw new UserAdminException(409, "ROOT_ADMIN_PROTECTED", "root 管理者アカウントはこの画面から削除できません");
+      requireAnotherEnabledRootAdministratorBySub(requesterSub);
+    } else if (groups.contains(ADMIN_GROUP)) {
+      requireAnotherEnabledAdministratorBySub(requesterSub);
     }
-    if (groups.contains(ADMIN_GROUP)) requireAnotherEnabledAdministratorBySub(requesterSub);
     String actualUsername = resolveUsernameBySub(requesterSub, username);
     deleteCognitoUser(actualUsername, "ACCOUNT_DELETE");
     return Map.of("deleted", true);
@@ -359,6 +360,14 @@ public final class CognitoUserAdminService {
       if (!sub.equals(user.sub()) && user.enabled()) return;
     }
     throw new UserAdminException(409, "LAST_ADMIN", "有効な管理者が他にいないため、アカウントを削除できません");
+  }
+
+  private void requireAnotherEnabledRootAdministratorBySub(String sub) {
+    for (String username : groupUsernames(ROOT_ADMIN_GROUP)) {
+      TargetUser user = requireTarget(username);
+      if (!sub.equals(user.sub()) && user.enabled()) return;
+    }
+    throw new UserAdminException(409, "LAST_ROOT_ADMIN", "root 管理者が他にいないため、このアカウントは削除できません");
   }
 
   private boolean isEnabled(String username) {

@@ -138,11 +138,11 @@
             link.hidden = !isAdmin;
         });
         panel.querySelector("[data-account-note]").textContent = isRootAdmin
-            ? "ルート管理者アカウントは、この画面から削除できません。"
+            ? "root管理者を削除するには、別の有効なroot管理者が必要です。"
             : "アカウントを削除してもチームの共有データは残ります。";
         summary.querySelector(".account-avatar").textContent =
             Array.from(name.trim())[0]?.toUpperCase() || "FP";
-        panel.querySelector("[data-delete-account]").hidden = isRootAdmin;
+        panel.querySelector("[data-delete-account]").hidden = false;
     }
 
     document.addEventListener("app:auth-changed", refresh);
