@@ -154,14 +154,29 @@
     });
     panel.querySelector("[data-account-logout]").addEventListener("click", signOut);
     panel.querySelector("[data-google-link]").addEventListener("click", startGoogleLink);
-    panel.querySelector("[data-delete-account]").addEventListener("click", () => {
+    panel.querySelector("[data-delete-account]").addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
         panel.querySelector("[data-delete-status]").textContent = "";
         dialog.querySelector("[name=confirmation]").value = "";
         dialog.querySelector("[data-confirm-delete]").disabled = true;
-        dialog.showModal();
+        // 一部のスマホブラウザやWebViewではshowModalが利用できないため、フォールバックします。
+        try {
+            if (typeof dialog.showModal === "function") dialog.showModal();
+            else dialog.setAttribute("open", "");
+        } catch (error) {
+            dialog.setAttribute("open", "");
+            dialog.querySelector("[data-delete-status]").textContent =
+                "削除確認画面を開けませんでした。もう一度お試しください。";
+            console.error("アカウント削除ダイアログを開けませんでした", error);
+        }
         menu.open = false;
     });
-    dialog.querySelector("[data-cancel-delete]").addEventListener("click", () => dialog.close());
+    dialog.querySelector("[data-cancel-delete]").addEventListener("click", (event) => {
+        event.preventDefault();
+        if (typeof dialog.close === "function") dialog.close();
+        else dialog.removeAttribute("open");
+    });
     dialog.querySelector("[name=confirmation]").addEventListener("input", (event) => {
         dialog.querySelector("[data-confirm-delete]").disabled =
             event.target.value.trim() !== "削除";
