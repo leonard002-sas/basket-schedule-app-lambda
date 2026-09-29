@@ -168,6 +168,94 @@
 .game-form .schedule-game-label select {
     max-width: 100%;
 }
+.game-participant-picker {
+    flex: 1 1 100%;
+    min-width: 0;
+    margin: 8px 0 0;
+    padding: 17px;
+    border: 1px solid var(--line);
+    border-radius: 17px;
+    background: color-mix(in srgb, var(--paper) 84%, var(--canvas));
+}
+.game-participant-picker legend {
+    padding: 0 8px;
+    color: var(--ink);
+    font-size: 15px;
+    font-weight: 850;
+}
+.game-participant-picker > .field-hint {
+    margin: 0 0 13px;
+}
+.participant-picker-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.participant-picker-actions > span {
+    flex: 1 1 220px;
+}
+.participant-picker-actions .button-light {
+    min-height: 34px;
+    padding: 6px 10px;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    background: var(--paper);
+    box-shadow: none;
+}
+.game-participant-choices {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 175px), 1fr));
+    gap: 8px;
+}
+.game-form .game-participant-choice {
+    display: flex;
+    flex: initial;
+    min-width: 0;
+    min-height: 46px;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 11px;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--paper);
+    cursor: pointer;
+    transition:
+        border-color 150ms ease,
+        background-color 150ms ease,
+        transform 150ms ease;
+}
+.game-form .game-participant-choice:has(input:checked) {
+    border-color: #8bad51;
+    background: #eff6df;
+    transform: translateY(-1px);
+}
+.game-participant-choice input {
+    flex: 0 0 auto;
+    accent-color: #447247;
+}
+.game-participant-number {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
+}
+.game-participant-name {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.game-participant-position {
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 10px;
+}
+.game-form > button[type="submit"] {
+    flex: 1 1 100%;
+}
 .score-status {
     min-height: 19px;
     margin-top: 8px;
@@ -1132,6 +1220,27 @@
     margin: 10px 0 0;
     color: var(--muted);
     font-size: 0.86rem;
+}
+:root[data-theme="dark"] .game-participant-picker {
+    border-color: var(--line);
+    background: #202a35;
+}
+:root[data-theme="dark"] .game-participant-picker legend {
+    color: var(--ink);
+}
+:root[data-theme="dark"] .game-form .game-participant-choice {
+    color: var(--ink);
+    border-color: #455364;
+    background: #1d2833;
+}
+:root[data-theme="dark"] .game-form .game-participant-choice:has(input:checked) {
+    border-color: #9fc85b;
+    background: #34452a;
+}
+:root[data-theme="dark"] .participant-picker-actions .button-light {
+    color: var(--ink);
+    border-color: #455364;
+    background: #273442;
 }
 .trend-game-dnp {
     color: var(--muted);

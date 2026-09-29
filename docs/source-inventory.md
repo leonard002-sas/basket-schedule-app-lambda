@@ -28,29 +28,30 @@
 
 ## ブラウザー画面
 
-| ファイル                               | 責務                                                           |
-| -------------------------------------- | -------------------------------------------------------------- |
-| `static/index.html`                    | ログイン、予定表、ホーム情報、お知らせ、動画一覧、予定詳細     |
-| `static/index.css`                     | 予定表ページ固有の旧スタイル。共通スタイルより前に読み込みます |
-| `static/app.css`                       | 予定表と共有部品のレイアウト・コンポーネント                   |
-| `static/app.js`                        | Cognito認証、API通信、予定データの読み込みと画面初期化         |
-| `static/calendar-export.js`            | 予定のICS変換と月間共有テキストの作成                          |
-| `static/calendar-view.js`              | 月間カレンダー、日別予定、今日・今週予定、動画一覧の描画       |
-| `static/schedule-detail-controller.js` | 予定詳細の表示、施設情報、管理者向け編集・削除                 |
-| `static/announcement-controller.js`    | 周知事項の表示と管理者向け登録・編集・削除操作                 |
-| `static/register.html`                 | 予定・施設登録画面の構造                                       |
-| `static/register.js`                   | 管理者向け施設と手入力予定の登録画面                           |
-| `static/image-upload-controller.js`    | 予定画像の選択、S3への直接アップロード、進捗反映               |
-| `static/image-jobs.js`                 | 画像処理ジョブの進捗表示と解除                                 |
-| `static/basketball.html`               | チーム・試合・ランキングの画面構造                             |
-| `static/basketball.css`                | スコアブック画面のレイアウト                                   |
-| `static/basketball.js`                 | スコアブック画面、API 呼び出し、CSV、ライブスタッツ            |
-| `static/basketball-data-utils.js`      | CSV 読み込み・移行形式変換とスタッツ表示の純粋関数             |
-| `static/account-menu.js`               | 共通アカウント情報、ログアウト、Cognito 自己削除               |
-| `static/theme.css`                     | ダークテーマ用の上書きスタイル                                 |
-| `static/theme.js`                      | テーマ選択の保存と復元                                         |
-| `static/favicon.svg`                   | ブラウザーアイコン                                             |
-| `static/cognito-login-background.svg`  | Cognito ログイン画面の背景素材                                 |
+| ファイル                               | 責務                                                                 |
+| -------------------------------------- | -------------------------------------------------------------------- |
+| `static/index.html`                    | ログイン、予定表、ホーム情報、お知らせ、動画一覧、予定詳細           |
+| `static/app.css`                       | 予定表と共有部品のレイアウト・コンポーネント                         |
+| `static/app.js`                        | Cognito認証、API通信、予定データの読み込みと画面初期化               |
+| `static/calendar-export.js`            | 予定のICS変換と月間共有テキストの作成                                |
+| `static/calendar-view.js`              | 月間カレンダー、日別予定、今日・今週予定、動画一覧の描画             |
+| `static/schedule-detail-controller.js` | 予定詳細の表示、施設情報、管理者向け編集・削除                       |
+| `static/announcement-controller.js`    | 周知事項の表示と管理者向け登録・編集・削除操作                       |
+| `static/register.html`                 | 予定・施設登録画面の構造                                             |
+| `static/register.js`                   | 管理者向け施設と手入力予定の登録画面                                 |
+| `static/image-upload-controller.js`    | 予定画像の選択、S3への直接アップロード、進捗反映                     |
+| `static/image-jobs.js`                 | 画像処理ジョブの進捗表示と解除                                       |
+| `static/basketball.html`               | チーム・試合・ランキングの画面構造                                   |
+| `static/basketball.css`                | スコアブック画面のレイアウト                                         |
+| `static/basketball.js`                 | スコアブック画面、API 呼び出し、CSV、ライブスタッツ                  |
+| `static/basketball-data-utils.js`      | CSV 読み込み・移行形式変換とスタッツ表示の純粋関数                   |
+| `static/account-menu.js`               | 共通アカウント情報、ログアウト、Cognito 自己削除                     |
+| `static/theme.css`                     | ダークテーマ用の上書きスタイル                                       |
+| `static/visual-system.css`             | 全画面共通のブランド、レスポンシブ、動き、ダークテーマの最終スタイル |
+| `static/members.html` / `members.js`   | root-admin 専用の Cognito ユーザー管理画面                           |
+| `static/theme.js`                      | テーマ選択の保存と復元                                               |
+| `static/favicon.svg`                   | ブラウザーアイコン                                                   |
+| `static/cognito-login-background.svg`  | Cognito ログイン画面の背景素材                                       |
 
 ## ビルド・設計・検証
 
@@ -74,4 +75,4 @@
 - 施設: `FacilityApi.java`、`ScheduleApi.java`、`app.js`、`register.js`。
 - 画像解析: `UploadApi.java`、`ImageProcessor.java`、`DynamoDbService.java`、`image-jobs.js`。
 - バスケットボール: `BasketballApi.java`、`basketball.js`、`basketball.html`、`basketball.css`。
-- 共通見た目: `app.css`、`theme.css`、ページ HTML。
+- 共通見た目: `app.css`、`theme.css`、`visual-system.css`、ページ HTML。

@@ -62,10 +62,35 @@ public final class CognitoAuth {
    */
   public static User requireAdmin(Map<String, Object> request) {
     User user = requireUser(request);
-    if (!user.groups().contains("admins")) {
+    if (!isAdmin(user)) {
       throw new AuthException(403, "管理者権限が必要です");
     }
     return user;
+  }
+
+  /**
+   * Cognito の信頼済み root-admins グループに属する利用者だけを許可します。
+   *
+   * @param request Lambda に渡されたリクエスト
+   * @return 検証済みの root 管理者
+   * @throws AuthException 未認証、または root 管理者ではない場合
+   */
+  public static User requireRootAdmin(Map<String, Object> request) {
+    User user = requireUser(request);
+    if (!user.groups().contains("root-admins")) {
+      throw new AuthException(403, "ユーザー管理者権限が必要です", "ROOT_ADMIN_REQUIRED");
+    }
+    return user;
+  }
+
+  /**
+   * 通常管理者または root 管理者かを調べます。
+   *
+   * @param user 検証済みの利用者
+   * @return 管理者グループに所属していれば true
+   */
+  public static boolean isAdmin(User user) {
+    return user.groups().contains("admins") || user.groups().contains("root-admins");
   }
 
   private static String bearerToken(Map<String, Object> request) {
@@ -140,7 +165,10 @@ public final class CognitoAuth {
       if (groupClaims.isArray()) {
         groupClaims.forEach(group -> groups.add(group.asText()));
       }
-      return new User(claims.path("sub").asText(), Set.copyOf(groups));
+      return new User(
+          claims.path("sub").asText(),
+          claims.path("cognito:username").asText(claims.path("sub").asText()),
+          Set.copyOf(groups));
     } catch (AuthException e) {
       throw e;
     } catch (Exception e) {
@@ -230,11 +258,18 @@ public final class CognitoAuth {
    * Cognito が検証したユーザーの識別情報です。
    *
    * @param subject Cognito が発行したユーザー ID
+   * @param username Cognito のユーザー名
    * @param groups Cognito の署名付きトークンで確認したグループ
    */
-  public record User(String subject, Set<String> groups) {
+  public record User(String subject, String username, Set<String> groups) {
+    /** 既存コードで sub とグループだけを指定する場合の互換コンストラクターです。 */
+    public User(String subject, Set<String> groups) {
+      this(subject, subject, groups);
+    }
+
     /** グループ集合をコピーし、作成後に外部から変更されないようにします。 */
     public User {
+      username = username == null || username.isBlank() ? subject : username;
       groups = Set.copyOf(groups);
     }
   }

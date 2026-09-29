@@ -1,0 +1,204 @@
+.members-page {
+    display: grid;
+    gap: 22px;
+    padding-bottom: 50px;
+}
+.members-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 22px 22px 17px;
+    border-bottom: 1px solid var(--line);
+}
+.members-counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+.members-counts span {
+    padding: 9px 12px;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--canvas);
+    font-size: 12px;
+}
+.members-counts strong {
+    color: var(--ink);
+    font-size: 14px;
+}
+.members-search {
+    display: grid;
+    width: min(330px, 100%);
+    gap: 5px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 750;
+}
+.members-search input {
+    width: 100%;
+}
+.user-list {
+    display: grid;
+    gap: 10px;
+    padding: 18px 22px;
+}
+.managed-user {
+    display: grid;
+    grid-template-columns: minmax(190px, 1.1fr) minmax(115px, 0.5fr) minmax(125px, 0.6fr) minmax(
+            250px,
+            1.1fr
+        );
+    align-items: center;
+    gap: 14px;
+    padding: 15px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--paper);
+}
+.managed-user-identity {
+    display: grid;
+    min-width: 0;
+    gap: 4px;
+}
+.managed-user-identity strong {
+    overflow-wrap: anywhere;
+    color: var(--ink);
+    font-size: 13px;
+}
+.managed-user-identity span,
+.managed-user-date {
+    color: var(--muted);
+    font-size: 10px;
+}
+.managed-user-state {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+.user-state-badge {
+    width: fit-content;
+    padding: 5px 8px;
+    color: #355439;
+    border-radius: 999px;
+    background: #e9f1d6;
+    font-size: 10px;
+    font-weight: 800;
+}
+.user-state-badge.is-disabled {
+    color: #883e38;
+    background: #f5e0dc;
+}
+.managed-user-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: end;
+    gap: 6px;
+}
+.managed-user-actions button {
+    min-height: 34px;
+    padding: 6px 9px;
+    border-radius: 9px;
+    font-size: 10px;
+}
+.managed-user-actions .button-light {
+    color: var(--ink);
+    border: 1px solid var(--line);
+    background: var(--canvas);
+    box-shadow: none;
+}
+.managed-user-actions .button-danger {
+    color: #9c3b32;
+    border-color: #edcbc5;
+    background: #fff4f0;
+    box-shadow: none;
+}
+.members-status {
+    min-height: 1.4em;
+    margin: 0;
+    padding-inline: 22px;
+    color: var(--muted);
+    font-size: 12px;
+}
+.members-footnote {
+    margin: 0;
+    padding: 0 22px 22px;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.6;
+}
+.members-notice {
+    padding: 28px;
+}
+.members-notice h2 {
+    margin-top: 0;
+}
+.members-notice p {
+    color: var(--muted);
+}
+.members-notice .button-light {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 14px;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    background: var(--paper);
+    text-decoration: none;
+}
+:root[data-theme="dark"] .managed-user {
+    border-color: var(--line);
+    background: #1d2935;
+}
+:root[data-theme="dark"] .user-state-badge {
+    color: #e3f1c8;
+    background: #34452a;
+}
+:root[data-theme="dark"] .user-state-badge.is-disabled {
+    color: #ffd3ca;
+    background: #4a302e;
+}
+:root[data-theme="dark"] .managed-user-actions .button-light {
+    color: var(--ink);
+    border-color: #455364;
+    background: #273442;
+}
+:root[data-theme="dark"] .managed-user-actions .button-danger {
+    color: #ffd3ca;
+    border-color: #684541;
+    background: #432f2c;
+}
+@media (max-width: 860px) {
+    .managed-user {
+        grid-template-columns: minmax(160px, 1fr) minmax(100px, 0.55fr);
+    }
+    .managed-user-actions {
+        grid-column: 1 / -1;
+        justify-content: start;
+    }
+}
+@media (max-width: 560px) {
+    .members-toolbar,
+    .user-list {
+        padding-inline: 14px;
+    }
+    .members-counts {
+        gap: 6px;
+    }
+    .members-counts span {
+        padding: 7px 9px;
+        font-size: 10px;
+    }
+    .managed-user {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 9px;
+    }
+    .managed-user-actions {
+        grid-column: auto;
+    }
+    .members-footnote,
+    .members-status {
+        padding-inline: 14px;
+    }
+}

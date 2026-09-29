@@ -140,7 +140,8 @@
             if (
                 claims.exp * 1000 <= Date.now() ||
                 !Array.isArray(claims["cognito:groups"]) ||
-                !claims["cognito:groups"].includes("admins")
+                (!claims["cognito:groups"].includes("admins") &&
+                    !claims["cognito:groups"].includes("root-admins"))
             )
                 return null;
             return token;

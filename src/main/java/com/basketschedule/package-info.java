@@ -1,5 +1,5 @@
 /**
- * COURTSIDEバスケットボール予定管理アプリのLambdaハンドラーとデータモデルをまとめます。
+ * Flight Penguins Official Site の Lambda ハンドラーとデータモデルをまとめます。
  *
  * <p>ハンドラーはLambda Function URLからAPI Gateway形式のイベントを受け取り、 {@link com.basketschedule.CognitoAuth}
  * でCognitoトークンを検証してからDynamoDBやS3へアクセスします。 {@code static}

@@ -4,36 +4,28 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#101d31" />
-        <title>チームスコアブック · COURTSIDE</title>
+        <title>チームスコアブック · Flight Penguins Official Site</title>
         <link rel="icon" type="image/svg+xml" href="favicon.svg" />
         <link rel="stylesheet" href="app.css" />
         <link rel="stylesheet" href="basketball.css" />
         <link rel="stylesheet" href="theme.css" />
+        <link rel="stylesheet" href="visual-system.css" />
         <script src="theme.js"></script>
     </head>
     <body class="scorebook-body" style="display: none">
         <div class="app-shell scorebook-shell">
             <header class="site-header">
-                <a class="brand-lockup" href="index.html"
-                    ><span class="brand-mark" aria-hidden="true"
-                        ><svg viewBox="0 0 32 32" fill="none">
-                            <circle
-                                cx="16"
-                                cy="16"
-                                r="12.2"
-                                stroke="currentColor"
-                                stroke-width="1.8"
-                            />
-                            <path
-                                d="M5.3 10.1c7.1 1.8 14.3 1.8 21.4 0M5.3 21.9c7.1-1.8 14.3-1.8 21.4 0M16 3.8c-4.1 3.1-6.2 7.2-6.2 12.2S11.9 25.1 16 28.2M16 3.8c4.1 3.1 6.2 7.2 6.2 12.2S20.1 25.1 16 28.2"
-                                stroke="currentColor"
-                                stroke-width="1.5"
-                            /></svg></span
-                    ><span
-                        ><span class="brand-name">COURTSIDE</span
-                        ><span class="brand-caption">Team scorebook</span></span
-                    ></a
+                <a
+                    class="brand-lockup"
+                    href="index.html"
+                    aria-label="Flight Penguins Official Site"
                 >
+                    <img class="brand-mark" src="favicon.svg" alt="" aria-hidden="true" />
+                    <span>
+                        <span class="brand-name">FLIGHT PENGUINS</span>
+                        <span class="brand-caption">Official Site</span>
+                    </span>
+                </a>
                 <div class="scorebook-header-actions">
                     <button type="button" class="theme-toggle" data-theme-toggle></button>
                 </div>
@@ -47,6 +39,7 @@
                 <a href="basketball.html?view=teams" data-app-nav="teams">チーム管理</a>
                 <a href="basketball.html?view=games" data-app-nav="games">試合管理</a>
                 <a href="basketball.html?view=rankings" data-app-nav="rankings">ランキング</a>
+                <a href="members.html" data-root-admin-only hidden>ユーザー管理</a>
             </nav>
 
             <section class="scorebook-hero">
@@ -96,7 +89,7 @@
                                 id="teamName"
                                 maxlength="80"
                                 required
-                                placeholder="例：COURTSIDE" /></label
+                                placeholder="例：Flight Penguins" /></label
                         ><button id="saveTeamButton" class="button-accent">チームを保存</button>
                     </form>
                     <div id="teamStatus" class="score-status" role="status"></div>
@@ -168,8 +161,30 @@
                                 min="1"
                                 max="20"
                                 value="10"
-                                required /></label
-                        ><button class="button-accent">試合を作成</button>
+                                required
+                        /></label>
+                        <fieldset class="game-participant-picker">
+                            <legend>今回の出場予定メンバー</legend>
+                            <p class="field-hint">
+                                試合記録に含める選手を選択します。試合中に出場しなかった選手は DNP
+                                として扱われます。
+                            </p>
+                            <div class="participant-picker-actions">
+                                <span id="participantSelectionCount" class="field-hint"></span>
+                                <button
+                                    id="selectAllParticipants"
+                                    type="button"
+                                    class="button-light"
+                                >
+                                    全員を選択
+                                </button>
+                                <button id="clearParticipants" type="button" class="button-light">
+                                    選択をクリア
+                                </button>
+                            </div>
+                            <div id="gameParticipantChoices" class="game-participant-choices"></div>
+                        </fieldset>
+                        <button class="button-accent">試合を作成</button>
                     </form>
                     <div id="gameStatus" class="score-status" role="status"></div>
                 </section>
@@ -525,6 +540,7 @@
                 </div>
             </form>
         </dialog>
+        <script src="account-menu.js"></script>
         <script src="basketball.js"></script>
     </body>
 </html>

@@ -1,149 +1,162 @@
 /**
- * ログイン後のすべての画面で共通して使うアカウント操作です。
- * 権限表示は画面上の案内に限り、実際の許可はAPI側で検証します。
+ * Adds the same signed-in account menu to every application page.
+ * The server remains responsible for checking every privileged operation.
  */
 (function initializeAccountMenu() {
     "use strict";
 
     const cognitoDomain = "https://ap-northeast-1cd5fxlwj3.auth.ap-northeast-1.amazoncognito.com";
-    const cognitoApiEndpoint = "https://cognito-idp.ap-northeast-1.amazonaws.com/";
+    const scoreApi = "https://7yxh3p2c5swyx6ajv45ldmiswe0tirop.lambda-url.ap-northeast-1.on.aws/";
     const clientId = "3mr9ep2rosop9ratlg1l3bta70";
     const redirectUri = "https://d13o4oynf3jxlu.cloudfront.net";
-    const accountMenu = document.getElementById("accountMenu");
-    const logoutButton = document.getElementById("logoutButton");
-    const deleteButton = document.getElementById("deleteAccountButton");
-    const deleteDialog = document.getElementById("accountDeleteDialog");
-    const deleteForm = document.getElementById("accountDeleteForm");
+    const headerActions = document.querySelector(
+        ".header-actions, .register-header-actions, .scorebook-header-actions",
+    );
+    if (!headerActions) return;
 
-    /** 表示用の判断に使うJWTペイロードを読み取ります。 */
-    function readJwtClaims(token) {
+    const menu = document.createElement("details");
+    menu.className = "account-menu";
+    menu.hidden = true;
+
+    const summary = document.createElement("summary");
+    summary.className = "account-menu-trigger";
+    summary.setAttribute("aria-label", "アカウントメニュー");
+    summary.innerHTML =
+        '<span class="account-avatar" aria-hidden="true">FP</span><span class="account-menu-trigger-label">アカウント</span><span class="account-menu-chevron" aria-hidden="true">⌄</span>';
+
+    const panel = document.createElement("div");
+    panel.className = "account-menu-panel";
+    panel.innerHTML = `
+        <div class="account-menu-identity">
+            <strong data-account-name></strong>
+            <span data-account-email></span>
+            <span class="account-role-badge" data-account-role></span>
+        </div>
+        <a href="members.html" class="account-menu-item" data-root-admin-link hidden>ユーザー管理</a>
+        <button type="button" class="account-menu-item account-menu-delete" data-delete-account>アカウントを削除</button>
+        <button type="button" class="account-menu-item" data-account-logout>ログアウト</button>
+        <p class="account-menu-note" data-account-note></p>`;
+    menu.append(summary, panel);
+    headerActions.append(menu);
+
+    const dialog = document.createElement("dialog");
+    dialog.className = "account-delete-dialog";
+    dialog.innerHTML = `
+        <form method="dialog" data-delete-form>
+            <span class="eyebrow">ACCOUNT</span>
+            <h2>アカウントを削除しますか？</h2>
+            <p>このログインアカウントを削除します。チームの予定、選手、試合記録など共有データは削除されません。</p>
+            <label for="accountDeletePhrase">確認のため「削除」と入力してください。</label>
+            <input id="accountDeletePhrase" name="confirmation" autocomplete="off" required />
+            <p class="account-delete-status" role="status" aria-live="polite" data-delete-status></p>
+            <div class="dialog-actions">
+                <button type="button" class="button-light" data-cancel-delete>キャンセル</button>
+                <button type="submit" class="button-danger" data-confirm-delete disabled>アカウントを削除</button>
+            </div>
+        </form>`;
+    document.body.append(dialog);
+
+    function readClaims(token) {
         try {
-            const encodedPayload = token.split(".")[1];
-            const base64 = encodedPayload.replace(/-/g, "+").replace(/_/g, "/");
-            const normalizedBase64 = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
-            return JSON.parse(atob(normalizedBase64));
+            const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+            return JSON.parse(atob(payload + "=".repeat((4 - (payload.length % 4)) % 4)));
         } catch {
             return null;
         }
     }
 
-    /** ブラウザー内のトークンを消去し、Cognitoのサインアウト画面へ移動します。 */
-    function signOut() {
+    function clearTokens() {
         ["id_token", "access_token", "refresh_token"].forEach((key) =>
             localStorage.removeItem(key),
         );
-        const logoutUrl = new URL(`${cognitoDomain}/logout`);
-        logoutUrl.searchParams.set("client_id", clientId);
-        logoutUrl.searchParams.set("logout_uri", redirectUri);
-        window.location.assign(logoutUrl.toString());
     }
 
-    /** ログインまたはトークン更新後に、アカウント情報と権限表示を更新します。 */
-    function refreshAccountMenu() {
-        const identity = readJwtClaims(localStorage.getItem("id_token") || "");
-        const access = readJwtClaims(localStorage.getItem("access_token") || "");
-        const tokenIsValid = identity && Number(identity.exp) * 1000 > Date.now();
-        if (!accountMenu) return;
-        accountMenu.hidden = !tokenIsValid;
-        if (!tokenIsValid) return;
-
-        const isAdmin =
-            Array.isArray(identity["cognito:groups"]) &&
-            identity["cognito:groups"].includes("admins");
-        const email =
-            identity.email || identity["cognito:username"] || identity.sub || "ログイン中";
-        const label = String(email).split("@")[0];
-
-        accountMenu.hidden = false;
-        document.getElementById("accountDisplayName").textContent = label;
-        document.getElementById("accountEmail").textContent = email;
-        document.getElementById("accountRoleLabel").textContent = isAdmin
-            ? "管理者"
-            : "ゲスト・閲覧のみ";
-        document.getElementById("adminDeletionWarning").hidden = !isAdmin;
-        document.getElementById("accountAccessDescription").textContent = isAdmin
-            ? "予定、施設、チーム、試合を登録・管理できます。"
-            : "予定や試合結果を閲覧できます。登録・編集は管理者のみ行えます。";
-
-        const scopes = String(access?.scope || "").split(/\s+/);
-        const canDeleteOwnAccount = scopes.includes("aws.cognito.signin.user.admin");
-        if (deleteButton && !canDeleteOwnAccount) {
-            deleteButton.disabled = true;
-            deleteButton.title =
-                "Cognitoのアプリクライアントに aws.cognito.signin.user.admin スコープを設定して、再ログインしてください。";
-        } else if (deleteButton) {
-            deleteButton.disabled = false;
-            deleteButton.title = "ログインアカウントを完全に削除します。";
-        }
+    function signOut() {
+        clearTokens();
+        const url = new URL(`${cognitoDomain}/logout`);
+        url.searchParams.set("client_id", clientId);
+        url.searchParams.set("logout_uri", redirectUri);
+        window.location.assign(url.toString());
     }
 
-    window.refreshCourtsideAccountMenu = refreshAccountMenu;
-    document.addEventListener("courtside:auth-changed", refreshAccountMenu);
-    refreshAccountMenu();
-
-    logoutButton?.addEventListener("click", signOut);
-
-    document.addEventListener("pointerdown", (event) => {
-        if (accountMenu && !accountMenu.contains(event.target)) accountMenu.open = false;
-    });
-    document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape" && accountMenu) accountMenu.open = false;
-    });
-
-    deleteButton?.addEventListener("click", () => {
-        if (!deleteDialog) return;
-        document.getElementById("accountDeleteConfirmation").value = "";
-        document.getElementById("confirmAccountDelete").disabled = true;
-        document.getElementById("accountDeleteStatus").textContent = "";
-        deleteDialog.showModal();
-    });
-
-    document
-        .getElementById("cancelAccountDelete")
-        ?.addEventListener("click", () => deleteDialog?.close());
-    document.getElementById("accountDeleteConfirmation")?.addEventListener("input", (event) => {
-        document.getElementById("confirmAccountDelete").disabled =
-            event.target.value.trim() !== "削除する";
-    });
-
-    deleteForm?.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const submitButton = document.getElementById("confirmAccountDelete");
-        const status = document.getElementById("accountDeleteStatus");
-        if (
-            !readJwtClaims(localStorage.getItem("access_token") || "")
-                ?.scope?.split(/\s+/)
-                .includes("aws.cognito.signin.user.admin")
-        ) {
-            status.textContent =
-                "削除権限がありません。アプリクライアントの設定後、ログインし直してください。";
+    function refresh() {
+        const claims = readClaims(localStorage.getItem("id_token") || "");
+        const valid = claims && Number(claims.exp) * 1000 > Date.now();
+        menu.hidden = !valid;
+        const rootLinks = document.querySelectorAll("[data-root-admin-only]");
+        if (!valid) {
+            rootLinks.forEach((link) => {
+                link.hidden = true;
+            });
             return;
         }
 
-        submitButton.disabled = true;
+        const groups = Array.isArray(claims["cognito:groups"]) ? claims["cognito:groups"] : [];
+        const isRootAdmin = groups.includes("root-admins");
+        const isAdmin = isRootAdmin || groups.includes("admins");
+        const email = claims.email || claims["cognito:username"] || "ログイン中のメンバー";
+        const name = String(email).split("@")[0];
+        panel.querySelector("[data-account-name]").textContent = name;
+        panel.querySelector("[data-account-email]").textContent = email;
+        panel.querySelector("[data-account-role]").textContent = isRootAdmin
+            ? "ルート管理者"
+            : isAdmin
+              ? "管理者"
+              : "メンバー閲覧のみ";
+        panel.querySelector("[data-root-admin-link]").hidden = !isRootAdmin;
+        rootLinks.forEach((link) => {
+            link.hidden = !isRootAdmin;
+        });
+        panel.querySelector("[data-account-note]").textContent = isRootAdmin
+            ? "ルート管理者アカウントは、この画面から削除できません。"
+            : "アカウントを削除してもチームの共有データは残ります。";
+        summary.querySelector(".account-avatar").textContent =
+            Array.from(name.trim())[0]?.toUpperCase() || "FP";
+        panel.querySelector("[data-delete-account]").hidden = isRootAdmin;
+    }
+
+    document.addEventListener("app:auth-changed", refresh);
+    document.addEventListener("click", (event) => {
+        if (!menu.contains(event.target)) menu.open = false;
+    });
+    document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") menu.open = false;
+    });
+    panel.querySelector("[data-account-logout]").addEventListener("click", signOut);
+    panel.querySelector("[data-delete-account]").addEventListener("click", () => {
+        panel.querySelector("[data-delete-status]").textContent = "";
+        dialog.querySelector("[name=confirmation]").value = "";
+        dialog.querySelector("[data-confirm-delete]").disabled = true;
+        dialog.showModal();
+        menu.open = false;
+    });
+    dialog.querySelector("[data-cancel-delete]").addEventListener("click", () => dialog.close());
+    dialog.querySelector("[name=confirmation]").addEventListener("input", (event) => {
+        dialog.querySelector("[data-confirm-delete]").disabled =
+            event.target.value.trim() !== "削除";
+    });
+    dialog.querySelector("[data-delete-form]").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const button = dialog.querySelector("[data-confirm-delete]");
+        const status = dialog.querySelector("[data-delete-status]");
+        button.disabled = true;
         status.textContent = "アカウントを削除しています…";
         try {
-            const response = await fetch(cognitoApiEndpoint, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-amz-json-1.1",
-                    "X-Amz-Target": "AWSCognitoIdentityProviderService.DeleteUser",
-                },
-                body: JSON.stringify({ AccessToken: localStorage.getItem("access_token") }),
+            const query = new URLSearchParams({ feature: "basketball", resource: "account" });
+            const response = await fetch(`${scoreApi}?${query}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${localStorage.getItem("id_token") || ""}` },
             });
-
-            if (!response.ok) {
-                const error = await response.json().catch(() => ({}));
-                throw new Error(
-                    error.message ||
-                        "削除できませんでした。Cognitoのスコープ設定を確認してください。",
-                );
-            }
-
-            signOut();
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok)
+                throw new Error(result.message || "アカウントを削除できませんでした。");
+            clearTokens();
+            window.location.assign("index.html?account-deleted=1");
         } catch (error) {
             status.textContent = error.message;
-            submitButton.disabled = false;
+            button.disabled = false;
         }
     });
+
+    refresh();
 })();

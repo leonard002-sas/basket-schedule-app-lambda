@@ -35,7 +35,7 @@
 
 フロントエンドはCognitoの認証コードフローを利用し、IDトークンを`localStorage`の`id_token`に保持します。各API呼び出しで`Authorization: Bearer <ID token>`を送ります。
 
-`CognitoAuth.java`が署名・issuer・audience・有効期限などを検証します。GETはログイン済みユーザー、PUTなどの更新はCognitoグループ`admins`のメンバーに限定しています。ブラウザー側の表示制御だけに頼らず、APIでも管理者権限を検証しています。
+`CognitoAuth.java`が署名・issuer・audience・有効期限などを検証します。GETはログイン済みユーザー、PUTなどの更新はCognitoグループ`admins`または`root-admins`のメンバーに限定しています。ユーザー管理 API はさらに`root-admins`だけに限定し、Lambda 実行ロールに Cognito 管理 API 権限が必要です。詳細は`AWS_BASKETBALL_SETUP.md`を参照してください。
 
 CodeBuildの実行ロールとLambdaの実行ロールは別物です。CodeBuildロールにはFunction URL設定更新などのデプロイ権限が必要です。`BasketballData`へのDynamoDB読み書きポリシーは`basket-schedule-get` Lambdaの実行ロールに付けます。
 
@@ -89,7 +89,9 @@ CodeBuildの実行ロールとLambdaの実行ロールは別物です。CodeBuil
 
 - `src/main/java/com/basketschedule/ScheduleApi.java`: 予定API。`feature=basketball`を`BasketballApi`へルーティングします。
 - `src/main/java/com/basketschedule/BasketballApi.java`: スコアブックのREST風GET/PUT、DynamoDB処理、Cognito認可、スタッツ集計。
-- `src/main/java/com/basketschedule/CognitoAuth.java`: Cognito ID token検証と`admins`グループ検証。
+- `src/main/java/com/basketschedule/CognitoAuth.java`: Cognito ID token検証と`admins` / `root-admins`グループ検証。
+- `src/main/java/com/basketschedule/CognitoUserAdminService.java`: Cognito利用者一覧、管理者権限、利用停止、削除のサーバー側処理。
+- `src/main/resources/static/members.html` / `members.js`: ルート管理者専用のユーザー管理画面。
 - `src/main/resources/static/index.html`, `app.js`, `app.css`: カレンダー画面、認証UI、予定登録・施設・ICS。
 - `src/main/resources/static/basketball.html`, `basketball.js`, `basketball.css`: チーム、試合、ライブスコア、ランキング。
 - `src/main/resources/static/image-jobs.js`: 画像解析ジョブの進捗表示。

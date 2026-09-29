@@ -36,6 +36,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
   private static final String TEAM_INDEX_PK = "BASKETBALL";
   private static final ObjectMapper JSON = new ObjectMapper();
   private final DynamoDbClient db = DynamoDbClient.builder().region(Region.AP_NORTHEAST_1).build();
+  private final CognitoUserAdminService userAdmin = new CognitoUserAdminService();
 
   @Override
   public Map<String, Object> handleRequest(Map<String, Object> input, Context context) {
@@ -44,8 +45,12 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
       Map<String, String> query = query(input);
       String resource = query.getOrDefault("resource", "");
       boolean write = !"GET".equalsIgnoreCase(method);
-      if (write) CognitoAuth.requireAdmin(input);
-      else CognitoAuth.requireUser(input);
+      CognitoAuth.User user;
+      if ("users".equals(resource)) user = CognitoAuth.requireRootAdmin(input);
+      else if ("account".equals(resource) && "DELETE".equalsIgnoreCase(method))
+        user = CognitoAuth.requireUser(input);
+      else if (write) user = CognitoAuth.requireAdmin(input);
+      else user = CognitoAuth.requireUser(input);
       JsonNode body =
           input.get("body") == null
               ? JSON.createObjectNode()
@@ -53,8 +58,8 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
       Object result =
           switch (method.toUpperCase()) {
             case "GET" -> read(resource, query);
-            case "PUT" -> write(resource, body, query);
-            case "DELETE" -> delete(resource, query);
+            case "PUT" -> write(resource, body, query, user);
+            case "DELETE" -> delete(resource, query, user);
             default -> throw new ApiException(405, "METHOD_NOT_ALLOWED", "この操作には対応していません");
           };
       return response(200, result);
@@ -62,6 +67,8 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
       return response(e.statusCode(), Map.of("message", e.getMessage(), "code", e.code()));
     } catch (ApiException e) {
       return response(e.status, Map.of("message", e.getMessage(), "code", e.code));
+    } catch (CognitoUserAdminService.UserAdminException e) {
+      return response(e.statusCode(), Map.of("message", e.getMessage(), "code", e.code()));
     } catch (IllegalArgumentException e) {
       return response(400, Map.of("message", e.getMessage()));
     } catch (Exception e) {
@@ -82,6 +89,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
 
   private Object read(String resource, Map<String, String> q) {
     return switch (resource) {
+      case "users" -> userAdmin.listUsers();
       case "teams" -> teams();
       case "team" -> plain(item(teamPk(required(q, "teamId")), "PROFILE"));
       case "team-data" -> teamData(required(q, "teamId"));
@@ -145,8 +153,10 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     return Map.of("items", out);
   }
 
-  private Object write(String resource, JsonNode b, Map<String, String> query) {
+  private Object write(
+      String resource, JsonNode b, Map<String, String> query, CognitoAuth.User user) {
     return switch (resource) {
+      case "users" -> updateManagedUser(b, user);
       case "team" -> saveTeam(b);
       case "player" -> savePlayer(b, required(query, "teamId"));
       case "game" ->
@@ -163,11 +173,24 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     };
   }
 
-  private Object delete(String resource, Map<String, String> query) {
+  private Object delete(String resource, Map<String, String> query, CognitoAuth.User user) {
     return switch (resource) {
+      case "users" -> userAdmin.deleteUser(user.subject(), required(query, "username"));
+      case "account" -> userAdmin.deleteOwnAccount(user.subject(), user.username(), user.groups());
       case "player" -> deactivatePlayer(required(query, "teamId"), required(query, "playerId"));
       case "team" -> deleteTeam(required(query, "teamId"));
       default -> throw new ApiException(404, "NOT_FOUND", "この削除操作には対応していません");
+    };
+  }
+
+  private Object updateManagedUser(JsonNode body, CognitoAuth.User user) {
+    String username = required(body, "username");
+    String action = required(body, "action");
+    return switch (action) {
+      case "promote-admin", "demote-admin" -> userAdmin.changeRole(username, action);
+      case "disable" -> userAdmin.setEnabled(user.subject(), username, false);
+      case "enable" -> userAdmin.setEnabled(user.subject(), username, true);
+      default -> throw new ApiException(400, "INVALID_ACTION", "このユーザー操作には対応していません");
     };
   }
 
@@ -295,7 +318,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     game.put("createdAt", n(now));
     game.put("teamGameSk", s("GAME#" + date + "#" + id));
     game.put("teamId", s(teamId));
-    List<String> rosterPlayerIds =
+    List<String> activePlayerIds =
         rows(teamPartition, "PLAYER#").stream()
             .filter(player -> !player.containsKey("active") || bool(player, "active"))
             .map(
@@ -307,8 +330,24 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
                 })
             .filter(rosterPlayerId -> !rosterPlayerId.isBlank())
             .toList();
-    if (!rosterPlayerIds.isEmpty())
-      game.put("rosterPlayerIds", AttributeValue.builder().ss(rosterPlayerIds).build());
+    List<String> participantIds =
+        b.has("participantIds") && b.path("participantIds").isArray()
+            ? new ArrayList<>()
+            : new ArrayList<>(activePlayerIds);
+    if (b.has("participantIds") && !b.path("participantIds").isArray())
+      throw new IllegalArgumentException("この試合に参加するメンバーを選び直してください");
+    if (b.has("participantIds"))
+      b.path("participantIds")
+          .forEach(
+              playerId -> {
+                String value = playerId.asText("").trim();
+                if (!value.isBlank() && !participantIds.contains(value)) participantIds.add(value);
+              });
+    if (participantIds.size() < 5)
+      throw new IllegalArgumentException("試合記録には出場予定メンバーを5人以上選択してください");
+    if (!activePlayerIds.containsAll(participantIds))
+      throw new IllegalArgumentException("登録済みの有効なチームメンバーだけを選択してください");
+    game.put("rosterPlayerIds", AttributeValue.builder().ss(participantIds).build());
     if (!linkedMonth.isBlank()) game.put("scheduleMonth", s(linkedMonth));
     if (!linkedStart.isBlank()) game.put("startDateTime", s(linkedStart));
     if (!competitionName.isBlank()) game.put("competitionName", s(competitionName));
@@ -568,6 +607,8 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     String teamPartition = teamPk(str(meta, "teamId"));
     if (item(teamPartition, "PLAYER#" + playerId).isEmpty())
       throw new ApiException(404, "PLAYER_NOT_FOUND", "選手が見つかりません");
+    if (meta.containsKey("rosterPlayerIds") && !meta.get("rosterPlayerIds").ss().contains(playerId))
+      throw new ApiException(403, "PLAYER_NOT_IN_GAME_ROSTER", "今回の出場予定メンバーに登録されていない選手です");
     long now = Instant.now().toEpochMilli();
     String eventId = UUID.randomUUID().toString();
     Map<String, AttributeValue> event =
@@ -701,10 +742,18 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
               if (!v.asText().isBlank() && !next.contains(v.asText())) next.add(v.asText());
             });
     if (next.size() > 5) throw new IllegalArgumentException("コート上の選手は5人までです");
+    Set<String> eligible =
+        meta.containsKey("rosterPlayerIds")
+            ? meta.get("rosterPlayerIds").ss()
+            : rows(teamPk(str(meta, "teamId")), "PLAYER#").stream()
+                .filter(player -> !player.containsKey("active") || bool(player, "active"))
+                .map(player -> str(player, "playerId"))
+                .filter(player -> !player.isBlank())
+                .collect(java.util.stream.Collectors.toSet());
     String teamPartition = teamPk(str(meta, "teamId"));
     for (String player : next)
-      if (item(teamPartition, "PLAYER#" + player).isEmpty())
-        throw new ApiException(404, "PLAYER_NOT_FOUND", "登録されていない選手が含まれています");
+      if (!eligible.contains(player) || item(teamPartition, "PLAYER#" + player).isEmpty())
+        throw new ApiException(404, "PLAYER_NOT_AVAILABLE", "今回の出場予定メンバー以外は選択できません");
     if (bool(meta, "clockRunning"))
       for (String player : next)
         set("GAME#" + id, "PLAYER#" + player, Map.of("participation", s("PLAYED")));

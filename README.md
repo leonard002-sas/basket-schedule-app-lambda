@@ -1,6 +1,6 @@
-# COURTSIDE — Basketball Schedule App
+# Flight Penguins Official Site
 
-An AWS-hosted basketball team schedule and scorebook. The static website is served through CloudFront; authenticated requests go to Java AWS Lambda Function URLs, with DynamoDB used for schedules, facilities, and basketball data. Calendar-image extraction uses S3 and Gemini.
+An AWS-hosted official team site for Flight Penguins. It includes schedules, facilities, notices, practice videos, team and member management, basketball scorekeeping, and player rankings. CloudFront serves the static frontend; Java Lambda functions and DynamoDB provide the APIs and data storage. Schedule images are processed from S3 with Gemini.
 
 ## Start here
 
@@ -12,8 +12,14 @@ An AWS-hosted basketball team schedule and scorebook. The static website is serv
 - [Development, code conventions, and tests](docs/development.md)
 - [Coding standards](docs/coding-standards.md)
 - [Source responsibilities and refactoring boundaries](docs/refactoring.md)
-- [AWS basketball table setup](AWS_BASKETBALL_SETUP.md)
+- [AWS basketball and Cognito user-management setup](AWS_BASKETBALL_SETUP.md)
 - [Project handoff notes](CLAUDE_HANDOFF.md)
+
+## Roles
+
+Signed-in guests can view shared team information. Members of Cognito's `admins` group manage schedules, teams, games, and scores. Members of the separate `root-admins` group can also manage user roles and accounts. User management requires Cognito group setup and execution-role permissions described in [AWS setup](AWS_BASKETBALL_SETUP.md).
+
+When a game is created, the organizer selects that game's expected participants. Only those selected players are included in that game's appearance and average calculations; players who do not play are recorded as DNP.
 
 ## Local verification
 
@@ -23,10 +29,4 @@ Use JDK 25 and the checked-in Gradle wrapper:
 ./gradlew clean build
 ```
 
-The build runs the JUnit 5 tests and packages the Lambda artifact. Browser scripts can be syntax-checked with Node.js; the exact commands are in [docs/development.md](docs/development.md).
-
-Install Node.js with npm and run `npm ci` to install the pinned local formatter. Use `npm run format:check` to verify browser and documentation formatting and `npm test` to run browser utility tests.
-
-## Roles at a glance
-
-Signed-in guests can view team schedules and scorebook information. Only accounts in the Cognito `admins` group can register or change shared team data. Lambda handlers verify both the Cognito token and role for write requests.
+The build runs JUnit 5 and packages the Lambda artifact. Browser scripts can be syntax-checked with Node.js. Install pinned npm dependencies with `npm ci`, then run `npm run format:check` and `npm test`.

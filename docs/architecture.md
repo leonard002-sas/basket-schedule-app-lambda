@@ -1,4 +1,4 @@
-# COURTSIDE system architecture
+# Flight Penguins Official Site architecture
 
 This document describes the current implementation. It records behavior visible in the source and names the AWS resources used by the handlers.
 
@@ -54,6 +54,7 @@ flowchart LR
 | Request image upload URL and poll processing state | `register.js`, `image-jobs.js`            | `UploadApi`                                                                         | S3 object tags for processing state      |
 | Extract events from an uploaded image              | S3 object-created event                   | `ImageProcessor`                                                                    | `BasketSchedule` after Gemini extraction |
 | Manage rosters, games, score actions, and rankings | `basketball.js`                           | `BasketballApi`, routed by `ScheduleApi`; records go through `BasketballRepository` | `BasketballData`                         |
+| Manage Cognito users and roles                     | `members.js` / `account-menu.js`          | `BasketballApi` → `CognitoUserAdminService`                                         | Cognito user pool                        |
 
 `buildspec.yml` builds the Java artifact, updates the configured Lambda functions, synchronizes static files to S3, and invalidates CloudFront. A push to a connected pipeline branch can therefore deploy application changes.
 
@@ -63,7 +64,7 @@ The schedule table uses `scheduleMonth` and `startDateTime` as its key attribute
 
 The facility table stores enabled facilities, their address, optional public URL, optional note, and ordering metadata. The event record references a facility ID; the API joins the current facility fields when producing schedule details.
 
-Basketball records use `pk` and `sk`. Teams and team rosters are grouped under team keys. Games and per-player game statistics use game and season partitions so the scorebook can list games, calculate rankings, and show player trends.
+Basketball records use `pk` and `sk`. Teams and team rosters are grouped under team keys. Games store the IDs of their expected participants; game and per-player statistics use game and season partitions so the scorebook can list games, calculate rankings, exclude DNP players from appearance averages, and show player trends. User identity and groups remain in Cognito; the Lambda execution role performs permitted account-management operations.
 
 ## Processing an image
 

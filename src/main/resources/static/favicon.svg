@@ -1,5 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="18" fill="#c9f36b"/>
-  <circle cx="32" cy="32" r="21" fill="none" stroke="#101d31" stroke-width="3"/>
-  <path d="M12 22c13 3 27 3 40 0M12 42c13-3 27-3 40 0M32 11c-7 5-10 12-10 21s3 16 10 21m0-42c7 5 10 12 10 21s-3 16-10 21" fill="none" stroke="#101d31" stroke-width="2.5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Flight Penguins FPG</title>
+  <rect width="64" height="64" rx="18" fill="#d9ef83"/>
+  <path d="M12 30c-4-7-2-13 1-15 5 0 9 6 10 12m28 3c4-7 2-13-1-15-5 0-9 6-10 12" fill="#214b38" stroke="#163a2e" stroke-width="2" stroke-linejoin="round"/>
+  <ellipse cx="32" cy="33" rx="19" ry="22" fill="#183d30"/>
+  <ellipse cx="32" cy="38" rx="12.5" ry="14" fill="#f6f1dc"/>
+  <path d="M26 27c0-3 2-5 4-5s3 2 3 5-2 6-4 6-3-3-3-6Zm10 0c0-3 2-5 4-5s3 2 3 5-2 6-4 6-3-3-3-6Z" fill="#fffdf4"/>
+  <circle cx="29.5" cy="27" r="1.8" fill="#142b23"/>
+  <circle cx="39.5" cy="27" r="1.8" fill="#142b23"/>
+  <path d="m31 32 3-1 4 2-4 3-4-2Z" fill="#eb8b45" stroke="#bd642f" stroke-width=".8" stroke-linejoin="round"/>
+  <path d="M18 39c3 4 5 10 5 14m23-14c-3 4-5 10-5 14" fill="none" stroke="#183d30" stroke-width="5" stroke-linecap="round"/>
+  <path d="M27 55h10" stroke="#eb8b45" stroke-width="4" stroke-linecap="round"/>
+  <text x="32" y="62" fill="#183d30" font-family="Arial,sans-serif" font-size="6" font-weight="900" letter-spacing="1.4" text-anchor="middle">FPG</text>
 </svg>

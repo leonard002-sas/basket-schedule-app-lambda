@@ -54,7 +54,7 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
       String resource = routeQuery.get("resource");
 
       if (("PUT".equalsIgnoreCase(method) || "DELETE".equalsIgnoreCase(method))
-          && !user.groups().contains("admins")) {
+          && !CognitoAuth.isAdmin(user)) {
         return response(403, Map.of("message", "管理者権限が必要です"));
       }
 
@@ -75,7 +75,7 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
         }
 
         // /schedules
-        return getSchedules(user.groups().contains("admins"));
+        return getSchedules(CognitoAuth.isAdmin(user));
       }
 
       // ========================================

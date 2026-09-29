@@ -63,7 +63,7 @@ async function exportCurrentMonthToIcs() {
     const lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//COURTSIDE//Basketball Schedule//JA",
+        "PRODID:-//FLIGHT PENGUINS//Official Site//JA",
         "CALSCALE:GREGORIAN",
         "METHOD:PUBLISH",
     ];
@@ -91,7 +91,7 @@ async function exportCurrentMonthToIcs() {
 
         lines.push(
             "BEGIN:VEVENT",
-            `UID:${uidDate}@courtside`,
+            `UID:${uidDate}@flightpenguins`,
             `DTSTAMP:${toIcsUtcDateTime(new Date())}`,
             `DTSTART:${toIcsUtcDateTime(start)}`,
             `DTEND:${toIcsUtcDateTime(end)}`,
@@ -119,7 +119,7 @@ async function exportCurrentMonthToIcs() {
     const url = URL.createObjectURL(file);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `courtside-${monthKey}.ics`;
+    link.download = `flight-penguins-${monthKey}.ics`;
     document.body.appendChild(link);
     link.click();
     link.remove();

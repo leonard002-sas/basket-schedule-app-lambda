@@ -416,7 +416,7 @@
     background: var(--paper);
 }
 
-/* COURTSIDE visual system: one calm, court-inspired design across every screen. */
+/* Flight Penguins の画面で共通利用する色と余白です。 */
 :root:not([data-theme="dark"]) {
     --ink: #18342b;
     --muted: #718078;
@@ -486,6 +486,192 @@ body {
 .register-header-actions button,
 .scorebook-header-actions button {
     border-radius: 999px;
+}
+.brand-mark img {
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    object-fit: cover;
+}
+.brand-mark svg {
+    display: none;
+}
+.brand-mark::after {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    background: url("favicon.svg") center / cover no-repeat;
+    content: "";
+}
+.account-menu {
+    position: relative;
+    z-index: 30;
+}
+.account-menu-trigger {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    gap: 9px;
+    padding: 5px 12px 5px 6px;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--paper);
+    box-shadow: 0 5px 16px rgba(24, 55, 41, 0.08);
+    cursor: pointer;
+    list-style: none;
+}
+.account-menu-trigger::-webkit-details-marker {
+    display: none;
+}
+.account-avatar {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    place-items: center;
+    color: #f6fbf4;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #387354, #183d30);
+    font-size: 13px;
+    font-weight: 850;
+}
+.account-menu-trigger-label {
+    font-size: 12px;
+    font-weight: 800;
+}
+.account-menu-chevron {
+    color: var(--muted);
+    font-size: 14px;
+    transition: transform 150ms ease;
+}
+.account-menu[open] .account-menu-chevron {
+    transform: rotate(180deg);
+}
+.account-menu-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    display: grid;
+    width: min(300px, calc(100vw - 28px));
+    gap: 5px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: var(--paper);
+    box-shadow: 0 22px 52px rgba(12, 30, 24, 0.2);
+}
+.account-menu-identity {
+    display: grid;
+    gap: 5px;
+    padding: 8px 9px 13px;
+    border-bottom: 1px solid var(--line);
+}
+.account-menu-identity strong {
+    color: var(--ink);
+    font-size: 15px;
+}
+.account-menu-identity > span:not(.account-role-badge) {
+    overflow-wrap: anywhere;
+    color: var(--muted);
+    font-size: 11px;
+}
+.account-role-badge {
+    width: fit-content;
+    padding: 4px 8px;
+    color: #325531;
+    border-radius: 999px;
+    background: #e9f1d6;
+    font-size: 10px;
+    font-weight: 850;
+}
+.account-menu-item {
+    display: block;
+    width: 100%;
+    min-height: 40px;
+    padding: 10px 9px;
+    color: var(--ink);
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    box-shadow: none;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 750;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+}
+.account-menu-item:hover {
+    color: var(--ink);
+    background: var(--canvas);
+    box-shadow: none;
+}
+.account-menu-delete {
+    color: #a33b31;
+}
+.account-menu-note {
+    margin: 3px 8px 0;
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.5;
+}
+.account-delete-dialog {
+    width: min(480px, calc(100% - 28px));
+    padding: 0;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    background: var(--paper);
+    box-shadow: 0 30px 90px rgba(7, 19, 14, 0.35);
+}
+.account-delete-dialog::backdrop {
+    background: rgba(8, 19, 15, 0.62);
+    backdrop-filter: blur(4px);
+}
+.account-delete-dialog form {
+    display: grid;
+    gap: 13px;
+    padding: clamp(22px, 5vw, 32px);
+}
+.account-delete-dialog h2 {
+    margin: 0;
+    color: var(--ink);
+    font-size: 1.45rem;
+}
+.account-delete-dialog p,
+.account-delete-dialog label {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.65;
+}
+.account-delete-dialog input {
+    width: 100%;
+}
+.account-delete-status {
+    min-height: 1.4em;
+    color: #aa4536 !important;
+}
+.account-delete-dialog .dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: end;
+    gap: 9px;
+}
+:root[data-theme="dark"] .account-menu-trigger,
+:root[data-theme="dark"] .account-menu-panel,
+:root[data-theme="dark"] .account-delete-dialog {
+    color: var(--ink);
+    border-color: #405062;
+    background: #1d2935;
+}
+:root[data-theme="dark"] .account-role-badge {
+    color: #e3f1c8;
+    background: #34452a;
+}
+:root[data-theme="dark"] .account-menu-item:hover {
+    background: #2a3947;
 }
 .site-navigation {
     top: 10px;
@@ -627,7 +813,7 @@ textarea:focus {
 .workspace-content-card,
 .home-agenda,
 .video-archive {
-    animation: courtside-enter 0.42s cubic-bezier(0.2, 0.75, 0.25, 1) both;
+    animation: site-enter 0.42s cubic-bezier(0.2, 0.75, 0.25, 1) both;
 }
 .calendar-area {
     overflow: hidden;
@@ -864,7 +1050,7 @@ textarea:focus {
     backdrop-filter: blur(5px);
 }
 
-@keyframes courtside-enter {
+@keyframes site-enter {
     from {
         opacity: 0;
         transform: translateY(9px);

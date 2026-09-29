@@ -36,7 +36,8 @@ function getAdminIdToken() {
             !payload.exp ||
             payload.exp * 1000 <= Date.now() ||
             !Array.isArray(payload["cognito:groups"]) ||
-            !payload["cognito:groups"].includes("admins")
+            (!payload["cognito:groups"].includes("admins") &&
+                !payload["cognito:groups"].includes("root-admins"))
         ) {
             throw new Error("管理者ログインが必要です");
         }

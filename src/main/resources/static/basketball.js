@@ -33,6 +33,8 @@ let clockPauseSent = false;
 let toastTimer = null;
 let playerTrendRows = [];
 let playerTrendId = "";
+let selectedParticipantIds = null;
+let selectedParticipantTeamId = "";
 
 function claims() {
     try {
@@ -42,7 +44,8 @@ function claims() {
     }
 }
 function isAdmin() {
-    return (claims()?.["cognito:groups"] || []).includes("admins");
+    const groups = claims()?.["cognito:groups"] || [];
+    return groups.includes("admins") || groups.includes("root-admins");
 }
 function api(resource, method = "GET", body = null, extra = {}) {
     const params = new URLSearchParams({
@@ -159,6 +162,7 @@ async function loadEverything() {
     players = activeTeamId
         ? statRows(selectedTeamData?.players).map((p) => ({ ...p, playerId: playerId(p) }))
         : [];
+    renderGameParticipantChoices();
     games =
         view === "games" && activeTeamId
             ? statRows(extraData[0]).sort((a, b) => String(a.date).localeCompare(String(b.date)))
@@ -206,6 +210,41 @@ function renderRoster() {
             )
             .join("") || "<span class='field-hint'>先に選手を登録してください。</span>";
     renderPlayerSelection();
+}
+
+function renderGameParticipantChoices() {
+    const activePlayers = players.filter((player) => player.active !== false);
+    if (selectedParticipantTeamId !== activeTeamId || selectedParticipantIds === null) {
+        selectedParticipantTeamId = activeTeamId;
+        selectedParticipantIds = activePlayers.map((player) => player.playerId);
+    }
+    const selectedIds = new Set(selectedParticipantIds);
+    document.getElementById("gameParticipantChoices").innerHTML = activePlayers.length
+        ? activePlayers
+              .map(
+                  (player) =>
+                      `<label class="game-participant-choice"><input type="checkbox" value="${escapeAttr(player.playerId)}" ${selectedIds.has(player.playerId) ? "checked" : ""}><span class="game-participant-number">#${Number(player.number) || "?"}</span><span class="game-participant-name">${escapeHtml(player.name)}</span><span class="game-participant-position">${escapeHtml(player.position || "—")}</span></label>`,
+              )
+              .join("")
+        : "<span class='field-hint'>先にチームメンバーを登録してください。</span>";
+    updateParticipantSelectionCount();
+}
+
+function updateParticipantSelectionCount() {
+    const count = document.querySelectorAll("#gameParticipantChoices input:checked").length;
+    document.getElementById("participantSelectionCount").textContent =
+        `${count}人を選択中・5人以上必要です`;
+}
+
+function renderLineupChoices(eligiblePlayers) {
+    document.getElementById("lineupChoices").innerHTML =
+        eligiblePlayers
+            .map(
+                (player) =>
+                    `<label class="lineup-choice"><input type="checkbox" value="${escapeAttr(player.playerId)}"> #${Number(player.number) || "?"} ${escapeHtml(player.name)}</label>`,
+            )
+            .join("") ||
+        "<span class='field-hint'>試合の出場予定メンバーを先に選択してください。</span>";
 }
 
 function renderPlayerSelection() {
@@ -686,6 +725,12 @@ async function openGame(id) {
         document.getElementById("finalOpponentScore").value =
             currentGame.result === "U" ? "" : Number(currentGame.opponentScore) || 0;
         renderRoster();
+        const gameRoster = Array.isArray(currentGame.rosterPlayerIds)
+            ? new Set(currentGame.rosterPlayerIds)
+            : new Set(players.map((player) => player.playerId));
+        renderLineupChoices(
+            players.filter((player) => player.active !== false && gameRoster.has(player.playerId)),
+        );
         const onCourt = Array.isArray(currentGame.onCourt)
             ? currentGame.onCourt
             : String(currentGame.onCourt || "")
@@ -933,10 +978,39 @@ document.getElementById("scheduleGameSelect").addEventListener("change", (e) => 
     if (selectedSchedule)
         document.getElementById("gameDate").value = selectedSchedule.startDateTime.slice(0, 10);
 });
+document.getElementById("gameParticipantChoices").addEventListener("change", () => {
+    selectedParticipantIds = [
+        ...document.querySelectorAll("#gameParticipantChoices input:checked"),
+    ].map((input) => input.value);
+    updateParticipantSelectionCount();
+});
+document.getElementById("selectAllParticipants").addEventListener("click", () => {
+    document.querySelectorAll("#gameParticipantChoices input").forEach((input) => {
+        input.checked = true;
+    });
+    selectedParticipantIds = players
+        .filter((player) => player.active !== false)
+        .map((player) => player.playerId);
+    updateParticipantSelectionCount();
+});
+document.getElementById("clearParticipants").addEventListener("click", () => {
+    document.querySelectorAll("#gameParticipantChoices input").forEach((input) => {
+        input.checked = false;
+    });
+    selectedParticipantIds = [];
+    updateParticipantSelectionCount();
+});
 document.getElementById("gameForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!activeTeamId) {
         toast("先にチームを登録してください");
+        return;
+    }
+    const participantIds = [
+        ...document.querySelectorAll("#gameParticipantChoices input:checked"),
+    ].map((input) => input.value);
+    if (participantIds.length < 5) {
+        toast("今回の出場予定メンバーを5人以上選択してください");
         return;
     }
     try {
@@ -944,6 +1018,7 @@ document.getElementById("gameForm").addEventListener("submit", async (e) => {
             date: document.getElementById("gameDate").value,
             opponent: document.getElementById("opponent").value.trim(),
             quarterMinutes: Number(document.getElementById("quarterMinutes").value) || 10,
+            participantIds,
         };
         if (selectedSchedule) {
             body.scheduleMonth = selectedSchedule.scheduleMonth;
@@ -954,6 +1029,8 @@ document.getElementById("gameForm").addEventListener("submit", async (e) => {
         await api("game", "PUT", body);
         e.target.reset();
         selectedSchedule = null;
+        selectedParticipantIds = null;
+        selectedParticipantTeamId = "";
         document.getElementById("quarterMinutes").value = 10;
         await loadEverything();
         document.getElementById("gameStatus").textContent =

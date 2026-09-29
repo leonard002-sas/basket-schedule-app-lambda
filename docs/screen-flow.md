@@ -14,6 +14,7 @@ flowchart TD
     Games[Game list and score entry]
     Rankings[Player rankings]
     Account[Account menu]
+    UserAdmin[Root-only user management]
 
     Login --> Calendar
     Calendar <--> Announcements
@@ -32,6 +33,7 @@ flowchart TD
     Teams --> Account
     Games --> Account
     Rankings --> Account
+    Account --> UserAdmin
 ```
 
 ## Navigation behavior
@@ -42,7 +44,8 @@ flowchart TD
 - `basketball.html?view=teams`, `?view=games`, and `?view=rankings` select the corresponding scorebook area.
 - Every top-level screen links to the other destinations through the same navigation bar.
 - The account menu is available on every authenticated screen and contains the role label, account identifier, sign-out action, and guarded self-service account deletion.
+- Root administrators also see the user-management destination, where they can promote, demote, disable, enable, or delete other accounts.
 
 ## Roles
 
-Guests can read the calendar, visible announcements, facilities, team roster, completed game results, and rankings. Administrators can additionally create and edit schedules, facilities, announcements, teams, roster entries, and games, and record score actions. The server repeats the role check on every write request; hiding a form in the browser is not an authorization control.
+Guests can read the calendar, visible announcements, facilities, team roster, completed game results, and rankings. Administrators can additionally create and edit schedules, facilities, announcements, teams, roster entries, and games, and record score actions. Root administrators inherit those rights and can manage accounts. The server checks the role on every protected request; hiding a form in the browser is not an authorization control.

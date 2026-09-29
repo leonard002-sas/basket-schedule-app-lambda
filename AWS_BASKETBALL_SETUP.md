@@ -1,6 +1,6 @@
-# Basketball scorebook AWS setup
+# Basketball scorebook and user administration setup
 
-The scorebook uses the existing `basket-schedule-get` Lambda Function URL and a separate DynamoDB table. Create the table and grant the Lambda execution role access before using `basketball.html`.
+The application uses the existing `basket-schedule-get` Lambda Function URL and the `BasketballData` DynamoDB table. The user-management screen also requires a Cognito group and additional permissions on this Lambda's execution role.
 
 ## DynamoDB table
 
@@ -12,11 +12,41 @@ Create a table in `ap-northeast-1` with:
 - Capacity mode: On-demand
 - No secondary indexes are required
 
-The application stores multiple team rosters and their games in this table. Team, player, game, game-event, box-score, and season-total records use namespaced partition/sort key values. No additional index is needed.
+## Cognito root administrators
 
-## Lambda execution role
+Use the Cognito user pool `ap-northeast-1_Cd5fxLwj3`. Create a group named `root-admins` and manually add one or two trusted operator accounts. Do not use the AWS account root user for this application role. Keep membership small: this group can promote and demote administrators, disable or delete Cognito users, and view the user directory.
 
-Open the execution role used by the `basket-schedule-get` Lambda and attach an inline policy for the new table. Replace the account number if the AWS account differs.
+The existing `admins` group remains the normal team-management role. New Cognito users are guests until an administrator promotes them. A root administrator is also treated as an application administrator for schedule, roster, and scorebook operations. Root administrators cannot delete or disable themselves or other root administrators through the site.
+
+## Lambda execution-role permissions
+
+Attach the following Cognito permissions to the execution role used by `basket-schedule-get`. The API checks the signed-in user's `root-admins` claim before calling these operations. Limit the resource to the application user pool.
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "ManageBasketScheduleCognitoUsers",
+            "Effect": "Allow",
+            "Action": [
+                "cognito-idp:ListUsers",
+                "cognito-idp:ListUsersInGroup",
+                "cognito-idp:AdminGetUser",
+                "cognito-idp:AdminListGroupsForUser",
+                "cognito-idp:AdminAddUserToGroup",
+                "cognito-idp:AdminRemoveUserFromGroup",
+                "cognito-idp:AdminEnableUser",
+                "cognito-idp:AdminDisableUser",
+                "cognito-idp:AdminDeleteUser"
+            ],
+            "Resource": "arn:aws:cognito-idp:ap-northeast-1:605419152870:userpool/ap-northeast-1_Cd5fxLwj3"
+        }
+    ]
+}
+```
+
+The basketball feature also needs its existing DynamoDB policy:
 
 ```json
 {
@@ -38,6 +68,8 @@ Open the execution role used by the `basket-schedule-get` Lambda and attach an i
 }
 ```
 
-The existing Function URL already allows authenticated `GET` and `PUT` requests from the CloudFront site. The scorebook checks Cognito `admins` membership in the API before allowing changes.
+## Function URL and deployment
 
-After the table and policy are ready, push the application changes. The existing CodePipeline build publishes the static scorebook page and updates the Lambda package.
+The Function URL CORS configuration must allow the CloudFront origin, `GET`, `PUT`, and `DELETE`, and the `authorization` and `content-type` headers. Do not add CORS headers in the Lambda response as well as the Function URL configuration; that produces duplicate headers.
+
+After creating the table, Cognito group, and IAM policy, sign in again as the root administrator so the ID token contains the latest group claims. A push to the configured source branch triggers CodePipeline to publish the static pages and update the Lambda package.
