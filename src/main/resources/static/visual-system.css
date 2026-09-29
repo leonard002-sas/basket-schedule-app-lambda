@@ -309,6 +309,80 @@ body::before {
     box-shadow: var(--shadow-lift);
 }
 
+/* カレンダーは情報量を優先した7列グリッドで表示します。 */
+.calendar-area {
+    margin-bottom: 40px;
+}
+
+.calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.calendar-header h2 {
+    margin: 0;
+    text-align: center;
+}
+
+.calendar {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    overflow: hidden;
+    border-top: 1px solid var(--border-soft);
+    border-left: 1px solid var(--border-soft);
+}
+
+.weekday {
+    min-width: 0;
+    padding: 12px 4px !important;
+    border-right: 1px solid var(--border-soft);
+    border-bottom: 1px solid var(--border-soft);
+    text-align: center;
+}
+
+.calendar-day {
+    min-width: 0;
+    min-height: clamp(80px, 9vw, 112px);
+    padding: 9px;
+    border-right: 1px solid var(--border-soft);
+    border-bottom: 1px solid var(--border-soft);
+    cursor: pointer;
+}
+
+.calendar-day.empty-day {
+    cursor: default;
+    background: color-mix(in srgb, var(--paper) 82%, var(--canvas));
+}
+
+.day-number {
+    margin-bottom: 5px;
+}
+
+.event-dot {
+    min-width: 0;
+    overflow: hidden;
+    margin-top: 4px;
+    padding: 5px 6px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.site-header {
+    position: relative;
+    z-index: 100;
+}
+
+.account-menu {
+    z-index: 200;
+}
+
+.account-menu-panel {
+    z-index: 210;
+}
+
 button,
 .button-accent,
 .button-light,
