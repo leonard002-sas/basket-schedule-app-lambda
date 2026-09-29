@@ -287,13 +287,10 @@ body::before {
 }
 
 .section,
-.calendar-area,
-#scheduleList,
 .workspace-content-card,
 .score-card,
 .modal-content,
 .csv-import-panel,
-.upcoming-schedule,
 .announcement-card {
     border: 1px solid var(--border-soft);
     border-radius: 22px;
@@ -644,14 +641,11 @@ tbody tr:hover {
 :root[data-theme="dark"] .site-header,
 :root[data-theme="dark"] .site-navigation,
 :root[data-theme="dark"] .section,
-:root[data-theme="dark"] .calendar-area,
-:root[data-theme="dark"] #scheduleList,
 :root[data-theme="dark"] .workspace-content-card,
 :root[data-theme="dark"] .score-card,
 :root[data-theme="dark"] .modal-content,
 :root[data-theme="dark"] .csv-import-panel,
-:root[data-theme="dark"] .announcement-card,
-:root[data-theme="dark"] .upcoming-schedule {
+:root[data-theme="dark"] .announcement-card {
     color: var(--text-main);
     border-color: var(--border-soft);
     background-color: var(--surface-raised);
