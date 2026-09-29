@@ -21,9 +21,9 @@ import software.amazon.awssdk.services.cognitoidentityprovider.model.AttributeTy
 import software.amazon.awssdk.services.cognitoidentityprovider.model.CognitoIdentityProviderException;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ListUsersInGroupRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ListUsersRequest;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.ProviderUserIdentifierType;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.UserNotFoundException;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.UserType;
-import software.amazon.awssdk.services.cognitoidentityprovider.model.ProviderUserIdentifierType;
 
 /** Cognito のユーザー一覧、管理者権限、利用停止を安全に管理します。 */
 public final class CognitoUserAdminService {
@@ -203,7 +203,10 @@ public final class CognitoUserAdminService {
    * @return 連携結果
    */
   public Map<String, Object> linkGoogleAccount(String username, String googleSubject) {
-    if (username == null || username.isBlank() || googleSubject == null || googleSubject.isBlank()) {
+    if (username == null
+        || username.isBlank()
+        || googleSubject == null
+        || googleSubject.isBlank()) {
       throw new UserAdminException(400, "GOOGLE_LINK_INPUT_INVALID", "Google連携情報が不足しています");
     }
     requireTarget(username);
