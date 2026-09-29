@@ -209,8 +209,9 @@ public final class CognitoUserAdminService {
         || googleSubject.isBlank()) {
       throw new UserAdminException(400, "GOOGLE_LINK_INPUT_INVALID", "Google連携情報が不足しています");
     }
-    requireTarget(username);
     try {
+      // 既存ユーザーであることを確認してから、外部IDを連携します。
+      requireTarget(username);
       cognito.adminLinkProviderForUser(
           AdminLinkProviderForUserRequest.builder()
               .userPoolId(USER_POOL_ID)
@@ -228,6 +229,11 @@ public final class CognitoUserAdminService {
                       .build())
               .build());
     } catch (CognitoIdentityProviderException e) {
+      String errorCode = e.awsErrorDetails() == null ? "" : e.awsErrorDetails().errorCode();
+      if ("AccessDeniedException".equals(errorCode)) {
+        throw new UserAdminException(
+            500, "GOOGLE_LINK_PERMISSION_MISSING", "Lambda実行ロールにCognitoのGoogle連携権限がありません");
+      }
       throw new UserAdminException(
           409, "GOOGLE_LINK_FAILED", "このGoogleアカウントは別のユーザーに連携済みか、連携できない状態です");
     }
