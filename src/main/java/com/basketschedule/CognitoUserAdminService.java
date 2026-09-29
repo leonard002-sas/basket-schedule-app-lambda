@@ -281,7 +281,7 @@ public final class CognitoUserAdminService {
       if (!destinationSub.equals(destination.sub())) {
         throw new UserAdminException(409, "GOOGLE_LINK_TARGET_CHANGED", "ログイン状態が変わりました。再度お試しください");
       }
-      String existingGoogleUsername = findUsernameBySub(googleSubject);
+      String existingGoogleUsername = findUsernameByGoogleSubject(googleSubject);
       boolean temporaryUserRemoved = false;
       if (existingGoogleUsername != null && !existingGoogleUsername.equals(username)) {
         Set<String> existingGroups = groupsFor(existingGoogleUsername);
@@ -324,15 +324,28 @@ public final class CognitoUserAdminService {
     return Map.of("linked", true, "provider", "Google");
   }
 
-  private String findUsernameBySub(String sub) {
-    var response =
-        cognito.listUsers(
-            ListUsersRequest.builder()
-                .userPoolId(USER_POOL_ID)
-                .filter("sub = \"" + sub.replace("\"", "") + "\"")
-                .limit(1)
-                .build());
-    return response.users().isEmpty() ? null : response.users().get(0).username();
+  /** Cognitoのidentities属性に保存されたGoogle userIdからユーザー名を解決します。 */
+  private String findUsernameByGoogleSubject(String googleSubject) {
+    String expectedUserId = "\"userId\":\"" + googleSubject.replace("\"", "") + "\"";
+    String nextToken = null;
+    do {
+      var response =
+          cognito.listUsers(
+              ListUsersRequest.builder()
+                  .userPoolId(USER_POOL_ID)
+                  .limit(PAGE_SIZE)
+                  .paginationToken(nextToken)
+                  .build());
+      for (UserType user : response.users()) {
+        String identities = attribute(user, "identities").replaceAll("\\s+", "");
+        if (identities.contains("\"providerName\":\"Google\"")
+            && identities.contains(expectedUserId)) {
+          return user.username();
+        }
+      }
+      nextToken = response.paginationToken();
+    } while (nextToken != null && !nextToken.isBlank());
+    return null;
   }
 
   private void linkGoogleProvider(String destinationUsername, String googleSubject) {
