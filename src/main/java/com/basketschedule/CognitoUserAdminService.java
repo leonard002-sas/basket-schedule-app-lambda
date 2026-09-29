@@ -14,13 +14,16 @@ import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminDelete
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminDisableUserRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminEnableUserRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminGetUserResponse;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminLinkProviderForUserRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminListGroupsForUserRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminRemoveUserFromGroupRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AttributeType;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.CognitoIdentityProviderException;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ListUsersInGroupRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ListUsersRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.UserNotFoundException;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.UserType;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.ProviderUserIdentifierType;
 
 /** Cognito のユーザー一覧、管理者権限、利用停止を安全に管理します。 */
 public final class CognitoUserAdminService {
@@ -190,6 +193,42 @@ public final class CognitoUserAdminService {
     cognito.adminDeleteUser(
         AdminDeleteUserRequest.builder().userPoolId(USER_POOL_ID).username(username).build());
     return Map.of("deleted", true);
+  }
+
+  /**
+   * 現在のCognitoユーザーへGoogleの外部IDを紐付けます。
+   *
+   * @param username 既存Cognitoユーザーのユーザー名
+   * @param googleSubject Google IDトークンから検証済みのsub
+   * @return 連携結果
+   */
+  public Map<String, Object> linkGoogleAccount(String username, String googleSubject) {
+    if (username == null || username.isBlank() || googleSubject == null || googleSubject.isBlank()) {
+      throw new UserAdminException(400, "GOOGLE_LINK_INPUT_INVALID", "Google連携情報が不足しています");
+    }
+    requireTarget(username);
+    try {
+      cognito.adminLinkProviderForUser(
+          AdminLinkProviderForUserRequest.builder()
+              .userPoolId(USER_POOL_ID)
+              .destinationUser(
+                  ProviderUserIdentifierType.builder()
+                      .providerName("Cognito")
+                      .providerAttributeName("Cognito_Subject")
+                      .providerAttributeValue(username)
+                      .build())
+              .sourceUser(
+                  ProviderUserIdentifierType.builder()
+                      .providerName("Google")
+                      .providerAttributeName("Cognito_Subject")
+                      .providerAttributeValue(googleSubject)
+                      .build())
+              .build());
+    } catch (CognitoIdentityProviderException e) {
+      throw new UserAdminException(
+          409, "GOOGLE_LINK_FAILED", "このGoogleアカウントは別のユーザーに連携済みか、連携できない状態です");
+    }
+    return Map.of("linked", true, "provider", "Google");
   }
 
   private TargetUser requireTarget(String username) {

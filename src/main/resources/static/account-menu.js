@@ -33,6 +33,7 @@
             <span class="account-role-badge" data-account-role></span>
         </div>
         <a href="members.html" class="account-menu-item" data-root-admin-link hidden>ユーザー管理</a>
+        <button type="button" class="account-menu-item" data-google-link>Googleアカウントを連携</button>
         <button type="button" class="account-menu-item account-menu-delete" data-delete-account>アカウントを削除</button>
         <button type="button" class="account-menu-item" data-account-logout>ログアウト</button>
         <p class="account-menu-note" data-account-note></p>`;
@@ -69,6 +70,7 @@
         ["id_token", "access_token", "refresh_token"].forEach((key) =>
             localStorage.removeItem(key),
         );
+        sessionStorage.removeItem("google_linked");
     }
 
     function signOut() {
@@ -76,6 +78,25 @@
         const url = new URL(`${cognitoDomain}/logout`);
         url.searchParams.set("client_id", clientId);
         url.searchParams.set("logout_uri", redirectUri);
+        window.location.assign(url.toString());
+    }
+
+    function startGoogleLink() {
+        const nativeToken = localStorage.getItem("id_token");
+        if (!nativeToken) return;
+        const state =
+            globalThis.crypto?.randomUUID?.() ||
+            `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        sessionStorage.setItem("google_link_state", state);
+        sessionStorage.setItem("google_link_native_token", nativeToken);
+        const url = new URL(`${cognitoDomain}/oauth2/authorize`);
+        url.searchParams.set("client_id", clientId);
+        url.searchParams.set("response_type", "code");
+        url.searchParams.set("scope", "openid email profile");
+        url.searchParams.set("redirect_uri", redirectUri);
+        url.searchParams.set("identity_provider", "Google");
+        url.searchParams.set("state", state);
+        url.searchParams.set("lang", "ja");
         window.location.assign(url.toString());
     }
 
@@ -104,6 +125,14 @@
               ? "管理者"
               : "メンバー閲覧のみ";
         panel.querySelector("[data-root-admin-link]").hidden = !isRootAdmin;
+        const googleLinked = Array.isArray(claims.identities)
+            ? claims.identities.some((identity) => identity.providerName === "Google")
+            : sessionStorage.getItem("google_linked") === "1";
+        const googleLinkButton = panel.querySelector("[data-google-link]");
+        googleLinkButton.disabled = googleLinked;
+        googleLinkButton.textContent = googleLinked
+            ? "Googleアカウント連携済み"
+            : "Googleアカウントを連携";
         rootLinks.forEach((link) => {
             link.hidden = !isRootAdmin;
         });
@@ -123,6 +152,7 @@
         if (event.key === "Escape") menu.open = false;
     });
     panel.querySelector("[data-account-logout]").addEventListener("click", signOut);
+    panel.querySelector("[data-google-link]").addEventListener("click", startGoogleLink);
     panel.querySelector("[data-delete-account]").addEventListener("click", () => {
         panel.querySelector("[data-delete-status]").textContent = "";
         dialog.querySelector("[name=confirmation]").value = "";

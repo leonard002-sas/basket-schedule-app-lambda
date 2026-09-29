@@ -1143,6 +1143,27 @@ async function authenticatedFetch(url, options = {}) {
     });
 }
 
+/**
+ * Googleで取得したCognito IDトークンを、元のログインユーザーへ連携します。
+ *
+ * @param {string} nativeToken 連携開始前の既存ユーザーのIDトークン
+ * @param {string} googleIdToken Google認証後に発行されたIDトークン
+ */
+async function completeGoogleAccountLink(nativeToken, googleIdToken) {
+    const response = await fetch(`${API_URL}?feature=basketball&resource=account-link`, {
+        method: "PUT",
+        headers: {
+            Authorization: `Bearer ${nativeToken}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ googleIdToken }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(result.message || "Googleアカウントを連携できませんでした。");
+    }
+}
+
 // ========================================
 // Cognito認証コード → トークン
 // ========================================
@@ -1158,6 +1179,10 @@ async function handleCognitoCallback() {
     }
 
     console.log("Cognito認証コードを取得しました");
+
+    const linkState = sessionStorage.getItem("google_link_state");
+    const isGoogleLinkFlow = Boolean(linkState && params.get("state") === linkState);
+    const nativeToken = sessionStorage.getItem("google_link_native_token");
 
     try {
         const response = await fetch(`${cognitoDomain}/oauth2/token`, {
@@ -1186,7 +1211,18 @@ async function handleCognitoCallback() {
             );
         }
 
-        // トークンを保存
+        if (isGoogleLinkFlow) {
+            if (!nativeToken) throw new Error("連携元のログイン情報が見つかりません。");
+            await completeGoogleAccountLink(nativeToken, tokens.id_token);
+            sessionStorage.removeItem("google_link_state");
+            sessionStorage.removeItem("google_link_native_token");
+            sessionStorage.setItem("google_linked", "1");
+            window.history.replaceState({}, document.title, window.location.pathname);
+            alert("Googleアカウントを連携しました。次回からGoogleでもログインできます。");
+            return;
+        }
+
+        // 通常ログインでは取得したトークンを保存します。
         localStorage.setItem("id_token", tokens.id_token);
         localStorage.setItem("access_token", tokens.access_token);
 
@@ -1203,7 +1239,12 @@ async function handleCognitoCallback() {
         // URLから ?code=xxxxx を削除
         window.history.replaceState({}, document.title, window.location.pathname);
     } catch (error) {
+        if (isGoogleLinkFlow) {
+            sessionStorage.removeItem("google_link_state");
+            sessionStorage.removeItem("google_link_native_token");
+        }
         console.error("Cognito認証エラー:", error);
+        if (isGoogleLinkFlow) alert(error.message || "Googleアカウントを連携できませんでした。");
     }
 }
 

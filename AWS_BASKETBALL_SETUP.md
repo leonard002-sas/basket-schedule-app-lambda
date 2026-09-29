@@ -38,13 +38,18 @@ Attach the following Cognito permissions to the execution role used by `basket-s
                 "cognito-idp:AdminRemoveUserFromGroup",
                 "cognito-idp:AdminEnableUser",
                 "cognito-idp:AdminDisableUser",
-                "cognito-idp:AdminDeleteUser"
+                "cognito-idp:AdminDeleteUser",
+                "cognito-idp:AdminLinkProviderForUser"
             ],
             "Resource": "arn:aws:cognito-idp:ap-northeast-1:605419152870:userpool/ap-northeast-1_Cd5fxLwj3"
         }
     ]
 }
 ```
+
+`AdminLinkProviderForUser` is used only by the authenticated account-linking endpoint. The
+endpoint verifies the existing Cognito ID token and the Google-federated ID token before it
+links the Google `sub` to that same Cognito username.
 
 The basketball feature also needs its existing DynamoDB policy:
 

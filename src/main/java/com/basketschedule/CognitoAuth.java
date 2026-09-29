@@ -84,6 +84,24 @@ public final class CognitoAuth {
   }
 
   /**
+   * Google認証後に発行されたCognito IDトークンを検証し、Googleのsubを返します。
+   *
+   * @param idToken Googleログインで取得したCognito IDトークン
+   * @return Google側の不変なユーザー識別子
+   * @throws AuthException Google連携情報を含まないトークンの場合
+   */
+  public static String requireGoogleSubject(String idToken) {
+    if (idToken == null || idToken.isBlank()) {
+      throw new AuthException(400, "Google認証情報を取得できませんでした", "GOOGLE_TOKEN_REQUIRED");
+    }
+    User user = verify(idToken);
+    if (user.googleSubject().isBlank()) {
+      throw new AuthException(400, "Googleアカウントの情報を確認できませんでした", "GOOGLE_IDENTITY_REQUIRED");
+    }
+    return user.googleSubject();
+  }
+
+  /**
    * 通常管理者または root 管理者かを調べます。
    *
    * @param user 検証済みの利用者
@@ -168,7 +186,8 @@ public final class CognitoAuth {
       return new User(
           claims.path("sub").asText(),
           claims.path("cognito:username").asText(claims.path("sub").asText()),
-          Set.copyOf(groups));
+          Set.copyOf(groups),
+          googleSubject(claims));
     } catch (AuthException e) {
       throw e;
     } catch (Exception e) {
@@ -182,6 +201,23 @@ public final class CognitoAuth {
     }
     String poolId = issuer.substring(ISSUER_PREFIX.length());
     return poolId.matches("ap-northeast-1_[A-Za-z0-9]+") && !poolId.contains("/");
+  }
+
+  /**
+   * Google連携済みトークンから、Google側の不変なユーザー識別子を取り出します。
+   *
+   * @param claims Cognito IDトークンのクレーム
+   * @return Googleのsub。未連携の場合は空文字
+   */
+  private static String googleSubject(JsonNode claims) {
+    JsonNode identities = claims.path("identities");
+    if (!identities.isArray()) return "";
+    for (JsonNode identity : identities) {
+      if ("Google".equalsIgnoreCase(identity.path("providerName").asText())) {
+        return identity.path("userId").asText("");
+      }
+    }
+    return "";
   }
 
   private static String trustedIssuer() {
@@ -260,17 +296,24 @@ public final class CognitoAuth {
    * @param subject Cognito が発行したユーザー ID
    * @param username Cognito のユーザー名
    * @param groups Cognito の署名付きトークンで確認したグループ
+   * @param googleSubject 連携済みの場合のGoogle固有識別子
    */
-  public record User(String subject, String username, Set<String> groups) {
+  public record User(String subject, String username, Set<String> groups, String googleSubject) {
     /** 既存コードで sub とグループだけを指定する場合の互換コンストラクターです。 */
     public User(String subject, Set<String> groups) {
-      this(subject, subject, groups);
+      this(subject, subject, groups, "");
+    }
+
+    /** Google連携情報を指定しない既存コード向けコンストラクターです。 */
+    public User(String subject, String username, Set<String> groups) {
+      this(subject, username, groups, "");
     }
 
     /** グループ集合をコピーし、作成後に外部から変更されないようにします。 */
     public User {
       username = username == null || username.isBlank() ? subject : username;
       groups = Set.copyOf(groups);
+      googleSubject = googleSubject == null ? "" : googleSubject;
     }
   }
 

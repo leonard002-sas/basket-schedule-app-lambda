@@ -49,6 +49,8 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
       if ("users".equals(resource)) user = CognitoAuth.requireRootAdmin(input);
       else if ("account".equals(resource) && "DELETE".equalsIgnoreCase(method))
         user = CognitoAuth.requireUser(input);
+      else if ("account-link".equals(resource) && "PUT".equalsIgnoreCase(method))
+        user = CognitoAuth.requireUser(input);
       else if (write) user = CognitoAuth.requireAdmin(input);
       else user = CognitoAuth.requireUser(input);
       JsonNode body =
@@ -157,6 +159,9 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
       String resource, JsonNode b, Map<String, String> query, CognitoAuth.User user) {
     return switch (resource) {
       case "users" -> updateManagedUser(b, user);
+      case "account-link" ->
+          userAdmin.linkGoogleAccount(
+              user.username(), CognitoAuth.requireGoogleSubject(required(b, "googleIdToken")));
       case "team" -> saveTeam(b);
       case "player" -> savePlayer(b, required(query, "teamId"));
       case "game" ->
