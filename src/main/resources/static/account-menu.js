@@ -167,7 +167,7 @@
             if (confirmation === "削除") deleteAccount();
             return;
         }
-        panel.querySelector("[data-delete-status]").textContent = "";
+        dialog.querySelector("[data-delete-status]").textContent = "";
         dialog.querySelector("[name=confirmation]").value = "";
         dialog.querySelector("[data-confirm-delete]").disabled = true;
         // 一部のスマホブラウザやWebViewではshowModalが利用できないため、フォールバックします。
