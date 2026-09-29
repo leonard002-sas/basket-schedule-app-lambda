@@ -299,7 +299,7 @@ public final class CognitoUserAdminService {
       int attempts = temporaryUserRemoved ? 4 : 1;
       for (int attempt = 1; attempt <= attempts; attempt++) {
         try {
-          linkGoogleProvider(destinationSub, googleSubject);
+          linkGoogleProvider(username, googleSubject);
           break;
         } catch (CognitoIdentityProviderException e) {
           if (attempt == attempts) throw e;
@@ -335,7 +335,7 @@ public final class CognitoUserAdminService {
     return response.users().isEmpty() ? null : response.users().get(0).username();
   }
 
-  private void linkGoogleProvider(String destinationSub, String googleSubject) {
+  private void linkGoogleProvider(String destinationUsername, String googleSubject) {
     cognito.adminLinkProviderForUser(
         AdminLinkProviderForUserRequest.builder()
             .userPoolId(USER_POOL_ID)
@@ -343,7 +343,7 @@ public final class CognitoUserAdminService {
                 ProviderUserIdentifierType.builder()
                     .providerName("Cognito")
                     .providerAttributeName("Cognito_Subject")
-                    .providerAttributeValue(destinationSub)
+                    .providerAttributeValue(destinationUsername)
                     .build())
             .sourceUser(
                 ProviderUserIdentifierType.builder()
