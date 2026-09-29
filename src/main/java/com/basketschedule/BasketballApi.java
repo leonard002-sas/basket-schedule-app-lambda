@@ -744,7 +744,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     if (next.size() > 5) throw new IllegalArgumentException("コート上の選手は5人までです");
     Set<String> eligible =
         meta.containsKey("rosterPlayerIds")
-            ? meta.get("rosterPlayerIds").ss()
+            ? new java.util.HashSet<>(meta.get("rosterPlayerIds").ss())
             : rows(teamPk(str(meta, "teamId")), "PLAYER#").stream()
                 .filter(player -> !player.containsKey("active") || bool(player, "active"))
                 .map(player -> str(player, "playerId"))
