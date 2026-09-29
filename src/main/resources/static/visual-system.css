@@ -400,9 +400,65 @@ body::before {
     font-size: 0.78rem;
 }
 
-#scheduleOverviewHeading,
-#scheduleList {
-    display: none !important;
+.modal-overlay {
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(14, 34, 25, 0.48);
+    backdrop-filter: blur(4px);
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal {
+    width: min(100%, 560px);
+    max-height: calc(100dvh - 40px);
+    overflow: hidden;
+    border: 1px solid var(--border-soft);
+    border-radius: 20px;
+    background: var(--surface-raised);
+    box-shadow: 0 28px 80px rgba(14, 34, 25, 0.28);
+}
+
+.modal-header,
+.modal-footer {
+    flex: 0 0 auto;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: var(--text-main);
+    font-size: 1.15rem;
+}
+
+.modal-content {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border-soft);
+    background: var(--surface-raised);
+    text-align: right;
+}
+
+.modal-footer button {
+    margin-left: 8px;
 }
 
 .site-header {
@@ -679,6 +735,15 @@ tbody tr:hover {
     .event-dot {
         padding: 5px 6px;
         font-size: 0.73rem;
+    }
+
+    .modal-overlay {
+        align-items: flex-start;
+        padding: 8px;
+    }
+
+    .modal {
+        max-height: calc(100dvh - 16px);
     }
 
     .holiday-name {
