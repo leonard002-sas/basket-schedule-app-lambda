@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>サインイン | Flight Penguins</title>
+        <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+        <link rel="stylesheet" href="signin.css" />
+        <script src="frontend-config.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.12/dist/amazon-cognito-identity.min.js"></script>
+    </head>
+    <body>
+        <main class="signin-shell">
+            <a class="signin-brand" href="index.html" aria-label="トップへ戻る">
+                <img src="favicon.svg" alt="" />
+                <span><strong>FLIGHT PENGUINS</strong><small>TEAM HUB</small></span>
+            </a>
+            <section class="signin-card" aria-labelledby="signinTitle">
+                <div class="signin-heading">
+                    <span class="signin-eyebrow">MEMBER ACCESS</span>
+                    <h1 id="signinTitle">サインイン</h1>
+                    <p>チームの予定、試合記録、周知事項を確認します。</p>
+                </div>
+                <button type="button" id="googleSignIn" class="google-button">
+                    <span class="google-mark" aria-hidden="true">G</span>Googleでログイン
+                </button>
+                <div class="signin-divider" role="separator"><span>または</span></div>
+                <form id="signinForm" novalidate>
+                    <label for="username">ユーザー名</label>
+                    <input id="username" name="username" autocomplete="username" required />
+                    <label for="password">パスワード</label>
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        autocomplete="current-password"
+                        required
+                    />
+                    <p id="signinError" class="signin-error" role="alert" hidden></p>
+                    <button type="submit" id="signinSubmit" class="signin-submit">ログイン</button>
+                </form>
+                <div class="signin-links">
+                    <a id="forgotPassword" href="#">パスワードをお忘れですか？</a>
+                    <span>新規ユーザーですか？</span>
+                    <a id="signUp" href="#">アカウントを作成</a>
+                </div>
+            </section>
+            <p class="signin-note">認証情報はAmazon Cognitoで安全に管理されます。</p>
+        </main>
+        <script src="signin.js"></script>
+    </body>
+</html>

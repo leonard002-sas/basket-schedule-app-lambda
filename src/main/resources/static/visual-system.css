@@ -1171,6 +1171,24 @@ tbody tr:hover {
     display: none;
 }
 
+/* スコアブック固有の !important 背景を、ダークテーマでは明示的に上書きします。 */
+:root[data-theme="dark"] .scorebook-body .leaderboard-card,
+:root[data-theme="dark"] .scorebook-body .csv-import-panel {
+    color: #e8f0e9;
+    border-color: rgba(193, 219, 190, 0.18) !important;
+    background: #1d2b25 !important;
+}
+
+:root[data-theme="dark"] .scorebook-body .leaderboard-card .ranking-sort,
+:root[data-theme="dark"] .scorebook-body .csv-import-panel summary {
+    color: #d6e4d8;
+}
+
+:root[data-theme="dark"] .scorebook-body .csv-import-panel > p,
+:root[data-theme="dark"] .scorebook-body .csv-import-panel .field-hint {
+    color: #aebfb1;
+}
+
 @media (max-width: 620px) {
     .login-gate {
         background-position: 65% center !important;

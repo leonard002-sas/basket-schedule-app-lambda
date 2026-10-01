@@ -1270,15 +1270,7 @@ const loginButton = document.getElementById("loginButton");
 
 if (loginButton) {
     loginButton.addEventListener("click", () => {
-        const loginUrl =
-            `${cognitoDomain}/oauth2/authorize` +
-            `?client_id=${clientId}` +
-            `&response_type=code` +
-            `&scope=openid+email+phone` +
-            `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-            `&lang=ja`;
-
-        window.location.href = loginUrl;
+        window.location.href = "signin.html";
     });
 }
 
