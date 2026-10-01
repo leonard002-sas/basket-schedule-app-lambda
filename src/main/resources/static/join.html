@@ -42,6 +42,20 @@
                     <p id="joinError" class="signin-error" role="alert" hidden></p>
                     <button class="signin-submit" type="submit">申請してアカウントを作成</button>
                 </form>
+                <div id="googleJoinPanel">
+                    <button type="button" id="googleJoinButton" class="google-button">
+                        <span class="google-mark" aria-hidden="true">G</span>Googleアカウントで作成
+                    </button>
+                    <p class="signin-note">Googleで作成した後、表示名を設定します。</p>
+                </div>
+                <div id="googleProfilePanel" hidden>
+                    <label for="googleDisplayName">表示名</label>
+                    <input id="googleDisplayName" maxlength="40" autocomplete="name" required />
+                    <p id="googleProfileError" class="signin-error" role="alert" hidden></p>
+                    <button type="button" id="googleProfileSave" class="signin-submit">
+                        表示名を保存
+                    </button>
+                </div>
                 <div class="signin-links"><a href="signin.html">サインインへ戻る</a></div>
             </section>
         </main>

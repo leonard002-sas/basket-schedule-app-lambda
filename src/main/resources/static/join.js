@@ -7,6 +7,59 @@ const pool = new AmazonCognitoIdentity.CognitoUserPool({
 const form = document.getElementById("joinForm");
 const errorElement = document.getElementById("joinError");
 let pendingRequest;
+
+function startGoogleSignup() {
+    const state =
+        globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    sessionStorage.setItem("google_signup_state", state);
+    const url = new URL(`${config.cognitoDomain}/oauth2/authorize`);
+    url.searchParams.set("client_id", config.cognitoClientId);
+    url.searchParams.set("response_type", "code");
+    url.searchParams.set("scope", "openid email phone");
+    url.searchParams.set("redirect_uri", config.redirectUri);
+    url.searchParams.set("identity_provider", "Google");
+    url.searchParams.set("state", state);
+    url.searchParams.set("lang", "ja");
+    window.location.assign(url.toString());
+}
+
+function setupGoogleProfile() {
+    const profilePanel = document.getElementById("googleProfilePanel");
+    const joinForm = document.getElementById("joinForm");
+    const googlePanel = document.getElementById("googleJoinPanel");
+    if (new URLSearchParams(window.location.search).get("google") !== "1") return;
+    if (!localStorage.getItem("id_token")) return;
+    joinForm.hidden = true;
+    googlePanel.hidden = true;
+    profilePanel.hidden = false;
+    document.getElementById("googleProfileSave").addEventListener("click", async () => {
+        const displayName = document.getElementById("googleDisplayName").value.trim();
+        const profileError = document.getElementById("googleProfileError");
+        if (!displayName) {
+            profileError.textContent = "表示名を入力してください。";
+            profileError.hidden = false;
+            return;
+        }
+        try {
+            const response = await fetch(`${config.apiUrl}?resource=profile`, {
+                method: "PUT",
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("id_token")}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ displayName, notificationOffsets: "NONE" }),
+            });
+            if (!response.ok) throw new Error("表示名を保存できませんでした。");
+            window.location.assign("index.html");
+        } catch (error) {
+            profileError.textContent = error.message;
+            profileError.hidden = false;
+        }
+    });
+}
+
+document.getElementById("googleJoinButton")?.addEventListener("click", startGoogleSignup);
+setupGoogleProfile();
 function error(message) {
     errorElement.textContent = message;
     errorElement.hidden = false;

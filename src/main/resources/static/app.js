@@ -1329,6 +1329,8 @@ async function handleCognitoCallback() {
 
     const linkState = sessionStorage.getItem("google_link_state");
     const isGoogleLinkFlow = Boolean(linkState && params.get("state") === linkState);
+    const signupState = sessionStorage.getItem("google_signup_state");
+    const isGoogleSignupFlow = Boolean(signupState && params.get("state") === signupState);
     const nativeToken = sessionStorage.getItem("google_link_native_token");
 
     try {
@@ -1375,6 +1377,12 @@ async function handleCognitoCallback() {
 
         if (tokens.refresh_token) {
             localStorage.setItem("refresh_token", tokens.refresh_token);
+        }
+
+        if (isGoogleSignupFlow) {
+            sessionStorage.removeItem("google_signup_state");
+            window.location.assign("join.html?google=1");
+            return;
         }
 
         console.log("Cognitoログイン成功");
