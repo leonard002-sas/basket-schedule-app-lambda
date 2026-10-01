@@ -93,7 +93,9 @@
                                 placeholder="例：Flight Penguins" /></label
                         ><button id="saveTeamButton" class="button-accent">チームを保存</button>
                     </form>
-                    <div id="teamStatus" class="score-status" role="status"></div>
+                    <div id="teamStatus" class="score-status" role="status">
+                        チーム情報を読み込んでいます…
+                    </div>
                 </section>
 
                 <section class="section score-card" id="rosterCard">
@@ -132,7 +134,9 @@
                             キャンセル
                         </button>
                     </form>
-                    <div id="rosterList" class="roster-list"></div>
+                    <div id="rosterList" class="roster-list">
+                        <p class="loading-state">メンバーを読み込んでいます…</p>
+                    </div>
                 </section>
 
                 <section class="section score-card" id="newGameCard">
@@ -210,7 +214,9 @@
                             </button>
                         </div>
                     </div>
-                    <div id="gamesList" class="games-list"></div>
+                    <div id="gamesList" class="games-list">
+                        <p class="loading-state">試合を読み込んでいます…</p>
+                    </div>
                     <details class="csv-import-panel">
                         <summary>Googleスプレッドシートから過去試合を取り込む</summary>
                         <p>
@@ -476,7 +482,13 @@
                                     <th>EFF</th>
                                 </tr>
                             </thead>
-                            <tbody id="leaderboardBody"></tbody>
+                            <tbody id="leaderboardBody">
+                                <tr>
+                                    <td colspan="27" class="loading-state">
+                                        ランキングを読み込んでいます…
+                                    </td>
+                                </tr>
+                            </tbody>
                         </table>
                     </div>
                     <div id="leaderboardEmpty" class="empty-state" hidden>

@@ -140,7 +140,9 @@
                             </div>
                             <span class="announcement-count" id="announcementCount"></span>
                         </div>
-                        <div id="announcementList" class="announcement-list"></div>
+                        <div id="announcementList" class="announcement-list">
+                            <p class="loading-state">周知事項を読み込んでいます…</p>
+                        </div>
                     </section>
                     <section class="home-agenda" aria-label="今日と今週の予定">
                         <div class="home-agenda-heading">
@@ -152,11 +154,15 @@
                         <div class="home-agenda-grid">
                             <article class="home-agenda-card home-agenda-today">
                                 <h3>今日</h3>
-                                <div id="todayAgendaList" class="home-agenda-list"></div>
+                                <div id="todayAgendaList" class="home-agenda-list">
+                                    <p class="loading-state">今日の予定を読み込んでいます…</p>
+                                </div>
                             </article>
                             <article class="home-agenda-card">
                                 <h3>今週</h3>
-                                <div id="weekAgendaList" class="home-agenda-list"></div>
+                                <div id="weekAgendaList" class="home-agenda-list">
+                                    <p class="loading-state">今週の予定を読み込んでいます…</p>
+                                </div>
                             </article>
                         </div>
                     </section>
@@ -218,7 +224,9 @@
                             </p>
                         </div>
 
-                        <div id="calendar" class="calendar"></div>
+                        <div id="calendar" class="calendar" aria-live="polite">
+                            <p class="loading-state">カレンダーを読み込んでいます…</p>
+                        </div>
                     </div>
 
                     <!-- =========================
@@ -616,7 +624,9 @@
                                 </select></label
                             >
                         </div>
-                        <div id="videoArchiveList" class="video-archive-list"></div>
+                        <div id="videoArchiveList" class="video-archive-list">
+                            <p class="loading-state">練習動画を読み込んでいます…</p>
+                        </div>
                     </section>
                 </section>
             </main>

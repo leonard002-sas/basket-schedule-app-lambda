@@ -176,6 +176,31 @@ function getDateKey(year, month, day) {
 // ========================================
 
 async function loadSchedule() {
+    const subject = getValidIdTokenClaims()?.sub || "anonymous";
+    const cacheKey = `basket_schedule_cache_${subject}`;
+    const cached = localStorage.getItem(cacheKey);
+
+    // 前回の結果を先に描画し、ネットワーク応答を待たずに画面を表示します。
+    if (cached) {
+        try {
+            const snapshot = JSON.parse(cached);
+            if (Date.now() - snapshot.savedAt < 10 * 60 * 1000 && Array.isArray(snapshot.items)) {
+                schedules = snapshot.items;
+                announcements = snapshot.announcements || [];
+                schedules.sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
+                renderAnnouncements();
+                displayCalendar();
+                displaySchedule();
+                renderHomeAgenda();
+                renderVideoArchive();
+            }
+        } catch (error) {
+            localStorage.removeItem(cacheKey);
+        }
+    } else if (scheduleElement) {
+        scheduleElement.innerHTML = '<p class="loading-state">予定を読み込んでいます…</p>';
+    }
+
     try {
         const response = await authenticatedFetch(API_URL, {
             method: "GET",
@@ -188,6 +213,10 @@ async function loadSchedule() {
         const payload = await response.json();
         schedules = Array.isArray(payload) ? payload : payload.items || [];
         announcements = Array.isArray(payload) ? [] : payload.announcements || [];
+        localStorage.setItem(
+            cacheKey,
+            JSON.stringify({ savedAt: Date.now(), items: schedules, announcements }),
+        );
         renderAnnouncements();
 
         schedules.sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));

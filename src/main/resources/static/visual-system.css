@@ -310,6 +310,45 @@ body::before {
     box-shadow: var(--shadow-lift);
 }
 
+/* 通信中の空白をなくし、データ取得中であることを明示します。 */
+.loading-state {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    margin: 0;
+    color: var(--text-muted, #718078);
+    font-size: 0.86rem;
+}
+
+.loading-state::before {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 15px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    content: "";
+    animation: loading-spin 760ms linear infinite;
+}
+
+@keyframes loading-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.calendar .loading-state {
+    grid-column: 1 / -1;
+    justify-content: center;
+    min-height: 260px;
+}
+
+.boxscore-table .loading-state {
+    justify-content: center;
+    min-height: 86px;
+}
+
 /* カレンダーは情報量を優先した7列グリッドで表示します。 */
 .calendar-area {
     margin-bottom: 40px;
@@ -1121,6 +1160,25 @@ tbody tr:hover {
 
 .login-mascot {
     display: none;
+}
+
+/* 右側の余白を残さず、トップのビジュアルをカード全体に広げます。 */
+@media (min-width: 921px) {
+    .login-gate {
+        grid-template-columns: minmax(0, 1fr) minmax(220px, 0.82fr) minmax(300px, 0.92fr);
+    }
+
+    .login-mascot {
+        width: 100%;
+        margin-right: -8px;
+        object-position: center;
+    }
+
+    .login-card {
+        width: 100%;
+        max-width: 360px;
+        justify-self: end;
+    }
 }
 
 .login-copy h1 {

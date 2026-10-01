@@ -1322,6 +1322,16 @@ async function init() {
     try {
         await loadEverything();
     } catch (e) {
+        document.getElementById("teamStatus").textContent =
+            "チーム情報の読み込みに失敗しました。再読み込みしてください。";
+        ["rosterList", "gamesList"].forEach((id) => {
+            const element = document.getElementById(id);
+            if (element) element.innerHTML = "<p class='error'>データを読み込めませんでした。</p>";
+        });
+        const leaderboardBody = document.getElementById("leaderboardBody");
+        if (leaderboardBody)
+            leaderboardBody.innerHTML =
+                "<tr><td colspan='27' class='error'>ランキングを読み込めませんでした。</td></tr>";
         toast(`${e.message}。DynamoDB設定を確認してください。`);
     }
     clockInterval = setInterval(drawGame, 250);
