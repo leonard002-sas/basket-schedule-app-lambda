@@ -215,11 +215,13 @@ async function loadSchedule() {
             method: "GET",
         });
 
+        const payload = await response.json().catch(() => ({}));
         if (!response.ok) {
-            throw new Error("APIエラー: " + response.status);
+            const error = new Error(payload.message || "APIエラー: " + response.status);
+            error.code = payload.code;
+            throw error;
         }
 
-        const payload = await response.json();
         schedules = Array.isArray(payload) ? payload : payload.items || [];
         announcements = Array.isArray(payload) ? [] : payload.announcements || [];
         localStorage.setItem(
@@ -240,6 +242,12 @@ async function loadSchedule() {
         renderVideoArchive();
     } catch (error) {
         console.error(error);
+
+        if (error.code === "PENDING_APPROVAL") {
+            document.getElementById("calendarContent")?.setAttribute("hidden", "");
+            document.getElementById("pendingApprovalMessage")?.removeAttribute("hidden");
+            return;
+        }
 
         scheduleElement.innerHTML = '<p class="error">予定の取得に失敗しました。</p>';
     }
@@ -1426,6 +1434,7 @@ function updateAuthUI() {
     const calendarContent = document.getElementById("calendarContent");
 
     const loginRequiredMessage = document.getElementById("loginRequiredMessage");
+    const pendingApprovalMessage = document.getElementById("pendingApprovalMessage");
 
     const loginButton = document.getElementById("loginButton");
 
@@ -1446,6 +1455,7 @@ function updateAuthUI() {
         if (loginRequiredMessage) {
             loginRequiredMessage.hidden = false;
         }
+        if (pendingApprovalMessage) pendingApprovalMessage.hidden = true;
 
         if (loginButton) {
             loginButton.style.display = "inline-block";
@@ -1480,6 +1490,7 @@ function updateAuthUI() {
     if (loginRequiredMessage) {
         loginRequiredMessage.hidden = true;
     }
+    if (pendingApprovalMessage) pendingApprovalMessage.hidden = true;
 
     // =========================
     // ログイン済み

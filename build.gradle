@@ -18,6 +18,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.19.2'
     implementation 'software.amazon.awssdk:dynamodb:2.34.8'
     implementation 'software.amazon.awssdk:cognitoidentityprovider:2.34.8'
+    implementation 'software.amazon.awssdk:sesv2:2.34.8'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.0'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher:1.11.0'
 }

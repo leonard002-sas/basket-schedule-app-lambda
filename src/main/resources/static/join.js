@@ -64,7 +64,7 @@ function setupGoogleProfile() {
             localStorage.removeItem("access_token");
             localStorage.removeItem("refresh_token");
             profilePanel.innerHTML =
-                "<p>参加申請を受け付けました。管理者が確認して承認するまでお待ちください。</p><a class='signin-submit' href='signin.html'>サインイン画面へ</a>";
+                "<p>参加申請を受け付けました。管理者が確認して承認するまでお待ちください。</p>";
         } catch (error) {
             profileError.textContent = error.message;
             profileError.hidden = false;

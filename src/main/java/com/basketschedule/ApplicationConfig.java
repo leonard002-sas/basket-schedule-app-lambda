@@ -16,6 +16,7 @@ public final class ApplicationConfig {
   private static final String DEFAULT_IMAGE_BUCKET = "basket-schedule-app-images-002";
   private static final String DEFAULT_USER_POOL_ID = "ap-northeast-1_Cd5fxLwj3";
   private static final String DEFAULT_COGNITO_CLIENT_ID = "3mr9ep2rosop9ratlg1l3bta70";
+  private static final String DEFAULT_NOTIFICATION_FROM_EMAIL = "";
 
   private ApplicationConfig() {}
 
@@ -80,6 +81,11 @@ public final class ApplicationConfig {
    */
   public static String cognitoClientId() {
     return value("COGNITO_CLIENT_ID", DEFAULT_COGNITO_CLIENT_ID);
+  }
+
+  /** 承認メールの送信元アドレスを返します。 */
+  public static String notificationFromEmail() {
+    return value("SES_FROM_EMAIL", DEFAULT_NOTIFICATION_FROM_EMAIL);
   }
 
   /**

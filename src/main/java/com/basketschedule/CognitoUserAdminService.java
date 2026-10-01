@@ -28,6 +28,13 @@ import software.amazon.awssdk.services.cognitoidentityprovider.model.UserType;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
+import software.amazon.awssdk.services.sesv2.SesV2Client;
+import software.amazon.awssdk.services.sesv2.model.Body;
+import software.amazon.awssdk.services.sesv2.model.Content;
+import software.amazon.awssdk.services.sesv2.model.Destination;
+import software.amazon.awssdk.services.sesv2.model.EmailContent;
+import software.amazon.awssdk.services.sesv2.model.Message;
+import software.amazon.awssdk.services.sesv2.model.SendEmailRequest;
 
 /** Cognito のユーザー一覧、管理者権限、利用停止を安全に管理します。 */
 public final class CognitoUserAdminService {
@@ -40,6 +47,8 @@ public final class CognitoUserAdminService {
       CognitoIdentityProviderClient.builder().region(Region.AP_NORTHEAST_1).build();
   private static final DynamoDbClient DYNAMO =
       DynamoDbClient.builder().region(Region.AP_NORTHEAST_1).build();
+  private static final SesV2Client SES =
+      SesV2Client.builder().region(Region.AP_NORTHEAST_1).build();
 
   private final CognitoIdentityProviderClient cognito;
 
@@ -160,7 +169,7 @@ public final class CognitoUserAdminService {
 
   /** 登録待ちユーザーを管理者が承認します。 */
   public Map<String, Object> approveUser(String username) {
-    requireTarget(username);
+    TargetUser target = requireTarget(username);
     try {
       cognito.adminConfirmSignUp(
           AdminConfirmSignUpRequest.builder().userPoolId(USER_POOL_ID).username(username).build());
@@ -177,7 +186,39 @@ public final class CognitoUserAdminService {
                     "scheduleMonth", AttributeValue.builder().s("JOIN_REQUESTS").build(),
                     "startDateTime", AttributeValue.builder().s(username).build()))
             .build());
+    sendApprovalEmail(target.email());
     return Map.of("username", username, "status", "CONFIRMED");
+  }
+
+  /** 承認完了を登録メールアドレスへ通知します。送信設定未完了でも承認処理は成功させます。 */
+  private void sendApprovalEmail(String email) {
+    String from = ApplicationConfig.notificationFromEmail();
+    if (from.isBlank() || email == null || email.isBlank()) return;
+    try {
+      SES.sendEmail(
+          SendEmailRequest.builder()
+              .fromEmailAddress(from)
+              .destination(Destination.builder().toAddresses(email).build())
+              .content(
+                  EmailContent.builder()
+                      .simple(
+                          Message.builder()
+                              .subject(
+                                  Content.builder().data("参加申請が承認されました").charset("UTF-8").build())
+                              .body(
+                                  Body.builder()
+                                      .text(
+                                          Content.builder()
+                                              .data("参加申請が承認されました。サインインしてチームサイトをご利用ください。")
+                                              .charset("UTF-8")
+                                              .build())
+                                      .build())
+                              .build())
+                      .build())
+              .build());
+    } catch (Exception e) {
+      System.err.println("承認メールの送信に失敗しました: " + e.getMessage());
+    }
   }
 
   /**
@@ -220,6 +261,7 @@ public final class CognitoUserAdminService {
     protectRootAndSelf(requesterSub, target, groups);
     if (groups.contains(ADMIN_GROUP)) requireAnotherEnabledAdministrator(username);
     deleteCognitoUser(username, "USER_DELETE");
+    deleteJoinRequest(username);
     return Map.of("username", username, "deleted", true);
   }
 
@@ -240,7 +282,20 @@ public final class CognitoUserAdminService {
     }
     String actualUsername = resolveUsernameBySub(requesterSub, username);
     deleteCognitoUser(actualUsername, "ACCOUNT_DELETE");
+    deleteJoinRequest(actualUsername);
     return Map.of("deleted", true);
+  }
+
+  /** 承認待ち申請が残っている場合は、Cognitoユーザー削除と同時に削除します。 */
+  private void deleteJoinRequest(String username) {
+    DYNAMO.deleteItem(
+        DeleteItemRequest.builder()
+            .tableName(ApplicationConfig.scheduleTable())
+            .key(
+                Map.of(
+                    "scheduleMonth", AttributeValue.builder().s("JOIN_REQUESTS").build(),
+                    "startDateTime", AttributeValue.builder().s(username).build()))
+            .build());
   }
 
   /** Cognito の sub から実ユーザー名を解決します。外部 IdP の内部ユーザー名にも対応します。 */
@@ -414,7 +469,13 @@ public final class CognitoUserAdminService {
             .map(AttributeType::value)
             .findFirst()
             .orElse("");
-    return new TargetUser(Boolean.TRUE.equals(response.enabled()), sub);
+    String email =
+        response.userAttributes().stream()
+            .filter(attribute -> "email".equals(attribute.name()))
+            .map(AttributeType::value)
+            .findFirst()
+            .orElse("");
+    return new TargetUser(Boolean.TRUE.equals(response.enabled()), sub, email);
   }
 
   private Set<String> groupsFor(String username) {
@@ -499,7 +560,7 @@ public final class CognitoUserAdminService {
     }
   }
 
-  private record TargetUser(boolean enabled, String sub) {}
+  private record TargetUser(boolean enabled, String sub, String email) {}
 
   private static String attribute(UserType user, String name) {
     return user.attributes().stream()
