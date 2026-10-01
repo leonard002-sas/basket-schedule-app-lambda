@@ -5,10 +5,12 @@
 (function initializeAccountMenu() {
     "use strict";
 
-    const cognitoDomain = "https://ap-northeast-1cd5fxlwj3.auth.ap-northeast-1.amazoncognito.com";
-    const scoreApi = "https://7yxh3p2c5swyx6ajv45ldmiswe0tirop.lambda-url.ap-northeast-1.on.aws/";
-    const clientId = "3mr9ep2rosop9ratlg1l3bta70";
-    const redirectUri = "https://d13o4oynf3jxlu.cloudfront.net";
+    const {
+        cognitoDomain,
+        apiUrl: scoreApi,
+        cognitoClientId: clientId,
+        redirectUri,
+    } = window.BasketScheduleConfig;
     const headerActions = document.querySelector(
         ".header-actions, .register-header-actions, .scorebook-header-actions",
     );

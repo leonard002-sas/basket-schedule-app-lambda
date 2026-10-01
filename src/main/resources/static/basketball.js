@@ -1,4 +1,4 @@
-const SCORE_API = "https://7yxh3p2c5swyx6ajv45ldmiswe0tirop.lambda-url.ap-northeast-1.on.aws/";
+const SCORE_API = window.BasketScheduleConfig.apiUrl;
 const SCHEDULE_API = SCORE_API;
 const token = localStorage.getItem("id_token");
 const qs = new URLSearchParams(location.search);

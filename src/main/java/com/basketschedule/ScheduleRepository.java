@@ -17,8 +17,8 @@ import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
  */
 final class ScheduleRepository {
 
-  static final String SCHEDULE_TABLE = "BasketSchedule";
-  static final String FACILITY_TABLE = "BasketFacility";
+  static final String SCHEDULE_TABLE = ApplicationConfig.scheduleTable();
+  static final String FACILITY_TABLE = ApplicationConfig.facilityTable();
 
   private final DynamoDbClient dynamoDbClient;
 

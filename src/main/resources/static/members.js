@@ -1,6 +1,6 @@
 "use strict";
 
-const USER_ADMIN_API = "https://7yxh3p2c5swyx6ajv45ldmiswe0tirop.lambda-url.ap-northeast-1.on.aws/";
+const USER_ADMIN_API = window.BasketScheduleConfig.apiUrl;
 const currentIdToken = localStorage.getItem("id_token") || "";
 const managedUsers = [];
 const usersList = document.getElementById("userList");
@@ -128,7 +128,11 @@ async function handleUserAction(event) {
 const currentClaims = readClaims(currentIdToken);
 if (!currentClaims || Number(currentClaims.exp) * 1000 <= Date.now()) {
     window.location.replace("index.html");
-} else if (!(currentClaims["cognito:groups"] || []).some((group) => ["admins", "root-admins"].includes(group))) {
+} else if (
+    !(currentClaims["cognito:groups"] || []).some((group) =>
+        ["admins", "root-admins"].includes(group),
+    )
+) {
     document.getElementById("rootAdminRequired").hidden = false;
 } else {
     document.getElementById("userManagementWorkspace").hidden = false;

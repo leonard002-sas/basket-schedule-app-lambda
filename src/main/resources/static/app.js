@@ -1,13 +1,12 @@
-const API_URL = "https://7yxh3p2c5swyx6ajv45ldmiswe0tirop.lambda-url.ap-northeast-1.on.aws/";
+const API_URL = window.BasketScheduleConfig.apiUrl;
 
-const UPLOAD_API_URL = "https://gg5d4xxwdpfjdesh2n5vyxqm5q0mnwii.lambda-url.ap-northeast-1.on.aws/";
+const UPLOAD_API_URL = window.BasketScheduleConfig.uploadApiUrl;
 
 // ========================================
 // 施設API
 // ========================================
 
-const FACILITY_API_URL =
-    "https://wybpjskbmgh6jbra4647ethnhm0pkulf.lambda-url.ap-northeast-1.on.aws/";
+const FACILITY_API_URL = window.BasketScheduleConfig.facilityApiUrl;
 
 const scheduleElement = document.getElementById("scheduleList");
 

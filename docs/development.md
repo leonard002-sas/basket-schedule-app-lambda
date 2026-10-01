@@ -34,6 +34,12 @@ The generated output is under `build/docs/javadoc` and should not be committed. 
 
 ## Code conventions
 
+### Runtime configuration
+
+`ApplicationConfig` keeps resource names and Cognito identifiers out of handler logic. Production Lambda functions may override the local defaults with `AWS_REGION`, `SCHEDULE_TABLE_NAME`, `FACILITY_TABLE_NAME`, `BASKETBALL_TABLE_NAME`, `IMAGE_BUCKET_NAME`, `COGNITO_USER_POOL_ID`, and `COGNITO_CLIENT_ID`. The Gemini API key is separate and must only be provided as `GEMINI_API_KEY` in the image-processor Lambda environment.
+
+The browser uses `frontend-config.js` for public endpoints and the Cognito client ID. These values are not secrets. Never place a Gemini key, AWS access key, refresh token, or client secret in a static resource or commit them to Git.
+
 ### Java
 
 - Keep Lambda handlers thin: parse the request, authenticate, validate, call a focused helper, and build a stable response.

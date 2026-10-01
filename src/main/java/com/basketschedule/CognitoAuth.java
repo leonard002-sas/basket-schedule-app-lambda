@@ -23,10 +23,10 @@ import java.util.Set;
 /** Validates Cognito ID tokens before protected handlers access AWS services. */
 public final class CognitoAuth {
 
-  private static final String CLIENT_ID = "3mr9ep2rosop9ratlg1l3bta70";
-  private static final String ISSUER_PREFIX = "https://cognito-idp.ap-northeast-1.amazonaws.com/";
-  private static final String TRUSTED_ISSUER =
-      "https://cognito-idp.ap-northeast-1.amazonaws.com/ap-northeast-1_Cd5fxLwj3";
+  private static final String CLIENT_ID = ApplicationConfig.cognitoClientId();
+  private static final String ISSUER_PREFIX =
+      "https://cognito-idp." + ApplicationConfig.region() + ".amazonaws.com/";
+  private static final String TRUSTED_ISSUER = ApplicationConfig.cognitoIssuer();
   private static final ObjectMapper MAPPER = new ObjectMapper();
   private static final HttpClient HTTP =
       HttpClient.newBuilder()
@@ -299,12 +299,23 @@ public final class CognitoAuth {
    * @param googleSubject 連携済みの場合のGoogle固有識別子
    */
   public record User(String subject, String username, Set<String> groups, String googleSubject) {
-    /** 既存コードで sub とグループだけを指定する場合の互換コンストラクターです。 */
+    /**
+     * 既存コードで sub とグループだけを指定する場合の互換コンストラクターです。
+     *
+     * @param subject Cognito が発行したユーザー ID
+     * @param groups Cognito の署名付きトークンで確認したグループ
+     */
     public User(String subject, Set<String> groups) {
       this(subject, subject, groups, "");
     }
 
-    /** Google連携情報を指定しない既存コード向けコンストラクターです。 */
+    /**
+     * Google連携情報を指定しない既存コード向けコンストラクターです。
+     *
+     * @param subject Cognito が発行したユーザー ID
+     * @param username Cognito のユーザー名
+     * @param groups Cognito の署名付きトークンで確認したグループ
+     */
     public User(String subject, String username, Set<String> groups) {
       this(subject, username, groups, "");
     }

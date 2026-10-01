@@ -28,9 +28,9 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
   /** Lambda がスケジュール API ハンドラーを作成するときに使うコンストラクターです。 */
   public ScheduleApi() {}
 
-  private static final String SCHEDULE_TABLE = "BasketSchedule";
+  private static final String SCHEDULE_TABLE = ApplicationConfig.scheduleTable();
 
-  private static final String FACILITY_TABLE = "BasketFacility";
+  private static final String FACILITY_TABLE = ApplicationConfig.facilityTable();
 
   private final DynamoDbClient dynamoDbClient =
       DynamoDbClient.builder().region(Region.AP_NORTHEAST_1).build();

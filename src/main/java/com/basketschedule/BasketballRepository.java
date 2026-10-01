@@ -19,7 +19,7 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 public final class BasketballRepository {
 
   /** スコアブックの全レコードを格納するテーブル名です。 */
-  public static final String TABLE_NAME = "BasketballData";
+  public static final String TABLE_NAME = ApplicationConfig.basketballTable();
 
   private final DynamoDbClient dynamoDbClient;
 

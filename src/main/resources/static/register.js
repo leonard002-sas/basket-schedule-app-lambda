@@ -2,24 +2,21 @@
 // 施設API
 // ========================================
 
-const FACILITY_API_URL =
-    "https://wybpjskbmgh6jbra4647ethnhm0pkulf.lambda-url.ap-northeast-1.on.aws/";
+const FACILITY_API_URL = window.BasketScheduleConfig.facilityApiUrl;
 
 // ========================================
 // 手入力登録API
 // ========================================
 
-const SCHEDULE_REGISTER_API_URL =
-    "https://z7gedcbjogrjl7ld4o6rcj7dte0cjklf.lambda-url.ap-northeast-1.on.aws/";
+const SCHEDULE_REGISTER_API_URL = window.BasketScheduleConfig.scheduleRegisterApiUrl;
 
-const EXISTING_SCHEDULES_API_URL =
-    "https://7yxh3p2c5swyx6ajv45ldmiswe0tirop.lambda-url.ap-northeast-1.on.aws/";
+const EXISTING_SCHEDULES_API_URL = window.BasketScheduleConfig.apiUrl;
 
 // ========================================
 // 画像アップロードAPI
 // ========================================
 
-const UPLOAD_API_URL = "https://gg5d4xxwdpfjdesh2n5vyxqm5q0mnwii.lambda-url.ap-northeast-1.on.aws/";
+const UPLOAD_API_URL = window.BasketScheduleConfig.uploadApiUrl;
 
 function getAdminIdToken() {
     const token = localStorage.getItem("id_token");

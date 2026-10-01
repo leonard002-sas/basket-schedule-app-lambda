@@ -39,7 +39,7 @@ public class UploadApi implements RequestHandler<Map<String, Object>, Map<String
       }
 
       // S3バケット
-      String bucketName = "basket-schedule-app-images-002";
+      String bucketName = ApplicationConfig.imageBucket();
 
       // アップロードするファイル名
       String fileName = "schedule-" + System.currentTimeMillis() + ".jpg";
@@ -115,7 +115,7 @@ public class UploadApi implements RequestHandler<Map<String, Object>, Map<String
       tagging =
           s3.getObjectTagging(
               GetObjectTaggingRequest.builder()
-                  .bucket("basket-schedule-app-images-002")
+                  .bucket(ApplicationConfig.imageBucket())
                   .key(jobId)
                   .build());
     } catch (S3Exception e) {

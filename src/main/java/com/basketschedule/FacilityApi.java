@@ -46,7 +46,8 @@ public class FacilityApi implements RequestHandler<Map<String, Object>, Map<Stri
       // BasketFacilityから施設を取得
       // ========================================
 
-      ScanRequest request = ScanRequest.builder().tableName("BasketFacility").build();
+      ScanRequest request =
+          ScanRequest.builder().tableName(ApplicationConfig.facilityTable()).build();
 
       var response = dynamoDbClient.scan(request);
 
@@ -184,7 +185,9 @@ public class FacilityApi implements RequestHandler<Map<String, Object>, Map<Stri
     }
 
     int maxSortOrder = 0;
-    var existing = dynamoDbClient.scan(ScanRequest.builder().tableName("BasketFacility").build());
+    var existing =
+        dynamoDbClient.scan(
+            ScanRequest.builder().tableName(ApplicationConfig.facilityTable()).build());
     for (var item : existing.items()) {
       AttributeValue value = item.get("sortOrder");
       if (value != null && value.s() != null) {
@@ -206,7 +209,8 @@ public class FacilityApi implements RequestHandler<Map<String, Object>, Map<Stri
     item.put("imageUrl", AttributeValue.builder().s("").build());
     item.put("enabled", AttributeValue.builder().bool(true).build());
     item.put("sortOrder", AttributeValue.builder().s(Integer.toString(maxSortOrder + 1)).build());
-    dynamoDbClient.putItem(PutItemRequest.builder().tableName("BasketFacility").item(item).build());
+    dynamoDbClient.putItem(
+        PutItemRequest.builder().tableName(ApplicationConfig.facilityTable()).item(item).build());
     context.getLogger().log("施設を登録しました: " + facilityId);
     return response(
         201,

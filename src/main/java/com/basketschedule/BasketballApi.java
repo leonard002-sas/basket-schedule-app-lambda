@@ -32,7 +32,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
   /** Lambda が API ハンドラーを作成するときに使うコンストラクターです。 */
   public BasketballApi() {}
 
-  private static final String TABLE = "BasketballData";
+  private static final String TABLE = ApplicationConfig.basketballTable();
   private static final String TEAM_INDEX_PK = "BASKETBALL";
   private static final ObjectMapper JSON = new ObjectMapper();
   private final DynamoDbClient db = DynamoDbClient.builder().region(Region.AP_NORTHEAST_1).build();

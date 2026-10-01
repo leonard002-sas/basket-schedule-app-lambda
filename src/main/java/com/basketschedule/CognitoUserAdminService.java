@@ -28,7 +28,7 @@ import software.amazon.awssdk.services.cognitoidentityprovider.model.UserType;
 /** Cognito のユーザー一覧、管理者権限、利用停止を安全に管理します。 */
 public final class CognitoUserAdminService {
 
-  private static final String USER_POOL_ID = "ap-northeast-1_Cd5fxLwj3";
+  private static final String USER_POOL_ID = ApplicationConfig.userPoolId();
   private static final String ADMIN_GROUP = "admins";
   private static final String ROOT_ADMIN_GROUP = "root-admins";
   private static final int PAGE_SIZE = 60;
@@ -199,6 +199,7 @@ public final class CognitoUserAdminService {
    * ログイン中のユーザー自身のアカウントを削除します。
    *
    * @param requesterSub 操作を実行するユーザーの Cognito sub
+   * @param username 互換性のために受け取るログインユーザー名
    * @param groups 操作者の検証済み Cognito グループ
    * @return 削除結果
    */
@@ -485,7 +486,10 @@ public final class CognitoUserAdminService {
 
     private static final long serialVersionUID = 1L;
 
+    /** HTTP応答へ変換するステータスコードです。 */
     private final int statusCode;
+
+    /** クライアント側で判別する安定したエラーコードです。 */
     private final String code;
 
     /**
@@ -501,10 +505,20 @@ public final class CognitoUserAdminService {
       this.code = code;
     }
 
+    /**
+     * HTTPステータスコードを返します。
+     *
+     * @return HTTPステータスコード
+     */
     public int statusCode() {
       return statusCode;
     }
 
+    /**
+     * クライアント側のエラーコードを返します。
+     *
+     * @return エラーコード
+     */
     public String code() {
       return code;
     }

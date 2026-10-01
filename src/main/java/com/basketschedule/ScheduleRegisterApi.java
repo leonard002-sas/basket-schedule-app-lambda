@@ -155,7 +155,10 @@ public class ScheduleRegisterApi
           item.put("videoTags", AttributeValue.builder().s(videoTags).build());
 
         PutItemRequest request =
-            PutItemRequest.builder().tableName("BasketSchedule").item(item).build();
+            PutItemRequest.builder()
+                .tableName(ApplicationConfig.scheduleTable())
+                .item(item)
+                .build();
 
         dynamoDbClient.putItem(request);
 

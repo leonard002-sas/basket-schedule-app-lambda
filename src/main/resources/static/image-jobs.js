@@ -1,5 +1,5 @@
 (() => {
-    const API_URL = "https://gg5d4xxwdpfjdesh2n5vyxqm5q0mnwii.lambda-url.ap-northeast-1.on.aws/";
+    const API_URL = window.BasketScheduleConfig.uploadApiUrl;
     const STORAGE_KEY = "basketScheduleImageJobs";
     const banner = document.getElementById("imageJobBanner");
     const list = document.getElementById("imageJobList");

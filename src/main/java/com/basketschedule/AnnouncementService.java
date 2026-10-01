@@ -20,7 +20,7 @@ import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
  */
 public final class AnnouncementService {
 
-  private static final String TABLE_NAME = "BasketSchedule";
+  private static final String TABLE_NAME = ApplicationConfig.scheduleTable();
   private static final String ANNOUNCEMENT_PARTITION = "ANNOUNCEMENTS";
 
   private final DynamoDbClient dynamoDbClient;

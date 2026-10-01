@@ -48,7 +48,7 @@ public class DynamoDbService implements AutoCloseable {
     item.put("eventType", AttributeValue.builder().s(eventType).build());
 
     PutItemRequest request =
-        PutItemRequest.builder().tableName("BasketSchedule").item(item).build();
+        PutItemRequest.builder().tableName(ApplicationConfig.scheduleTable()).item(item).build();
 
     dynamoDbClient.putItem(request);
   }

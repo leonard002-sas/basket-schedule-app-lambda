@@ -1,6 +1,6 @@
 /** 予定画像の選択と S3 アップロードを担当します。 */
 
-const UPLOAD_API_URL = "https://gg5d4xxwdpfjdesh2n5vyxqm5q0mnwii.lambda-url.ap-northeast-1.on.aws/";
+const UPLOAD_API_URL = window.BasketScheduleConfig.uploadApiUrl;
 
 const uploadButton = document.getElementById("uploadButton");
 const imageInput = document.getElementById("imageFile");
