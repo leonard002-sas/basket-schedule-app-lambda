@@ -34,6 +34,7 @@ function setupGoogleProfile() {
     profilePanel.hidden = false;
     document.getElementById("googleProfileSave").addEventListener("click", async () => {
         const displayName = document.getElementById("googleDisplayName").value.trim();
+        const message = document.getElementById("googleMessage").value.trim();
         const profileError = document.getElementById("googleProfileError");
         if (!displayName) {
             profileError.textContent = "表示名を入力してください。";
@@ -41,16 +42,29 @@ function setupGoogleProfile() {
             return;
         }
         try {
+            const token = localStorage.getItem("id_token");
+            const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+            const claims = JSON.parse(atob(payload + "=".repeat((4 - (payload.length % 4)) % 4)));
             const response = await fetch(`${config.apiUrl}?resource=profile`, {
                 method: "PUT",
                 headers: {
-                    Authorization: `Bearer ${localStorage.getItem("id_token")}`,
+                    Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ displayName, notificationOffsets: "NONE" }),
+                body: JSON.stringify({
+                    displayName,
+                    message,
+                    email: claims.email || "",
+                    joinRequest: true,
+                    notificationOffsets: "NONE",
+                }),
             });
             if (!response.ok) throw new Error("表示名を保存できませんでした。");
-            window.location.assign("index.html");
+            localStorage.removeItem("id_token");
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("refresh_token");
+            profilePanel.innerHTML =
+                "<p>参加申請を受け付けました。管理者が確認して承認するまでお待ちください。</p><a class='signin-submit' href='signin.html'>サインイン画面へ</a>";
         } catch (error) {
             profileError.textContent = error.message;
             profileError.hidden = false;
@@ -82,10 +96,15 @@ form.addEventListener("submit", (event) => {
     ];
     pool.signUp(username, password, attributes, null, async (signUpError, result) => {
         if (signUpError) {
+            console.error("参加申請のCognito登録エラー", signUpError);
             error(
                 signUpError.code === "UsernameExistsException"
                     ? "このユーザー名はすでに登録されています。"
-                    : "登録できませんでした。入力内容を確認してください。",
+                    : signUpError.code === "InvalidPasswordException"
+                      ? "パスワードの条件を満たしていません。大文字・小文字・数字・記号を含めてください。"
+                      : signUpError.code === "InvalidParameterException"
+                        ? "メールアドレスまたは入力内容が正しくありません。"
+                        : "登録できませんでした。入力内容を確認してください。",
             );
             return;
         }

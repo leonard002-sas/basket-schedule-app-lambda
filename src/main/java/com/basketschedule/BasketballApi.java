@@ -55,6 +55,9 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
         user = CognitoAuth.requireUser(input);
       else if (write) user = CognitoAuth.requireAdmin(input);
       else user = CognitoAuth.requireUser(input);
+      if (!CognitoAuth.isAdmin(user) && hasPendingJoinRequest(user.username())) {
+        throw new ApiException(403, "PENDING_APPROVAL", "管理者の承認待ちです。承認されるまでチーム機能は利用できません。");
+      }
       JsonNode body =
           input.get("body") == null
               ? JSON.createObjectNode()
@@ -89,6 +92,21 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
       context.getLogger().log(details.toString());
       return response(500, Map.of("message", "スコア情報を保存できませんでした", "code", "INTERNAL_ERROR"));
     }
+  }
+
+  /** Google新規登録などの承認待ち申請が残っているかを確認します。 */
+  private boolean hasPendingJoinRequest(String username) {
+    var result =
+        db.query(
+            QueryRequest.builder()
+                .tableName(ApplicationConfig.scheduleTable())
+                .keyConditionExpression("scheduleMonth = :partition")
+                .filterExpression("username = :username")
+                .expressionAttributeValues(
+                    Map.of(":partition", s("JOIN_REQUESTS"), ":username", s(username)))
+                .limit(1)
+                .build());
+    return !result.items().isEmpty();
   }
 
   private Object read(String resource, Map<String, String> q) {

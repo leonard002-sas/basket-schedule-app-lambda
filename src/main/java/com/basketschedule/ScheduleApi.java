@@ -59,6 +59,13 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
 
       boolean attendanceRequest = "attendance".equals(resource);
       boolean profileRequest = "profile".equals(resource);
+      if (!profileRequest && hasPendingJoinRequest(user.username())) {
+        return response(
+            403,
+            Map.of(
+                "message", "管理者の承認待ちです。承認されるまでチーム機能は利用できません。",
+                "code", "PENDING_APPROVAL"));
+      }
       if (("PUT".equalsIgnoreCase(method) || "DELETE".equalsIgnoreCase(method))
           && !CognitoAuth.isAdmin(user)
           && !attendanceRequest
@@ -209,6 +216,22 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
     item.put("notificationOffsets", AttributeValue.builder().s(notificationOffsets).build());
     item.put("updatedAt", AttributeValue.builder().s(java.time.Instant.now().toString()).build());
     dynamoDbClient.putItem(PutItemRequest.builder().tableName(SCHEDULE_TABLE).item(item).build());
+    if (body.path("joinRequest").asBoolean(false)) {
+      String message = body.path("message").asText("").trim();
+      if (message.length() > 500) throw new IllegalArgumentException("一言は500文字以内で入力してください");
+      Map<String, AttributeValue> request = new HashMap<>();
+      request.put("scheduleMonth", AttributeValue.builder().s("JOIN_REQUESTS").build());
+      request.put("startDateTime", AttributeValue.builder().s(user.username()).build());
+      request.put("recordType", AttributeValue.builder().s("JOIN_REQUEST").build());
+      request.put("username", AttributeValue.builder().s(user.username()).build());
+      request.put("email", AttributeValue.builder().s(body.path("email").asText("")).build());
+      request.put("displayName", AttributeValue.builder().s(displayName).build());
+      request.put("message", AttributeValue.builder().s(message).build());
+      request.put(
+          "createdAt", AttributeValue.builder().s(java.time.Instant.now().toString()).build());
+      dynamoDbClient.putItem(
+          PutItemRequest.builder().tableName(SCHEDULE_TABLE).item(request).build());
+    }
     return Map.of(
         "message", "プロフィールを保存しました",
         "displayName", displayName,
@@ -910,6 +933,23 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
                 .build());
     if (result.items().isEmpty()) return "";
     return getString(result.items().get(0), "displayName");
+  }
+
+  /** Google新規登録などの承認待ち申請が残っているかを確認します。 */
+  private boolean hasPendingJoinRequest(String username) {
+    var result =
+        dynamoDbClient.query(
+            QueryRequest.builder()
+                .tableName(SCHEDULE_TABLE)
+                .keyConditionExpression("scheduleMonth = :partition")
+                .filterExpression("username = :username")
+                .expressionAttributeValues(
+                    Map.of(
+                        ":partition", AttributeValue.builder().s("JOIN_REQUESTS").build(),
+                        ":username", AttributeValue.builder().s(username).build()))
+                .limit(1)
+                .build());
+    return !result.items().isEmpty();
   }
 
   private String eventTypeOrDefault(Map<String, AttributeValue> item) {

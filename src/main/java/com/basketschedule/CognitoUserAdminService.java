@@ -25,6 +25,9 @@ import software.amazon.awssdk.services.cognitoidentityprovider.model.ListUsersRe
 import software.amazon.awssdk.services.cognitoidentityprovider.model.ProviderUserIdentifierType;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.UserNotFoundException;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.UserType;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
 
 /** Cognito のユーザー一覧、管理者権限、利用停止を安全に管理します。 */
 public final class CognitoUserAdminService {
@@ -35,6 +38,8 @@ public final class CognitoUserAdminService {
   private static final int PAGE_SIZE = 60;
   private static final CognitoIdentityProviderClient SHARED_COGNITO_CLIENT =
       CognitoIdentityProviderClient.builder().region(Region.AP_NORTHEAST_1).build();
+  private static final DynamoDbClient DYNAMO =
+      DynamoDbClient.builder().region(Region.AP_NORTHEAST_1).build();
 
   private final CognitoIdentityProviderClient cognito;
 
@@ -156,8 +161,22 @@ public final class CognitoUserAdminService {
   /** 登録待ちユーザーを管理者が承認します。 */
   public Map<String, Object> approveUser(String username) {
     requireTarget(username);
-    cognito.adminConfirmSignUp(
-        AdminConfirmSignUpRequest.builder().userPoolId(USER_POOL_ID).username(username).build());
+    try {
+      cognito.adminConfirmSignUp(
+          AdminConfirmSignUpRequest.builder().userPoolId(USER_POOL_ID).username(username).build());
+    } catch (CognitoIdentityProviderException e) {
+      String message = e.getMessage() == null ? "" : e.getMessage().toLowerCase();
+      if (!message.contains("already confirmed")
+          && !message.contains("current status is confirmed")) throw e;
+    }
+    DYNAMO.deleteItem(
+        DeleteItemRequest.builder()
+            .tableName(ApplicationConfig.scheduleTable())
+            .key(
+                Map.of(
+                    "scheduleMonth", AttributeValue.builder().s("JOIN_REQUESTS").build(),
+                    "startDateTime", AttributeValue.builder().s(username).build()))
+            .build());
     return Map.of("username", username, "status", "CONFIRMED");
   }
 
