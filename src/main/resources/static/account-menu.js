@@ -35,6 +35,7 @@
             <span class="account-role-badge" data-account-role></span>
         </div>
         <a href="members.html" class="account-menu-item" data-admin-link hidden>ユーザー管理</a>
+        <button type="button" class="account-menu-item" data-profile-name>表示名を設定</button>
         <button type="button" class="account-menu-item" data-google-link>Googleアカウントを連携</button>
         <button type="button" class="account-menu-item account-menu-delete" data-delete-account>アカウントを削除</button>
         <button type="button" class="account-menu-item" data-account-logout>ログアウト</button>
@@ -103,6 +104,36 @@
         window.location.assign(url.toString());
     }
 
+    async function editDisplayName() {
+        const current = panel.querySelector("[data-account-name]").textContent;
+        const displayName = globalThis.prompt(
+            "予定の出欠一覧に表示する名前を入力してください。",
+            current,
+        );
+        if (displayName === null) return;
+        const value = displayName.trim();
+        if (value.length > 40) {
+            globalThis.alert("表示名は40文字以内で入力してください。");
+            return;
+        }
+        try {
+            const response = await fetch(`${scoreApi}?resource=profile`, {
+                method: "PUT",
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("id_token") || ""}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ displayName: value }),
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.message || "表示名を保存できませんでした。");
+            panel.querySelector("[data-account-name]").textContent = value || current;
+            globalThis.alert("表示名を保存しました。");
+        } catch (error) {
+            globalThis.alert(error.message);
+        }
+    }
+
     function refresh() {
         const claims = readClaims(localStorage.getItem("id_token") || "");
         const valid = claims && Number(claims.exp) * 1000 > Date.now();
@@ -145,6 +176,15 @@
         summary.querySelector(".account-avatar").textContent =
             Array.from(name.trim())[0]?.toUpperCase() || "FP";
         panel.querySelector("[data-delete-account]").hidden = false;
+        fetch(`${scoreApi}?resource=profile`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem("id_token") || ""}` },
+        })
+            .then((response) => response.json())
+            .then((profile) => {
+                if (profile.displayName)
+                    panel.querySelector("[data-account-name]").textContent = profile.displayName;
+            })
+            .catch(() => {});
     }
 
     document.addEventListener("app:auth-changed", refresh);
@@ -155,6 +195,7 @@
         if (event.key === "Escape") menu.open = false;
     });
     panel.querySelector("[data-account-logout]").addEventListener("click", signOut);
+    panel.querySelector("[data-profile-name]").addEventListener("click", editDisplayName);
     panel.querySelector("[data-google-link]").addEventListener("click", startGoogleLink);
     panel.querySelector("[data-delete-account]").addEventListener("click", (event) => {
         event.preventDefault();

@@ -10,6 +10,7 @@ import java.util.Set;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminAddUserToGroupRequest;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminConfirmSignUpRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminDeleteUserRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminDisableUserRequest;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminEnableUserRequest;
@@ -150,6 +151,14 @@ public final class CognitoUserAdminService {
       return Map.of("username", username, "role", "member");
     }
     throw new UserAdminException(400, "INVALID_ACTION", "指定された権限変更を実行できません");
+  }
+
+  /** 登録待ちユーザーを管理者が承認します。 */
+  public Map<String, Object> approveUser(String username) {
+    requireTarget(username);
+    cognito.adminConfirmSignUp(
+        AdminConfirmSignUpRequest.builder().userPoolId(USER_POOL_ID).username(username).build());
+    return Map.of("username", username, "status", "CONFIRMED");
   }
 
   /**

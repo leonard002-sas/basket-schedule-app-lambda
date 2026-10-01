@@ -20,6 +20,7 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.DeleteItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.QueryRequest;
 import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
 
 /** スケジュールの取得、登録、編集、削除を行う Lambda API です。 */
@@ -47,14 +48,21 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
         return new BasketballApi().handleRequest(input, context);
       }
 
-      CognitoAuth.User user = CognitoAuth.requireUser(input);
-
       String method = getHttpMethod(input);
+      if ("join-request".equals(routeQuery.get("resource")) && "POST".equalsIgnoreCase(method)) {
+        return saveJoinRequest(input);
+      }
+
+      CognitoAuth.User user = CognitoAuth.requireUser(input);
 
       String resource = routeQuery.get("resource");
 
+      boolean attendanceRequest = "attendance".equals(resource);
+      boolean profileRequest = "profile".equals(resource);
       if (("PUT".equalsIgnoreCase(method) || "DELETE".equalsIgnoreCase(method))
-          && !CognitoAuth.isAdmin(user)) {
+          && !CognitoAuth.isAdmin(user)
+          && !attendanceRequest
+          && !profileRequest) {
         return response(403, Map.of("message", "管理者権限が必要です"));
       }
 
@@ -67,6 +75,14 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
       if ("GET".equalsIgnoreCase(method)) {
 
         Map<String, String> query = getQueryParameters(input);
+
+        if ("join-requests".equals(resource)) {
+          CognitoAuth.requireAdmin(input);
+          return getJoinRequests();
+        }
+        if ("profile".equals(resource)) return getProfile(user);
+
+        if ("attendance".equals(resource)) return getAttendance(query, user);
 
         // /schedule
         if (query.containsKey("scheduleMonth") && query.containsKey("startDateTime")) {
@@ -83,6 +99,9 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
       // ========================================
 
       if ("PUT".equalsIgnoreCase(method)) {
+
+        if ("attendance".equals(resource)) return saveAttendance(input, user);
+        if ("profile".equals(resource)) return saveProfile(input, user);
 
         if ("announcement".equals(resource)) return saveAnnouncement(input);
 
@@ -112,6 +131,165 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
 
       return response(500, Map.of("message", "サーバーエラー", "error", e.getMessage()));
     }
+  }
+
+  /** 未ログインユーザーからの参加申請を保存します。 */
+  private Map<String, Object> saveJoinRequest(Map<String, Object> input) throws Exception {
+    JsonNode body = mapper.readTree(getBody(input));
+    String username = body.path("username").asText("").trim();
+    String email = body.path("email").asText("").trim();
+    String displayName = body.path("displayName").asText("").trim();
+    String message = body.path("message").asText("").trim();
+    if (username.isBlank() || email.isBlank() || displayName.isBlank())
+      throw new IllegalArgumentException("名前、メールアドレス、ユーザー名は必須です");
+    if (displayName.length() > 80 || message.length() > 500)
+      throw new IllegalArgumentException("入力文字数が上限を超えています");
+    Map<String, AttributeValue> item = new HashMap<>();
+    item.put("scheduleMonth", AttributeValue.builder().s("JOIN_REQUESTS").build());
+    item.put("startDateTime", AttributeValue.builder().s(username).build());
+    item.put("recordType", AttributeValue.builder().s("JOIN_REQUEST").build());
+    item.put("username", AttributeValue.builder().s(username).build());
+    item.put("email", AttributeValue.builder().s(email).build());
+    item.put("displayName", AttributeValue.builder().s(displayName).build());
+    item.put("message", AttributeValue.builder().s(message).build());
+    item.put("createdAt", AttributeValue.builder().s(java.time.Instant.now().toString()).build());
+    dynamoDbClient.putItem(PutItemRequest.builder().tableName(SCHEDULE_TABLE).item(item).build());
+    return response(202, Map.of("message", "参加申請を受け付けました"));
+  }
+
+  private Map<String, Object> getJoinRequests() {
+    var result =
+        dynamoDbClient.query(
+            QueryRequest.builder()
+                .tableName(SCHEDULE_TABLE)
+                .keyConditionExpression("scheduleMonth = :partition")
+                .expressionAttributeValues(
+                    Map.of(":partition", AttributeValue.builder().s("JOIN_REQUESTS").build()))
+                .build());
+    List<Map<String, String>> requests = new ArrayList<>();
+    for (Map<String, AttributeValue> item : result.items()) {
+      Map<String, String> request = new HashMap<>();
+      request.put("username", getString(item, "username"));
+      request.put("email", getString(item, "email"));
+      request.put("displayName", getString(item, "displayName"));
+      request.put("message", getString(item, "message"));
+      request.put("createdAt", getString(item, "createdAt"));
+      requests.add(request);
+    }
+    return response(200, Map.of("items", requests));
+  }
+
+  private Map<String, Object> getProfile(CognitoAuth.User user) {
+    Map<String, AttributeValue> key = new HashMap<>();
+    key.put("scheduleMonth", AttributeValue.builder().s("PROFILES").build());
+    key.put("startDateTime", AttributeValue.builder().s(user.subject()).build());
+    var result =
+        dynamoDbClient.getItem(GetItemRequest.builder().tableName(SCHEDULE_TABLE).key(key).build());
+    return Map.of("displayName", result.hasItem() ? getString(result.item(), "displayName") : "");
+  }
+
+  private Map<String, Object> saveProfile(Map<String, Object> input, CognitoAuth.User user)
+      throws Exception {
+    JsonNode body = mapper.readTree(getBody(input));
+    String displayName = body.path("displayName").asText("").trim();
+    if (displayName.length() > 40) throw new IllegalArgumentException("表示名は40文字以内で入力してください");
+    Map<String, AttributeValue> item = new HashMap<>();
+    item.put("scheduleMonth", AttributeValue.builder().s("PROFILES").build());
+    item.put("startDateTime", AttributeValue.builder().s(user.subject()).build());
+    item.put("recordType", AttributeValue.builder().s("PROFILE").build());
+    item.put("displayName", AttributeValue.builder().s(displayName).build());
+    item.put("updatedAt", AttributeValue.builder().s(java.time.Instant.now().toString()).build());
+    dynamoDbClient.putItem(PutItemRequest.builder().tableName(SCHEDULE_TABLE).item(item).build());
+    return Map.of("message", "表示名を保存しました", "displayName", displayName);
+  }
+
+  /** 予定ごとの出欠状況を取得します。 */
+  private Map<String, Object> getAttendance(Map<String, String> query, CognitoAuth.User user) {
+    String scheduleMonth = requiredQuery(query, "scheduleMonth");
+    String startDateTime = requiredQuery(query, "startDateTime");
+    String partition = attendancePartition(scheduleMonth, startDateTime);
+    var result =
+        dynamoDbClient.query(
+            QueryRequest.builder()
+                .tableName(SCHEDULE_TABLE)
+                .keyConditionExpression("scheduleMonth = :partition")
+                .expressionAttributeValues(
+                    Map.of(":partition", AttributeValue.builder().s(partition).build()))
+                .build());
+    int attending = 0, maybe = 0, absent = 0;
+    String currentStatus = "";
+    String currentComment = "";
+    List<Map<String, String>> participants = new ArrayList<>();
+    for (Map<String, AttributeValue> item : result.items()) {
+      String status = getString(item, "status");
+      if ("ATTENDING".equals(status)) attending++;
+      else if ("MAYBE".equals(status)) maybe++;
+      else if ("ABSENT".equals(status)) absent++;
+      if (user.subject().equals(getString(item, "userSub"))) {
+        currentStatus = status;
+        currentComment = getString(item, "comment");
+      }
+      Map<String, String> participant = new HashMap<>();
+      participant.put("userSub", getString(item, "userSub"));
+      participant.put("username", getString(item, "username"));
+      participant.put("status", status);
+      participant.put("comment", getString(item, "comment"));
+      participants.add(participant);
+    }
+    Map<String, Object> response = new HashMap<>();
+    response.put("attending", attending);
+    response.put("maybe", maybe);
+    response.put("absent", absent);
+    response.put("currentStatus", currentStatus);
+    response.put("currentComment", currentComment);
+    if (CognitoAuth.isAdmin(user)) response.put("participants", participants);
+    return response;
+  }
+
+  /** ログインユーザーの出欠回答を保存します。 */
+  private Map<String, Object> saveAttendance(Map<String, Object> input, CognitoAuth.User user)
+      throws Exception {
+    Map<String, String> query = getQueryParameters(input);
+    String scheduleMonth = requiredQuery(query, "scheduleMonth");
+    String scheduleStart = requiredQuery(query, "startDateTime");
+    JsonNode body = mapper.readTree(getBody(input));
+    String status = body.path("status").asText("").trim().toUpperCase();
+    if (!List.of("ATTENDING", "MAYBE", "ABSENT").contains(status))
+      throw new IllegalArgumentException("参加状況が不正です");
+    String comment = body.path("comment").asText("").trim();
+    if (comment.length() > 200) throw new IllegalArgumentException("コメントは200文字以内で入力してください");
+    Map<String, AttributeValue> item = new HashMap<>();
+    item.put(
+        "scheduleMonth",
+        AttributeValue.builder().s(attendancePartition(scheduleMonth, scheduleStart)).build());
+    item.put("startDateTime", AttributeValue.builder().s(user.subject()).build());
+    item.put("recordType", AttributeValue.builder().s("ATTENDANCE").build());
+    item.put("userSub", AttributeValue.builder().s(user.subject()).build());
+    Map<String, AttributeValue> profileKey = new HashMap<>();
+    profileKey.put("scheduleMonth", AttributeValue.builder().s("PROFILES").build());
+    profileKey.put("startDateTime", AttributeValue.builder().s(user.subject()).build());
+    var profile =
+        dynamoDbClient.getItem(
+            GetItemRequest.builder().tableName(SCHEDULE_TABLE).key(profileKey).build());
+    String displayName = profile.hasItem() ? getString(profile.item(), "displayName") : "";
+    item.put(
+        "username",
+        AttributeValue.builder().s(displayName.isBlank() ? user.username() : displayName).build());
+    item.put("status", AttributeValue.builder().s(status).build());
+    item.put("comment", AttributeValue.builder().s(comment).build());
+    item.put("updatedAt", AttributeValue.builder().s(java.time.Instant.now().toString()).build());
+    dynamoDbClient.putItem(PutItemRequest.builder().tableName(SCHEDULE_TABLE).item(item).build());
+    return Map.of("message", "参加状況を保存しました", "status", status);
+  }
+
+  private String attendancePartition(String scheduleMonth, String startDateTime) {
+    return "ATTENDANCE#" + scheduleMonth + "#" + startDateTime;
+  }
+
+  private String requiredQuery(Map<String, String> query, String name) {
+    String value = query.get(name);
+    if (value == null || value.isBlank()) throw new IllegalArgumentException(name + "がありません");
+    return value;
   }
 
   // ========================================
@@ -144,6 +322,9 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
         announcements.add(notice);
         continue;
       }
+      if ("ATTENDANCE".equals(getString(item, "recordType"))
+          || "JOIN_REQUEST".equals(getString(item, "recordType"))
+          || "PROFILE".equals(getString(item, "recordType"))) continue;
 
       Map<String, String> schedule = new HashMap<>();
 

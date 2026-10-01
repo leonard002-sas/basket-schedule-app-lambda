@@ -39,7 +39,7 @@ function redirectToHosted(path) {
 document.getElementById("googleSignIn").addEventListener("click", redirectToGoogle);
 document.getElementById("signUp").addEventListener("click", (event) => {
     event.preventDefault();
-    redirectToHosted("signup");
+    window.location.assign("join.html");
 });
 document.getElementById("forgotPassword").addEventListener("click", (event) => {
     event.preventDefault();

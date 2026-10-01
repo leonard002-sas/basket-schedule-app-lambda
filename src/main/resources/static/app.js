@@ -1527,6 +1527,83 @@ function closeScheduleDetail() {
     scheduleDetailModal.classList.remove("active");
 }
 
+/** 予定の参加状況と現在のユーザーの回答を表示します。 */
+async function loadAttendance(schedule) {
+    const summary = document.getElementById("attendanceSummary");
+    const statusMessage = document.getElementById("attendanceStatus");
+    const participants = document.getElementById("attendanceParticipants");
+    if (!summary) return;
+    summary.textContent = "参加状況を読み込んでいます…";
+    try {
+        const params = new URLSearchParams({
+            resource: "attendance",
+            scheduleMonth: schedule.scheduleMonth,
+            startDateTime: schedule.startDateTime,
+        });
+        const response = await authenticatedFetch(`${API_URL}?${params}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "参加状況を取得できませんでした");
+        summary.textContent = `参加 ${data.attending || 0}人 · 未定 ${data.maybe || 0}人 · 不参加 ${data.absent || 0}人`;
+        document.querySelectorAll("[data-attendance-status]").forEach((button) => {
+            button.classList.toggle(
+                "is-selected",
+                button.dataset.attendanceStatus === data.currentStatus,
+            );
+        });
+        if (participants && Array.isArray(data.participants)) {
+            participants.hidden = false;
+            participants.innerHTML = data.participants.length
+                ? data.participants
+                      .map(
+                          (item) =>
+                              `<span>${escapeHtml(item.username || "メンバー")} · ${attendanceLabel(item.status)}</span>`,
+                      )
+                      .join("")
+                : "参加回答はまだありません。";
+        }
+    } catch (error) {
+        summary.textContent = "参加状況を取得できませんでした";
+        if (statusMessage) statusMessage.textContent = error.message;
+    }
+}
+
+function attendanceLabel(status) {
+    return status === "ATTENDING" ? "参加" : status === "MAYBE" ? "未定" : "不参加";
+}
+
+async function saveAttendanceStatus(status) {
+    if (!currentScheduleDetail) return;
+    const statusMessage = document.getElementById("attendanceStatus");
+    const buttons = document.querySelectorAll("[data-attendance-status]");
+    buttons.forEach((button) => (button.disabled = true));
+    if (statusMessage) statusMessage.textContent = "参加状況を保存しています…";
+    try {
+        const params = new URLSearchParams({
+            feature: "schedule",
+            resource: "attendance",
+            scheduleMonth: currentScheduleDetail.scheduleMonth,
+            startDateTime: currentScheduleDetail.startDateTime,
+        });
+        const response = await authenticatedFetch(`${API_URL}?${params}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || "参加状況を保存できませんでした");
+        if (statusMessage) statusMessage.textContent = "参加状況を保存しました";
+        await loadAttendance(currentScheduleDetail);
+    } catch (error) {
+        if (statusMessage) statusMessage.textContent = error.message;
+    } finally {
+        buttons.forEach((button) => (button.disabled = false));
+    }
+}
+
+document.querySelectorAll("[data-attendance-status]").forEach((button) => {
+    button.addEventListener("click", () => saveAttendanceStatus(button.dataset.attendanceStatus));
+});
+
 // ========================================
 // 詳細APIから予定取得
 // ========================================
@@ -1667,6 +1744,7 @@ async function showScheduleDetail(schedule) {
         }
 
         scheduleDetailModal.classList.add("active");
+        loadAttendance(detail);
     } catch (error) {
         console.error("予定詳細取得エラー:", error);
 

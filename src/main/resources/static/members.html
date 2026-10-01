@@ -71,6 +71,9 @@
                             <span><strong id="totalUsers">0</strong> 登録メンバー</span>
                             <span><strong id="adminUsers">0</strong> 管理者</span>
                             <span><strong id="disabledUsers">0</strong> 利用停止</span>
+                            <span class="members-pending-count"
+                                ><strong id="pendingUsers">0</strong> 承認待ち</span
+                            >
                         </div>
                         <label class="members-search">
                             <span>名前・メールで検索</span>
@@ -89,6 +92,12 @@
                         aria-live="polite"
                     ></p>
                     <div id="userList" class="user-list"></div>
+                    <section class="join-request-section" aria-labelledby="joinRequestHeading">
+                        <h2 id="joinRequestHeading">参加申請</h2>
+                        <div id="joinRequestList" class="user-list">
+                            <p class="loading-state">申請を読み込んでいます…</p>
+                        </div>
+                    </section>
                     <p class="members-footnote">
                         root
                         管理者と自分自身は、この一覧から停止・削除できません。最後に残る有効な管理者も降格・停止・削除できません。

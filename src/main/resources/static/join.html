@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>参加申請 | Flight Penguins</title>
+        <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+        <link rel="stylesheet" href="signin.css" />
+        <script src="frontend-config.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.12/dist/amazon-cognito-identity.min.js"></script>
+    </head>
+    <body>
+        <main class="signin-shell">
+            <a class="signin-brand" href="signin.html"
+                ><img src="favicon.svg" alt="" /><span
+                    ><strong>FLIGHT PENGUINS</strong><small>TEAM HUB</small></span
+                ></a
+            >
+            <section class="signin-card" aria-labelledby="joinTitle">
+                <div class="signin-heading">
+                    <span class="signin-eyebrow">JOIN THE TEAM</span>
+                    <h1 id="joinTitle">参加申請</h1>
+                    <p>名前と一言を送ると、管理者が確認して承認します。</p>
+                </div>
+                <form id="joinForm" novalidate>
+                    <label for="displayName">表示名</label
+                    ><input id="displayName" required maxlength="80" autocomplete="name" />
+                    <label for="email">メールアドレス</label
+                    ><input id="email" type="email" required autocomplete="email" />
+                    <label for="username">ユーザー名</label
+                    ><input id="username" required autocomplete="username" />
+                    <label for="password">パスワード</label
+                    ><input
+                        id="password"
+                        type="password"
+                        required
+                        autocomplete="new-password"
+                        minlength="8"
+                    />
+                    <label for="message">管理者への一言（任意）</label
+                    ><textarea id="message" maxlength="500" rows="4"></textarea>
+                    <p id="joinError" class="signin-error" role="alert" hidden></p>
+                    <button class="signin-submit" type="submit">申請してアカウントを作成</button>
+                </form>
+                <div class="signin-links"><a href="signin.html">サインインへ戻る</a></div>
+            </section>
+        </main>
+        <script src="join.js"></script>
+    </body>
+</html>

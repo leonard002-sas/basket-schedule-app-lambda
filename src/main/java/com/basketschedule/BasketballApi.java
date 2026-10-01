@@ -198,6 +198,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     return switch (action) {
       case "promote-admin", "demote-admin" ->
           userAdmin.changeRole(user.subject(), username, action);
+      case "approve" -> userAdmin.approveUser(username);
       case "disable" -> userAdmin.setEnabled(user.subject(), username, false);
       case "enable" -> userAdmin.setEnabled(user.subject(), username, true);
       default -> throw new ApiException(400, "INVALID_ACTION", "このユーザー操作には対応していません");

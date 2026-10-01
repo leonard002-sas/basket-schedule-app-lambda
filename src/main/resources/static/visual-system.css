@@ -349,6 +349,66 @@ body::before {
     min-height: 86px;
 }
 
+.attendance-panel {
+    margin: 22px 0 8px;
+    padding: 16px;
+    border: 1px solid var(--border-soft);
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--surface-raised) 82%, transparent);
+}
+
+.attendance-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.attendance-summary,
+.attendance-status {
+    color: var(--text-muted, #718078);
+    font-size: 0.78rem;
+}
+
+.attendance-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.attendance-actions button.is-selected {
+    border-color: #8eb943;
+    color: #1b351f;
+    background: #d6f48b;
+}
+
+.attendance-status {
+    min-height: 1.2em;
+    margin: 10px 0 0;
+}
+
+.attendance-participants {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+    color: var(--text-muted, #718078);
+    font-size: 0.76rem;
+}
+
+.attendance-participants span {
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: var(--surface-muted, #edf3eb);
+}
+
+.user-state-badge.is-pending {
+    color: #7a5b17;
+    border-color: #e8c86c;
+    background: #fff4c9;
+}
+
 /* カレンダーは情報量を優先した7列グリッドで表示します。 */
 .calendar-area {
     margin-bottom: 40px;
