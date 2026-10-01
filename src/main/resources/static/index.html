@@ -233,7 +233,35 @@
          今後の予定
          ========================= -->
 
-                    <h2 id="scheduleOverviewHeading">今後の予定</h2>
+                    <div class="schedule-overview-heading">
+                        <h2 id="scheduleOverviewHeading">今後の予定</h2>
+                        <div class="bulk-attendance" role="group" aria-label="今後の予定を一括回答">
+                            <span>一括回答</span>
+                            <button
+                                type="button"
+                                class="button-light"
+                                data-bulk-attendance="ATTENDING"
+                            >
+                                参加
+                            </button>
+                            <button type="button" class="button-light" data-bulk-attendance="MAYBE">
+                                未定
+                            </button>
+                            <button
+                                type="button"
+                                class="button-light"
+                                data-bulk-attendance="ABSENT"
+                            >
+                                不参加
+                            </button>
+                        </div>
+                    </div>
+                    <p
+                        id="bulkAttendanceStatus"
+                        class="bulk-attendance-status"
+                        role="status"
+                        aria-live="polite"
+                    ></p>
 
                     <div id="scheduleList">予定を取得しています...</div>
 

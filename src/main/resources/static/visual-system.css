@@ -390,6 +390,39 @@ body::before {
     font-size: 0.75rem;
 }
 
+.schedule-overview-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.schedule-overview-heading h2 {
+    margin-bottom: 0;
+}
+
+.bulk-attendance {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    color: var(--text-muted, #718078);
+    font-size: 0.78rem;
+}
+
+.bulk-attendance .button-light {
+    min-height: 34px;
+    padding: 6px 12px;
+}
+
+.bulk-attendance-status {
+    min-height: 1.25em;
+    margin: 6px 0 10px;
+    color: var(--text-muted, #718078);
+    font-size: 0.8rem;
+}
+
 .attendance-actions {
     display: flex;
     flex-wrap: wrap;

@@ -28,6 +28,8 @@ const exportMonthCalendarButton = document.getElementById("exportMonthCalendar")
 const copyMonthScheduleTextButton = document.getElementById("copyMonthScheduleText");
 
 const calendarExportStatus = document.getElementById("calendarExportStatus");
+const bulkAttendanceStatus = document.getElementById("bulkAttendanceStatus");
+const bulkAttendanceButtons = document.querySelectorAll("[data-bulk-attendance]");
 
 let schedules = [];
 let announcements = [];
@@ -820,6 +822,58 @@ function displaySchedule() {
         });
     });
 }
+
+/** 今日以降の予定へ同じ参加状況をまとめて登録します。 */
+async function saveBulkAttendance(status) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const upcomingSchedules = schedules.filter(
+        (schedule) => new Date(schedule.startDateTime) >= today,
+    );
+    if (!upcomingSchedules.length) {
+        if (bulkAttendanceStatus) bulkAttendanceStatus.textContent = "今後の予定はありません。";
+        return;
+    }
+    const label = attendanceLabel(status);
+    if (!window.confirm(`今後の予定 ${upcomingSchedules.length}件を「${label}」に変更しますか？`))
+        return;
+    bulkAttendanceButtons.forEach((button) => (button.disabled = true));
+    if (bulkAttendanceStatus)
+        bulkAttendanceStatus.textContent = `${upcomingSchedules.length}件を更新しています…`;
+    let successCount = 0;
+    try {
+        for (const schedule of upcomingSchedules) {
+            const params = new URLSearchParams({
+                feature: "schedule",
+                resource: "attendance",
+                scheduleMonth: schedule.scheduleMonth,
+                startDateTime: schedule.startDateTime,
+            });
+            const response = await authenticatedFetch(`${API_URL}?${params}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status, guestCount: 0 }),
+            });
+            if (!response.ok)
+                throw new Error(
+                    `予定「${formatDate(new Date(schedule.startDateTime))}」の更新に失敗しました`,
+                );
+            successCount++;
+        }
+        if (bulkAttendanceStatus)
+            bulkAttendanceStatus.textContent = `${successCount}件を「${label}」に更新しました。`;
+        await loadSchedule();
+    } catch (error) {
+        if (bulkAttendanceStatus)
+            bulkAttendanceStatus.textContent = `${successCount}件を更新しました。${error.message}`;
+    } finally {
+        bulkAttendanceButtons.forEach((button) => (button.disabled = false));
+    }
+}
+
+bulkAttendanceButtons.forEach((button) => {
+    button.addEventListener("click", () => saveBulkAttendance(button.dataset.bulkAttendance));
+});
 
 // ========================================
 // 日付フォーマット
