@@ -185,7 +185,9 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
     key.put("startDateTime", AttributeValue.builder().s(user.subject()).build());
     var result =
         dynamoDbClient.getItem(GetItemRequest.builder().tableName(SCHEDULE_TABLE).key(key).build());
-    return Map.of("displayName", result.hasItem() ? getString(result.item(), "displayName") : "");
+    String displayName = result.hasItem() ? getString(result.item(), "displayName") : "";
+    if (displayName.isBlank()) displayName = findJoinRequestDisplayName(user.username());
+    return Map.of("displayName", displayName);
   }
 
   private Map<String, Object> saveProfile(Map<String, Object> input, CognitoAuth.User user)
@@ -216,33 +218,40 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
                 .expressionAttributeValues(
                     Map.of(":partition", AttributeValue.builder().s(partition).build()))
                 .build());
-    int attending = 0, maybe = 0, absent = 0;
+    int attending = 0, maybe = 0, absent = 0, guests = 0;
     String currentStatus = "";
     String currentComment = "";
+    int currentGuestCount = 0;
     List<Map<String, String>> participants = new ArrayList<>();
     for (Map<String, AttributeValue> item : result.items()) {
       String status = getString(item, "status");
       if ("ATTENDING".equals(status)) attending++;
       else if ("MAYBE".equals(status)) maybe++;
       else if ("ABSENT".equals(status)) absent++;
+      if ("ATTENDING".equals(status)) guests += integerValue(item, "guestCount", 0);
       if (user.subject().equals(getString(item, "userSub"))) {
         currentStatus = status;
         currentComment = getString(item, "comment");
+        currentGuestCount = integerValue(item, "guestCount", 0);
       }
       Map<String, String> participant = new HashMap<>();
       participant.put("userSub", getString(item, "userSub"));
       participant.put("username", getString(item, "username"));
       participant.put("status", status);
       participant.put("comment", getString(item, "comment"));
+      participant.put("guestCount", Integer.toString(integerValue(item, "guestCount", 0)));
       participants.add(participant);
     }
     Map<String, Object> response = new HashMap<>();
     response.put("attending", attending);
     response.put("maybe", maybe);
     response.put("absent", absent);
+    response.put("guests", guests);
+    response.put("total", attending + guests);
     response.put("currentStatus", currentStatus);
     response.put("currentComment", currentComment);
-    if (CognitoAuth.isAdmin(user)) response.put("participants", participants);
+    response.put("currentGuestCount", currentGuestCount);
+    response.put("participants", participants);
     return response;
   }
 
@@ -258,6 +267,9 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
       throw new IllegalArgumentException("参加状況が不正です");
     String comment = body.path("comment").asText("").trim();
     if (comment.length() > 200) throw new IllegalArgumentException("コメントは200文字以内で入力してください");
+    int guestCount = body.path("guestCount").asInt(0);
+    if (guestCount < 0 || guestCount > 20)
+      throw new IllegalArgumentException("ゲスト人数は0〜20人で入力してください");
     Map<String, AttributeValue> item = new HashMap<>();
     item.put(
         "scheduleMonth",
@@ -272,9 +284,11 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
         dynamoDbClient.getItem(
             GetItemRequest.builder().tableName(SCHEDULE_TABLE).key(profileKey).build());
     String displayName = profile.hasItem() ? getString(profile.item(), "displayName") : "";
+    if (displayName.isBlank()) displayName = findJoinRequestDisplayName(user.username());
     item.put(
         "username",
         AttributeValue.builder().s(displayName.isBlank() ? user.username() : displayName).build());
+    item.put("guestCount", AttributeValue.builder().s(Integer.toString(guestCount)).build());
     item.put("status", AttributeValue.builder().s(status).build());
     item.put("comment", AttributeValue.builder().s(comment).build());
     item.put("updatedAt", AttributeValue.builder().s(java.time.Instant.now().toString()).build());
@@ -304,7 +318,20 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
 
     List<Map<String, String>> result = new ArrayList<>();
     List<Map<String, Object>> announcements = new ArrayList<>();
+    Map<String, int[]> attendanceCounts = new HashMap<>();
     LocalDate today = LocalDate.now(ZoneId.of("Asia/Tokyo"));
+
+    // DynamoDB の Scan 順序は保証されないため、予定を組み立てる前に出欠を集計します。
+    for (Map<String, AttributeValue> item : dynamoResponse.items()) {
+      if (!"ATTENDANCE".equals(getString(item, "recordType"))) continue;
+      String partition = getString(item, "scheduleMonth");
+      int[] counts = attendanceCounts.computeIfAbsent(partition, ignored -> new int[4]);
+      String status = getString(item, "status");
+      if ("ATTENDING".equals(status)) counts[0]++;
+      else if ("MAYBE".equals(status)) counts[1]++;
+      else if ("ABSENT".equals(status)) counts[2]++;
+      if ("ATTENDING".equals(status)) counts[3] += integerValue(item, "guestCount", 0);
+    }
 
     for (Map<String, AttributeValue> item : dynamoResponse.items()) {
 
@@ -322,8 +349,8 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
         announcements.add(notice);
         continue;
       }
-      if ("ATTENDANCE".equals(getString(item, "recordType"))
-          || "JOIN_REQUEST".equals(getString(item, "recordType"))
+      if ("ATTENDANCE".equals(getString(item, "recordType"))) continue;
+      if ("JOIN_REQUEST".equals(getString(item, "recordType"))
           || "PROFILE".equals(getString(item, "recordType"))) continue;
 
       Map<String, String> schedule = new HashMap<>();
@@ -344,6 +371,17 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
       schedule.put("round", getString(item, "round"));
       schedule.put("videoUrl", getString(item, "videoUrl"));
       schedule.put("videoTags", getString(item, "videoTags"));
+      int[] counts =
+          attendanceCounts.getOrDefault(
+              "ATTENDANCE#"
+                  + getString(item, "scheduleMonth")
+                  + "#"
+                  + getString(item, "startDateTime"),
+              new int[4]);
+      schedule.put("attendanceAttending", Integer.toString(counts[0]));
+      schedule.put("attendanceMaybe", Integer.toString(counts[1]));
+      schedule.put("attendanceGuests", Integer.toString(counts[3]));
+      schedule.put("attendanceTotal", Integer.toString(counts[0] + counts[3]));
 
       result.add(schedule);
     }
@@ -835,6 +873,33 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
     }
 
     return value.s();
+  }
+
+  private int integerValue(Map<String, AttributeValue> item, String name, int fallback) {
+    try {
+      String value = getString(item, name);
+      return value.isBlank() ? fallback : Integer.parseInt(value);
+    } catch (NumberFormatException e) {
+      return fallback;
+    }
+  }
+
+  /** 参加申請に入力された表示名を取得します。プロフィール未設定時のフォールバックです。 */
+  private String findJoinRequestDisplayName(String username) {
+    var result =
+        dynamoDbClient.query(
+            QueryRequest.builder()
+                .tableName(SCHEDULE_TABLE)
+                .keyConditionExpression("scheduleMonth = :partition")
+                .filterExpression("username = :username")
+                .expressionAttributeValues(
+                    Map.of(
+                        ":partition", AttributeValue.builder().s("JOIN_REQUESTS").build(),
+                        ":username", AttributeValue.builder().s(username).build()))
+                .limit(1)
+                .build());
+    if (result.items().isEmpty()) return "";
+    return getString(result.items().get(0), "displayName");
   }
 
   private String eventTypeOrDefault(Map<String, AttributeValue> item) {

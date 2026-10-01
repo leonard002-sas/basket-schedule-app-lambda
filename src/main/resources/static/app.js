@@ -177,7 +177,7 @@ function getDateKey(year, month, day) {
 
 async function loadSchedule() {
     const subject = getValidIdTokenClaims()?.sub || "anonymous";
-    const cacheKey = `basket_schedule_cache_${subject}`;
+    const cacheKey = `basket_schedule_cache_v2_${subject}`;
     const cached = localStorage.getItem(cacheKey);
 
     // 前回の結果を先に描画し、ネットワーク応答を待たずに画面を表示します。
@@ -252,7 +252,11 @@ function agendaCard(schedule) {
         facilities.find((item) => item.facilityId === schedule.facilityId)?.facilityName ||
         schedule.facilityName ||
         "施設未設定";
-    return `<article class="agenda-event agenda-${kind.className}"><span class="agenda-type">${kind.icon} ${kind.label}</span><strong>${formatDate(start)}</strong><span>${formatTime(start)}〜${formatTime(end)}</span><span class="agenda-facility">${escapeHtml(facility)}</span>${schedule.competitionName ? `<small>${escapeHtml(schedule.competitionName)}${schedule.round ? ` · ${escapeHtml(schedule.round)}` : ""}</small>` : ""}</article>`;
+    const attendance =
+        Number(schedule.attendanceTotal || 0) || Number(schedule.attendanceMaybe || 0)
+            ? `<small class="agenda-attendance">参加 ${schedule.attendanceTotal || 0}人 · 未定 ${schedule.attendanceMaybe || 0}人</small>`
+            : "";
+    return `<article class="agenda-event agenda-${kind.className}"><span class="agenda-type">${kind.icon} ${kind.label}</span><strong>${formatDate(start)}</strong><span>${formatTime(start)}〜${formatTime(end)}</span><span class="agenda-facility">${escapeHtml(facility)}</span>${attendance}${schedule.competitionName ? `<small>${escapeHtml(schedule.competitionName)}${schedule.round ? ` · ${escapeHtml(schedule.round)}` : ""}</small>` : ""}</article>`;
 }
 
 function renderHomeAgenda() {
@@ -799,6 +803,7 @@ function displaySchedule() {
                 ${schedule.timeZone}
             </div>
             ${schedule.competitionName ? `<div class="upcoming-competition"><strong>${escapeHtml(schedule.competitionName)}</strong>${schedule.round ? ` · ${escapeHtml(schedule.round)}` : ""}</div>` : ""}
+            <div class="upcoming-attendance">参加 ${schedule.attendanceTotal || 0}人 · 未定 ${schedule.attendanceMaybe || 0}人${Number(schedule.attendanceGuests || 0) ? ` · ゲスト ${schedule.attendanceGuests}人` : ""}</div>
         `;
 
         scheduleElement.appendChild(eventElement);
@@ -1435,14 +1440,7 @@ const registerButton = document.getElementById("registerButton");
 
 if (registerButton) {
     registerButton.addEventListener("click", () => {
-        const signupUrl =
-            `${cognitoDomain}/signup` +
-            `?client_id=${clientId}` +
-            `&response_type=code` +
-            `&scope=openid+email+phone` +
-            `&redirect_uri=${encodeURIComponent(redirectUri)}`;
-
-        window.location.href = signupUrl;
+        window.location.href = "join.html";
     });
 }
 
@@ -1543,7 +1541,9 @@ async function loadAttendance(schedule) {
         const response = await authenticatedFetch(`${API_URL}?${params}`);
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || "参加状況を取得できませんでした");
-        summary.textContent = `参加 ${data.attending || 0}人 · 未定 ${data.maybe || 0}人 · 不参加 ${data.absent || 0}人`;
+        summary.textContent = `参加 ${data.total || 0}人 · 未定 ${data.maybe || 0}人 · 不参加 ${data.absent || 0}人 · ゲスト ${data.guests || 0}人`;
+        const guestInput = document.getElementById("attendanceGuestCount");
+        if (guestInput) guestInput.value = String(data.currentGuestCount || 0);
         document.querySelectorAll("[data-attendance-status]").forEach((button) => {
             button.classList.toggle(
                 "is-selected",
@@ -1587,7 +1587,10 @@ async function saveAttendanceStatus(status) {
         const response = await authenticatedFetch(`${API_URL}?${params}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status }),
+            body: JSON.stringify({
+                status,
+                guestCount: Number(document.getElementById("attendanceGuestCount")?.value || 0),
+            }),
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || "参加状況を保存できませんでした");

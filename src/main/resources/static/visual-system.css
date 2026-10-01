@@ -370,6 +370,26 @@ body::before {
     font-size: 0.78rem;
 }
 
+.attendance-guest-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+    color: var(--text-muted, #718078);
+    font-size: 0.78rem;
+}
+
+.attendance-guest-field input {
+    width: 78px;
+    min-height: 36px;
+}
+
+.upcoming-attendance,
+.agenda-attendance {
+    color: var(--text-muted, #718078);
+    font-size: 0.75rem;
+}
+
 .attendance-actions {
     display: flex;
     flex-wrap: wrap;
