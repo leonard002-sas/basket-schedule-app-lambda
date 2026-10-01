@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#091713" />
+        <meta
+            name="description"
+            content="Flight Penguinsの個人開発プロジェクトとバスケットボールチーム管理アプリの紹介"
+        />
+        <title>Portfolio · Flight Penguins</title>
+        <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+        <link rel="stylesheet" href="portfolio.css" />
+    </head>
+    <body>
+        <div class="portfolio-shell">
+            <header class="portfolio-header">
+                <a class="portfolio-brand" href="portfolio.html" aria-label="ポートフォリオトップ">
+                    <img src="favicon.svg" alt="" aria-hidden="true" />
+                    <span>
+                        <strong>FLIGHT PENGUINS</strong>
+                        <small>Personal projects</small>
+                    </span>
+                </a>
+                <a class="portfolio-header-link" href="index.html">アプリを開く&nbsp;↗</a>
+            </header>
+
+            <main>
+                <section class="portfolio-hero" aria-labelledby="portfolioTitle">
+                    <span class="portfolio-eyebrow">PROJECT PORTFOLIO</span>
+                    <h1 id="portfolioTitle">つくったものを、<br />チームの力に。</h1>
+                    <p>
+                        個人開発で制作しているサービスやアプリを紹介しています。
+                        現場の小さな不便を見つけ、使う人が迷わない形に整えることを大切にしています。
+                    </p>
+                    <div class="portfolio-hero-actions">
+                        <a class="portfolio-button" href="index.html">チームカレンダーを見る&nbsp;→</a>
+                        <a class="portfolio-button is-secondary" href="#projects">制作物を見る&nbsp;↓</a>
+                    </div>
+                </section>
+
+                <section id="projects" class="portfolio-section" aria-labelledby="projectsTitle">
+                    <div class="portfolio-section-heading">
+                        <div>
+                            <span class="portfolio-eyebrow">FEATURED PROJECT</span>
+                            <h2 id="projectsTitle">バスケットボール運営アプリ</h2>
+                        </div>
+                        <p>予定・メンバー・試合記録をひとつにつなぐ、チーム向けのWebアプリです。</p>
+                    </div>
+                    <div class="portfolio-grid">
+                        <a class="portfolio-card" href="index.html">
+                            <span class="card-kicker">01 · Calendar</span>
+                            <h3>チームカレンダー</h3>
+                            <p>練習・試合・会議の予定を、施設情報や動画リンクと一緒に管理します。</p>
+                            <span class="card-link">予定表を開く&nbsp;→</span>
+                        </a>
+                        <article class="portfolio-card">
+                            <span class="card-kicker">02 · Team</span>
+                            <h3>チーム・メンバー管理</h3>
+                            <p>チームに所属する選手を登録し、ポジションや出場メンバーを管理します。</p>
+                            <span class="card-link">ログイン後に利用できます</span>
+                        </article>
+                        <article class="portfolio-card">
+                            <span class="card-kicker">03 · Scorebook</span>
+                            <h3>試合スコアブック</h3>
+                            <p>試合中のスタッツ入力と試合結果を保存し、後から振り返れるようにします。</p>
+                            <span class="card-link">ログイン後に利用できます</span>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="portfolio-section" aria-labelledby="technologyTitle">
+                    <div class="portfolio-tech-panel">
+                        <div>
+                            <span class="portfolio-eyebrow">SYSTEM DESIGN</span>
+                            <h3 id="technologyTitle">現場で使い続けられる仕組みへ</h3>
+                            <p>
+                                認証付きのチームサイトとして、画面・API・データ保存をAWS上で構成しています。
+                                非同期処理や権限管理も含め、運用しながら改善しています。
+                            </p>
+                        </div>
+                        <ul class="tech-list" aria-label="使用技術">
+                            <li>Java</li>
+                            <li>JavaScript</li>
+                            <li>HTML / CSS</li>
+                            <li>AWS Lambda</li>
+                            <li>DynamoDB</li>
+                            <li>S3</li>
+                            <li>CloudFront</li>
+                            <li>Cognito</li>
+                            <li>Gemini API</li>
+                            <li>CodePipeline</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <section class="portfolio-section" aria-labelledby="architectureTitle">
+                    <div class="portfolio-section-heading">
+                        <div>
+                            <span class="portfolio-eyebrow">SITE STRUCTURE</span>
+                            <h2 id="architectureTitle">サイトの構成</h2>
+                        </div>
+                        <p>画面、API、データ、認証を役割ごとに分けて運用しています。</p>
+                    </div>
+                    <div class="portfolio-grid">
+                        <article class="portfolio-card">
+                            <span class="card-kicker">Frontend</span>
+                            <h3>ブラウザ画面</h3>
+                            <p>HTML・CSS・JavaScriptで、スマートフォンとPCの両方から操作できる画面を構成しています。</p>
+                        </article>
+                        <article class="portfolio-card">
+                            <span class="card-kicker">Backend</span>
+                            <h3>API・非同期処理</h3>
+                            <p>JavaのLambdaで予定、施設、チーム、試合、スタッツのAPIと画像解析処理を提供します。</p>
+                        </article>
+                        <article class="portfolio-card">
+                            <span class="card-kicker">Cloud</span>
+                            <h3>AWS・認証・データ</h3>
+                            <p>CloudFront、S3、DynamoDB、Cognitoを組み合わせ、認証されたメンバーだけがチーム情報を扱えます。</p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="portfolio-section" aria-labelledby="routeTitle">
+                    <div class="portfolio-section-heading">
+                        <div>
+                            <span class="portfolio-eyebrow">APP MAP</span>
+                            <h2 id="routeTitle">アプリの構成</h2>
+                        </div>
+                        <p>目的の画面へ直接アクセスできます。</p>
+                    </div>
+                    <div class="portfolio-routes">
+                        <div class="portfolio-route-card">
+                            <strong>予定登録</strong><span>練習・試合・会議を登録</span>
+                        </div>
+                        <div class="portfolio-route-card">
+                            <strong>施設登録</strong><span>会場名・住所・URLを管理</span>
+                        </div>
+                        <div class="portfolio-route-card">
+                            <strong>周知事項</strong><span>チームへの連絡を掲載</span>
+                        </div>
+                        <div class="portfolio-route-card">
+                            <strong>練習動画</strong><span>限定公開動画を整理</span>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <footer class="portfolio-footer">
+                <span>Flight Penguins · Personal Project</span>
+                <a href="https://github.com/leonard002-sas/basket-schedule-app-lambda" target="_blank" rel="noopener noreferrer"
+                    >GitHubリポジトリ&nbsp;↗</a
+                >
+            </footer>
+        </div>
+    </body>
+</html>

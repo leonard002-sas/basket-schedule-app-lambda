@@ -1139,6 +1139,21 @@ tbody tr:hover {
     background: rgba(12, 42, 39, 0.58);
 }
 
+.login-portfolio-link {
+    display: inline-flex;
+    margin-top: 14px;
+    color: var(--brand-forest);
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.login-portfolio-link:hover {
+    color: #4f783d;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
 /*
  * 画面見出しの共通モチーフ。
  * 試合管理で使っているコートの円形オブジェクトを、
