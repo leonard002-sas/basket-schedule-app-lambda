@@ -478,6 +478,9 @@ body::before {
     border-color: #8eb943;
     color: #1b351f;
     background: #d6f48b;
+    box-shadow: 0 0 0 3px rgba(139, 177, 73, 0.22);
+    font-weight: 850;
+    transform: translateY(-1px);
 }
 
 @media (max-width: 640px) {
@@ -1312,6 +1315,13 @@ tbody tr:hover {
     color: var(--text-main);
     border-color: #43584a;
     background: #293b30;
+}
+
+:root[data-theme="dark"] .bulk-attendance-row-actions .button-light.is-selected {
+    color: #172719;
+    border-color: #d9ef83;
+    background: #d9ef83;
+    box-shadow: 0 0 0 3px rgba(217, 239, 131, 0.24);
 }
 
 :root[data-theme="dark"] .calendar-day:not(.empty-day):hover,

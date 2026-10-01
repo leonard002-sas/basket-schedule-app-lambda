@@ -848,9 +848,9 @@ function openBulkAttendanceModal() {
             return `<div class="bulk-attendance-row" data-bulk-row="${escapeHtml(key)}">
                 <div class="bulk-attendance-row-info"><strong>${formatDate(new Date(schedule.startDateTime))}</strong><span>${formatTime(new Date(schedule.startDateTime))}〜${formatTime(new Date(schedule.endDateTime))}</span></div>
                 <div class="bulk-attendance-row-actions" role="group" aria-label="${formatDate(new Date(schedule.startDateTime))}の出欠">
-                    <button type="button" class="button-light" data-bulk-row-status="ATTENDING">参加</button>
-                    <button type="button" class="button-light" data-bulk-row-status="MAYBE">未定</button>
-                    <button type="button" class="button-light" data-bulk-row-status="ABSENT">不参加</button>
+                    <button type="button" class="button-light" aria-pressed="false" data-bulk-row-status="ATTENDING">参加</button>
+                    <button type="button" class="button-light" aria-pressed="false" data-bulk-row-status="MAYBE">未定</button>
+                    <button type="button" class="button-light" aria-pressed="false" data-bulk-row-status="ABSENT">不参加</button>
                 </div>
             </div>`;
         })
@@ -916,6 +916,7 @@ bulkAttendanceRows?.addEventListener("click", (event) => {
     bulkAttendanceSelections.set(row.dataset.bulkRow, button.dataset.bulkRowStatus);
     row.querySelectorAll("[data-bulk-row-status]").forEach((item) => {
         item.classList.toggle("is-selected", item === button);
+        item.setAttribute("aria-pressed", item === button ? "true" : "false");
     });
 });
 
