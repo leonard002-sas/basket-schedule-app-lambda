@@ -848,9 +848,9 @@ function openBulkAttendanceModal() {
             return `<div class="bulk-attendance-row" data-bulk-row="${escapeHtml(key)}">
                 <div class="bulk-attendance-row-info"><strong>${formatDate(new Date(schedule.startDateTime))}</strong><span>${formatTime(new Date(schedule.startDateTime))}〜${formatTime(new Date(schedule.endDateTime))}</span></div>
                 <div class="bulk-attendance-row-actions" role="group" aria-label="${formatDate(new Date(schedule.startDateTime))}の出欠">
-                    <button type="button" class="button-light" aria-pressed="false" data-bulk-row-status="ATTENDING">参加</button>
-                    <button type="button" class="button-light" aria-pressed="false" data-bulk-row-status="MAYBE">未定</button>
-                    <button type="button" class="button-light" aria-pressed="false" data-bulk-row-status="ABSENT">不参加</button>
+                    <button type="button" class="button-light" aria-pressed="false" data-bulk-row-status="ATTENDING" data-label="参加">参加</button>
+                    <button type="button" class="button-light" aria-pressed="false" data-bulk-row-status="MAYBE" data-label="未定">未定</button>
+                    <button type="button" class="button-light" aria-pressed="false" data-bulk-row-status="ABSENT" data-label="不参加">不参加</button>
                 </div>
             </div>`;
         })
@@ -867,18 +867,16 @@ function closeBulkAttendanceModal() {
 
 /** ダイアログで選択した予定ごとの出欠をまとめて保存します。 */
 async function saveBulkAttendance() {
-    const rows = [...bulkAttendanceRows.querySelectorAll("[data-bulk-row]")];
-    if (bulkAttendanceSelections.size !== rows.length) {
-        bulkAttendanceDialogStatus.textContent = "すべての予定の出欠を選択してください。";
+    if (bulkAttendanceSelections.size === 0) {
+        bulkAttendanceDialogStatus.textContent = "変更する予定を1件以上選択してください。";
         return;
     }
     saveBulkAttendanceButton.disabled = true;
     if (bulkAttendanceDialogStatus) bulkAttendanceDialogStatus.textContent = "保存しています…";
     let successCount = 0;
     try {
-        for (const row of rows) {
-            const [scheduleMonth, startDateTime] = row.dataset.bulkRow.split("|");
-            const status = bulkAttendanceSelections.get(row.dataset.bulkRow);
+        for (const [scheduleKey, status] of bulkAttendanceSelections) {
+            const [scheduleMonth, startDateTime] = scheduleKey.split("|");
             const params = new URLSearchParams({
                 feature: "schedule",
                 resource: "attendance",
@@ -915,8 +913,10 @@ bulkAttendanceRows?.addEventListener("click", (event) => {
     if (!button || !row) return;
     bulkAttendanceSelections.set(row.dataset.bulkRow, button.dataset.bulkRowStatus);
     row.querySelectorAll("[data-bulk-row-status]").forEach((item) => {
-        item.classList.toggle("is-selected", item === button);
-        item.setAttribute("aria-pressed", item === button ? "true" : "false");
+        const selected = item === button;
+        item.classList.toggle("is-selected", selected);
+        item.setAttribute("aria-pressed", selected ? "true" : "false");
+        item.textContent = selected ? `✓ ${item.dataset.label}` : item.dataset.label;
     });
 });
 
