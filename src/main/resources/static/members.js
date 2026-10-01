@@ -139,6 +139,9 @@ async function loadJoinRequests() {
 async function handleUserAction(event) {
     const button = event.target.closest("[data-user-action]");
     if (!button) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (button.dataset.busy === "true") return;
     const username = button.dataset.username;
     const action = button.dataset.userAction;
     const email = button.dataset.email || username;
@@ -151,7 +154,10 @@ async function handleUserAction(event) {
         approve: `${email} の登録を承認しますか？承認後、このユーザーはログインできるようになります。`,
     };
     if (!window.confirm(prompts[action])) return;
+    button.dataset.busy = "true";
     button.disabled = true;
+    const originalLabel = button.textContent;
+    button.textContent = "処理中…";
     usersStatus.textContent = "変更を保存しています…";
     try {
         if (action === "delete") await usersApi("DELETE", undefined, username);
@@ -161,6 +167,8 @@ async function handleUserAction(event) {
     } catch (error) {
         usersStatus.textContent = error.message;
         button.disabled = false;
+        button.dataset.busy = "false";
+        button.textContent = originalLabel;
     }
 }
 
@@ -179,5 +187,6 @@ if (!currentClaims || Number(currentClaims.exp) * 1000 <= Date.now()) {
 }
 
 document.getElementById("userSearch").addEventListener("input", renderUsers);
-usersList.addEventListener("click", handleUserAction);
-document.getElementById("joinRequestList")?.addEventListener("click", handleUserAction);
+// 一覧はユーザー更新後に innerHTML で再描画されるため、ページ全体でイベント委譲します。
+// これにより、ユーザー一覧と参加申請一覧のどちらからでも確実に操作できます。
+document.addEventListener("click", handleUserAction, true);
