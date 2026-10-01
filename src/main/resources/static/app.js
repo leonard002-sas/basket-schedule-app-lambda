@@ -29,7 +29,14 @@ const copyMonthScheduleTextButton = document.getElementById("copyMonthScheduleTe
 
 const calendarExportStatus = document.getElementById("calendarExportStatus");
 const bulkAttendanceStatus = document.getElementById("bulkAttendanceStatus");
-const bulkAttendanceButtons = document.querySelectorAll("[data-bulk-attendance]");
+const bulkAttendanceModal = document.getElementById("bulkAttendanceModal");
+const bulkAttendanceRows = document.getElementById("bulkAttendanceRows");
+const bulkAttendanceDialogStatus = document.getElementById("bulkAttendanceDialogStatus");
+const openBulkAttendanceButton = document.getElementById("openBulkAttendanceButton");
+const closeBulkAttendanceButton = document.getElementById("closeBulkAttendanceButton");
+const cancelBulkAttendanceButton = document.getElementById("cancelBulkAttendanceButton");
+const saveBulkAttendanceButton = document.getElementById("saveBulkAttendanceButton");
+let bulkAttendanceSelections = new Map();
 
 let schedules = [];
 let announcements = [];
@@ -823,8 +830,8 @@ function displaySchedule() {
     });
 }
 
-/** 今日以降の予定へ同じ参加状況をまとめて登録します。 */
-async function saveBulkAttendance(status) {
+/** 今日以降の予定を一覧表示し、予定ごとの出欠を選べるダイアログを開きます。 */
+function openBulkAttendanceModal() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const upcomingSchedules = schedules.filter(
@@ -834,45 +841,82 @@ async function saveBulkAttendance(status) {
         if (bulkAttendanceStatus) bulkAttendanceStatus.textContent = "今後の予定はありません。";
         return;
     }
-    const label = attendanceLabel(status);
-    if (!window.confirm(`今後の予定 ${upcomingSchedules.length}件を「${label}」に変更しますか？`))
+    bulkAttendanceSelections = new Map();
+    bulkAttendanceRows.innerHTML = upcomingSchedules
+        .map((schedule) => {
+            const key = `${schedule.scheduleMonth}|${schedule.startDateTime}`;
+            return `<div class="bulk-attendance-row" data-bulk-row="${escapeHtml(key)}">
+                <div class="bulk-attendance-row-info"><strong>${formatDate(new Date(schedule.startDateTime))}</strong><span>${formatTime(new Date(schedule.startDateTime))}〜${formatTime(new Date(schedule.endDateTime))}</span></div>
+                <div class="bulk-attendance-row-actions" role="group" aria-label="${formatDate(new Date(schedule.startDateTime))}の出欠">
+                    <button type="button" class="button-light" data-bulk-row-status="ATTENDING">参加</button>
+                    <button type="button" class="button-light" data-bulk-row-status="MAYBE">未定</button>
+                    <button type="button" class="button-light" data-bulk-row-status="ABSENT">不参加</button>
+                </div>
+            </div>`;
+        })
+        .join("");
+    if (bulkAttendanceDialogStatus) bulkAttendanceDialogStatus.textContent = "";
+    bulkAttendanceModal.hidden = false;
+    bulkAttendanceModal.classList.add("active");
+}
+
+function closeBulkAttendanceModal() {
+    bulkAttendanceModal.classList.remove("active");
+    bulkAttendanceModal.hidden = true;
+}
+
+/** ダイアログで選択した予定ごとの出欠をまとめて保存します。 */
+async function saveBulkAttendance() {
+    const rows = [...bulkAttendanceRows.querySelectorAll("[data-bulk-row]")];
+    if (bulkAttendanceSelections.size !== rows.length) {
+        bulkAttendanceDialogStatus.textContent = "すべての予定の出欠を選択してください。";
         return;
-    bulkAttendanceButtons.forEach((button) => (button.disabled = true));
-    if (bulkAttendanceStatus)
-        bulkAttendanceStatus.textContent = `${upcomingSchedules.length}件を更新しています…`;
+    }
+    saveBulkAttendanceButton.disabled = true;
+    if (bulkAttendanceDialogStatus) bulkAttendanceDialogStatus.textContent = "保存しています…";
     let successCount = 0;
     try {
-        for (const schedule of upcomingSchedules) {
+        for (const row of rows) {
+            const [scheduleMonth, startDateTime] = row.dataset.bulkRow.split("|");
+            const status = bulkAttendanceSelections.get(row.dataset.bulkRow);
             const params = new URLSearchParams({
                 feature: "schedule",
                 resource: "attendance",
-                scheduleMonth: schedule.scheduleMonth,
-                startDateTime: schedule.startDateTime,
+                scheduleMonth,
+                startDateTime,
             });
             const response = await authenticatedFetch(`${API_URL}?${params}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ status, guestCount: 0 }),
             });
-            if (!response.ok)
-                throw new Error(
-                    `予定「${formatDate(new Date(schedule.startDateTime))}」の更新に失敗しました`,
-                );
+            if (!response.ok) throw new Error("一括回答の保存に失敗しました");
             successCount++;
         }
         if (bulkAttendanceStatus)
-            bulkAttendanceStatus.textContent = `${successCount}件を「${label}」に更新しました。`;
+            bulkAttendanceStatus.textContent = `${successCount}件の出欠を更新しました。`;
+        closeBulkAttendanceModal();
         await loadSchedule();
     } catch (error) {
-        if (bulkAttendanceStatus)
-            bulkAttendanceStatus.textContent = `${successCount}件を更新しました。${error.message}`;
+        if (bulkAttendanceDialogStatus)
+            bulkAttendanceDialogStatus.textContent = `${successCount}件を保存しました。${error.message}`;
     } finally {
-        bulkAttendanceButtons.forEach((button) => (button.disabled = false));
+        saveBulkAttendanceButton.disabled = false;
     }
 }
 
-bulkAttendanceButtons.forEach((button) => {
-    button.addEventListener("click", () => saveBulkAttendance(button.dataset.bulkAttendance));
+openBulkAttendanceButton?.addEventListener("click", openBulkAttendanceModal);
+closeBulkAttendanceButton?.addEventListener("click", closeBulkAttendanceModal);
+cancelBulkAttendanceButton?.addEventListener("click", closeBulkAttendanceModal);
+saveBulkAttendanceButton?.addEventListener("click", saveBulkAttendance);
+bulkAttendanceRows?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-bulk-row-status]");
+    const row = event.target.closest("[data-bulk-row]");
+    if (!button || !row) return;
+    bulkAttendanceSelections.set(row.dataset.bulkRow, button.dataset.bulkRowStatus);
+    row.querySelectorAll("[data-bulk-row-status]").forEach((item) => {
+        item.classList.toggle("is-selected", item === button);
+    });
 });
 
 // ========================================

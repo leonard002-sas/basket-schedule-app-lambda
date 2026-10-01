@@ -235,26 +235,9 @@
 
                     <div class="schedule-overview-heading">
                         <h2 id="scheduleOverviewHeading">今後の予定</h2>
-                        <div class="bulk-attendance" role="group" aria-label="今後の予定を一括回答">
-                            <span>一括回答</span>
-                            <button
-                                type="button"
-                                class="button-light"
-                                data-bulk-attendance="ATTENDING"
-                            >
-                                参加
-                            </button>
-                            <button type="button" class="button-light" data-bulk-attendance="MAYBE">
-                                未定
-                            </button>
-                            <button
-                                type="button"
-                                class="button-light"
-                                data-bulk-attendance="ABSENT"
-                            >
-                                不参加
-                            </button>
-                        </div>
+                        <button type="button" id="openBulkAttendanceButton" class="button-light">
+                            出欠をまとめて回答
+                        </button>
                     </div>
                     <p
                         id="bulkAttendanceStatus"
@@ -264,6 +247,55 @@
                     ></p>
 
                     <div id="scheduleList">予定を取得しています...</div>
+
+                    <div id="bulkAttendanceModal" class="modal-overlay" hidden>
+                        <div
+                            class="modal bulk-attendance-modal"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="bulkAttendanceTitle"
+                        >
+                            <div class="modal-header">
+                                <h2 id="bulkAttendanceTitle">今後の予定の出欠</h2>
+                                <button
+                                    type="button"
+                                    id="closeBulkAttendanceButton"
+                                    class="modal-close-button"
+                                    aria-label="閉じる"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                            <div class="modal-content">
+                                <p class="bulk-attendance-help">
+                                    予定ごとに参加状況を選んで、最後にまとめて保存できます。
+                                </p>
+                                <div id="bulkAttendanceRows" class="bulk-attendance-rows"></div>
+                                <p
+                                    id="bulkAttendanceDialogStatus"
+                                    class="bulk-attendance-status"
+                                    role="status"
+                                    aria-live="polite"
+                                ></p>
+                                <div class="modal-actions">
+                                    <button
+                                        type="button"
+                                        id="cancelBulkAttendanceButton"
+                                        class="button-light"
+                                    >
+                                        キャンセル
+                                    </button>
+                                    <button
+                                        type="button"
+                                        id="saveBulkAttendanceButton"
+                                        class="button-accent"
+                                    >
+                                        まとめて保存
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- =========================
          予定詳細ダイアログ

@@ -423,6 +423,74 @@ body::before {
     font-size: 0.8rem;
 }
 
+.bulk-attendance-modal {
+    width: min(720px, calc(100vw - 28px));
+}
+
+.bulk-attendance-help {
+    margin-top: 0;
+    color: var(--text-muted, #718078);
+}
+
+.bulk-attendance-rows {
+    display: grid;
+    gap: 8px;
+    max-height: min(58vh, 520px);
+    overflow-y: auto;
+}
+
+.bulk-attendance-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--surface-raised) 88%, transparent);
+}
+
+.bulk-attendance-row-info {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.bulk-attendance-row-info span {
+    color: var(--text-muted, #718078);
+    font-size: 0.8rem;
+}
+
+.bulk-attendance-row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 5px;
+}
+
+.bulk-attendance-row-actions .button-light {
+    min-height: 32px;
+    padding: 5px 10px;
+    font-size: 0.78rem;
+}
+
+.bulk-attendance-row-actions .button-light.is-selected {
+    border-color: #8eb943;
+    color: #1b351f;
+    background: #d6f48b;
+}
+
+@media (max-width: 640px) {
+    .bulk-attendance-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .bulk-attendance-row-actions {
+        justify-content: flex-start;
+    }
+}
+
 .attendance-actions {
     display: flex;
     flex-wrap: wrap;
