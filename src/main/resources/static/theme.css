@@ -611,6 +611,24 @@ body {
     cursor: default;
     opacity: 0.62;
 }
+.account-menu-select {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: default;
+}
+.account-menu-select select {
+    max-width: 145px;
+    min-height: 34px;
+    padding: 5px 8px;
+    color: inherit;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    font: inherit;
+    font-size: 11px;
+}
 .account-menu-delete {
     color: #a33b31;
 }

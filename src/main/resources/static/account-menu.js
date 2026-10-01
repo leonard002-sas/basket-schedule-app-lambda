@@ -36,6 +36,14 @@
         </div>
         <a href="members.html" class="account-menu-item" data-admin-link hidden>ユーザー管理</a>
         <button type="button" class="account-menu-item" data-profile-name>表示名を設定</button>
+        <label class="account-menu-item account-menu-select">予定通知
+            <select data-notification-offsets aria-label="予定通知の設定">
+                <option value="NONE">通知なし</option>
+                <option value="DAY_BEFORE">1日前</option>
+                <option value="HOUR_BEFORE">1時間前</option>
+                <option value="BOTH">1日前と1時間前</option>
+            </select>
+        </label>
         <button type="button" class="account-menu-item" data-google-link>Googleアカウントを連携</button>
         <button type="button" class="account-menu-item account-menu-delete" data-delete-account>アカウントを削除</button>
         <button type="button" class="account-menu-item" data-account-logout>ログアウト</button>
@@ -123,12 +131,36 @@
                     Authorization: `Bearer ${localStorage.getItem("id_token") || ""}`,
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ displayName: value }),
+                body: JSON.stringify({
+                    displayName: value,
+                    notificationOffsets: panel.querySelector("[data-notification-offsets]").value,
+                }),
             });
             const result = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error(result.message || "表示名を保存できませんでした。");
             panel.querySelector("[data-account-name]").textContent = value || current;
             globalThis.alert("表示名を保存しました。");
+        } catch (error) {
+            globalThis.alert(error.message);
+        }
+    }
+
+    async function saveNotificationPreference(event) {
+        const select = event.currentTarget;
+        const displayName = panel.querySelector("[data-account-name]").textContent.trim();
+        try {
+            const response = await fetch(`${scoreApi}?resource=profile`, {
+                method: "PUT",
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("id_token") || ""}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ displayName, notificationOffsets: select.value }),
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.message || "通知設定を保存できませんでした。");
+            panel.querySelector("[data-account-note]").textContent =
+                select.value === "NONE" ? "予定通知はオフです。" : "予定通知を更新しました。";
         } catch (error) {
             globalThis.alert(error.message);
         }
@@ -183,6 +215,8 @@
             .then((profile) => {
                 if (profile.displayName)
                     panel.querySelector("[data-account-name]").textContent = profile.displayName;
+                panel.querySelector("[data-notification-offsets]").value =
+                    profile.notificationOffsets || "NONE";
             })
             .catch(() => {});
     }
@@ -196,6 +230,9 @@
     });
     panel.querySelector("[data-account-logout]").addEventListener("click", signOut);
     panel.querySelector("[data-profile-name]").addEventListener("click", editDisplayName);
+    panel
+        .querySelector("[data-notification-offsets]")
+        .addEventListener("change", saveNotificationPreference);
     panel.querySelector("[data-google-link]").addEventListener("click", startGoogleLink);
     panel.querySelector("[data-delete-account]").addEventListener("click", (event) => {
         event.preventDefault();

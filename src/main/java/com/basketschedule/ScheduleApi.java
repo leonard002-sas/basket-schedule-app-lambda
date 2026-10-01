@@ -187,7 +187,10 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
         dynamoDbClient.getItem(GetItemRequest.builder().tableName(SCHEDULE_TABLE).key(key).build());
     String displayName = result.hasItem() ? getString(result.item(), "displayName") : "";
     if (displayName.isBlank()) displayName = findJoinRequestDisplayName(user.username());
-    return Map.of("displayName", displayName);
+    String notificationOffsets =
+        result.hasItem() ? getString(result.item(), "notificationOffsets") : "NONE";
+    if (notificationOffsets.isBlank()) notificationOffsets = "NONE";
+    return Map.of("displayName", displayName, "notificationOffsets", notificationOffsets);
   }
 
   private Map<String, Object> saveProfile(Map<String, Object> input, CognitoAuth.User user)
@@ -195,14 +198,21 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
     JsonNode body = mapper.readTree(getBody(input));
     String displayName = body.path("displayName").asText("").trim();
     if (displayName.length() > 40) throw new IllegalArgumentException("表示名は40文字以内で入力してください");
+    String notificationOffsets = body.path("notificationOffsets").asText("NONE").trim();
+    if (!List.of("NONE", "DAY_BEFORE", "HOUR_BEFORE", "BOTH").contains(notificationOffsets))
+      throw new IllegalArgumentException("通知設定が不正です");
     Map<String, AttributeValue> item = new HashMap<>();
     item.put("scheduleMonth", AttributeValue.builder().s("PROFILES").build());
     item.put("startDateTime", AttributeValue.builder().s(user.subject()).build());
     item.put("recordType", AttributeValue.builder().s("PROFILE").build());
     item.put("displayName", AttributeValue.builder().s(displayName).build());
+    item.put("notificationOffsets", AttributeValue.builder().s(notificationOffsets).build());
     item.put("updatedAt", AttributeValue.builder().s(java.time.Instant.now().toString()).build());
     dynamoDbClient.putItem(PutItemRequest.builder().tableName(SCHEDULE_TABLE).item(item).build());
-    return Map.of("message", "表示名を保存しました", "displayName", displayName);
+    return Map.of(
+        "message", "プロフィールを保存しました",
+        "displayName", displayName,
+        "notificationOffsets", notificationOffsets);
   }
 
   /** 予定ごとの出欠状況を取得します。 */

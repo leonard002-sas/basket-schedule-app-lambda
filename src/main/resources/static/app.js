@@ -284,7 +284,7 @@ function renderHomeAgenda() {
     });
     todayBox.innerHTML = todayItems.length
         ? todayItems.map(agendaCard).join("")
-        : "<p class='agenda-empty'>今日は予定がありません。よい一日を(^▽^)/</p>";
+        : "<p class='agenda-empty'>今日は予定がありません。</p>";
     weekBox.innerHTML = weekItems.length
         ? weekItems.map(agendaCard).join("")
         : "<p class='agenda-empty'>今週の予定はありません。</p>";
