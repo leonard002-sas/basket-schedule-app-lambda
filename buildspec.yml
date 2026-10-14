@@ -64,6 +64,9 @@ phases:
 
       - aws s3 sync src/main/resources/static/ s3://basket-schedule-web/ --delete
 
+      # S3 REST origin does not resolve /app/ to /app/index.html automatically.
+      - aws s3api put-object --region ap-northeast-1 --bucket basket-schedule-web --key app/ --body src/main/resources/static/app/index.html --content-type "text/html; charset=utf-8" --cache-control "no-cache" --query ETag --output text
+
       - echo "=== S3 deploy complete ==="
 
 
