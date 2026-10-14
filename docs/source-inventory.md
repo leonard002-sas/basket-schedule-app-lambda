@@ -26,7 +26,32 @@
 | `src/test/java/.../GeminiImageExtractionSmokeCheck.java` | 明示確認付きGemini接続の手動チェック。通常テストやLambda実行には含めません              |
 | `package-info.java`                                      | パッケージ全体の説明                                                                    |
 
-## ブラウザー画面
+## Vue SPA
+
+| ファイル／ディレクトリ                    | 責務                                                               |
+| ----------------------------------------- | ------------------------------------------------------------------ |
+| `frontend/src/App.vue`                    | 共通ヘッダー、ロール別ナビゲーション、テーマ、画像処理ジョブ表示   |
+| `frontend/src/router.ts`                  | ハッシュルート、認証・管理者ルートガード、画面単位の遅延読み込み   |
+| `frontend/src/services/api.ts`            | Bearer トークン付き HTTP 通信、エラー統一、型付き API 関数         |
+| `frontend/src/stores/auth.ts`             | Cognito 認証、Googleログイン／連携、トークンとロール               |
+| `frontend/src/stores/schedules.ts`        | 予定・施設・周知の共有状態と施設情報の結合                         |
+| `frontend/src/stores/uploads.ts`          | 画像解析ジョブの永続化、全画面共通ポーリング、完了・失敗通知       |
+| `frontend/src/views/HomeView.vue`         | 今日・今週の予定、周知、クイックアクションを表示するダッシュボード |
+| `frontend/src/views/CalendarView.vue`     | 月間予定、祝日、詳細、出欠、一括回答、ICS・共有文面                |
+| `frontend/src/views/ScheduleFormView.vue` | 複数予定、繰り返し、複製、試合情報、画像解析による予定登録         |
+| `frontend/src/views/FacilitiesView.vue`   | 施設マスタの登録・編集・無効化                                     |
+| `frontend/src/views/TeamsView.vue`        | チームと選手の登録・編集・無効化                                   |
+| `frontend/src/views/GamesView.vue`        | 試合作成・編集、予定との紐付け、出場者、CSV移行、試合一覧          |
+| `frontend/src/views/GameScoreView.vue`    | 出場5人、時計、プレー入力、Undo、ボックススコア、試合終了          |
+| `frontend/src/views/RankingsView.vue`     | シーズンランキング、平均・EFF、個人推移、CSV出力                   |
+| `frontend/src/views/JoinView.vue`         | 参加申請、Cognito登録、確認コード、Google登録、承認待ち            |
+| `frontend/src/views/UsersView.vue`        | 参加承認、権限・利用状態・ユーザー削除                             |
+| `frontend/src/views/AccountView.vue`      | 表示名、通知設定、Google連携、ログアウト、自己削除                 |
+| `frontend/src/styles/main.css`            | SPA共通デザイン、ライト／ダークテーマ、レスポンシブ表示            |
+
+## 従来ブラウザー画面
+
+`src/main/resources/static/` の従来画面は運用時の互換確認用に残しています。新しい機能は原則として `frontend/` の型付き Vue SPA に追加します。
 
 | ファイル                               | 責務                                                                 |
 | -------------------------------------- | -------------------------------------------------------------------- |
@@ -71,8 +96,8 @@
 ## 機能変更時の確認先
 
 - 認証・権限: `CognitoAuth.java`、対象 API ハンドラー、画面側のフォーム表示、認可テスト。
-- 予定データ: `ScheduleApi.java`、`ScheduleRegisterApi.java`、`app.js`、`register.js`、`image-upload-controller.js`。
-- 施設: `FacilityApi.java`、`ScheduleApi.java`、`app.js`、`register.js`。
-- 画像解析: `UploadApi.java`、`ImageProcessor.java`、`DynamoDbService.java`、`image-jobs.js`。
-- バスケットボール: `BasketballApi.java`、`basketball.js`、`basketball.html`、`basketball.css`。
-- 共通見た目: `app.css`、`theme.css`、`visual-system.css`、ページ HTML。
+- 予定データ: `ScheduleApi.java`、`ScheduleRegisterApi.java`、`frontend/src/stores/schedules.ts`、`CalendarView.vue`、`ScheduleFormView.vue`。
+- 施設: `FacilityApi.java`、`ScheduleApi.java`、`FacilitiesView.vue`、`services/api.ts`。
+- 画像解析: `UploadApi.java`、`ImageProcessor.java`、`DynamoDbService.java`、`stores/uploads.ts`。
+- バスケットボール: `BasketballApi.java`、`BasketballRepository.java`、チーム・試合・スコア・ランキングの各 Vue view。
+- 共通見た目: `App.vue`、`styles/main.css`、共通 Vue component。

@@ -46,9 +46,10 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
       String resource = query.getOrDefault("resource", "");
       boolean write = !"GET".equalsIgnoreCase(method);
       CognitoAuth.User user;
-      // ユーザー管理は管理者が行います。root 管理者自身の保護や最後の管理者チェックは
-      // CognitoUserAdminService 側でも実施し、画面経由でない呼び出しにも適用します。
-      if ("users".equals(resource)) user = CognitoAuth.requireAdmin(input);
+      // アカウントの権限・停止・削除は root 管理者だけに限定します。
+      // 参加承認は日常運用なので通常の管理者にも許可し、API の入口を分離します。
+      if ("users".equals(resource)) user = CognitoAuth.requireRootAdmin(input);
+      else if ("approve-user".equals(resource)) user = CognitoAuth.requireAdmin(input);
       else if ("account".equals(resource) && "DELETE".equalsIgnoreCase(method))
         user = CognitoAuth.requireUser(input);
       else if ("account-link".equals(resource) && "PUT".equalsIgnoreCase(method))
@@ -179,6 +180,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
       String resource, JsonNode b, Map<String, String> query, CognitoAuth.User user) {
     return switch (resource) {
       case "users" -> updateManagedUser(b, user);
+      case "approve-user" -> userAdmin.approveUser(required(b, "username"));
       case "account-link" ->
           userAdmin.linkGoogleAccount(
               user.username(),
@@ -216,7 +218,6 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     return switch (action) {
       case "promote-admin", "demote-admin" ->
           userAdmin.changeRole(user.subject(), username, action);
-      case "approve" -> userAdmin.approveUser(username);
       case "disable" -> userAdmin.setEnabled(user.subject(), username, false);
       case "enable" -> userAdmin.setEnabled(user.subject(), username, true);
       default -> throw new ApiException(400, "INVALID_ACTION", "このユーザー操作には対応していません");

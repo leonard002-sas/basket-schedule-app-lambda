@@ -12,6 +12,7 @@ import java.util.UUID;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.ScanRequest;
 
@@ -35,6 +36,14 @@ public class FacilityApi implements RequestHandler<Map<String, Object>, Map<Stri
       if ("POST".equalsIgnoreCase(method)) {
         CognitoAuth.requireAdmin(input);
         return createFacility(input, context);
+      }
+      if ("PUT".equalsIgnoreCase(method)) {
+        CognitoAuth.requireAdmin(input);
+        return updateFacility(input, context);
+      }
+      if ("DELETE".equalsIgnoreCase(method)) {
+        CognitoAuth.requireAdmin(input);
+        return disableFacility(input, context);
       }
       if (!"GET".equalsIgnoreCase(method)) {
         return response(405, mapper.writeValueAsString(Map.of("message", "Method Not Allowed")));
@@ -223,6 +232,70 @@ public class FacilityApi implements RequestHandler<Map<String, Object>, Map<Stri
                 "note", note,
                 "enabled", true,
                 "sortOrder", maxSortOrder + 1)));
+  }
+
+  /** 既存施設の表示名、住所、URL、備考を更新します。 */
+  private Map<String, Object> updateFacility(Map<String, Object> input, Context context)
+      throws Exception {
+    var body = mapper.readTree(String.valueOf(input.get("body")));
+    String facilityId = body.path("facilityId").asText("").trim();
+    String name = body.path("facilityName").asText("").trim();
+    String address = body.path("address").asText("").trim();
+    String url = body.path("url").asText("").trim();
+    String note = body.path("note").asText("").trim();
+    if (facilityId.isBlank() || name.isBlank() || address.isBlank()) {
+      throw new IllegalArgumentException("施設ID、施設名、住所を入力してください");
+    }
+    validateUrlAndNote(url, note);
+    Map<String, AttributeValue> key =
+        Map.of("facilityId", AttributeValue.builder().s(facilityId).build());
+    var existing =
+        dynamoDbClient.getItem(
+            GetItemRequest.builder().tableName(ApplicationConfig.facilityTable()).key(key).build());
+    if (!existing.hasItem()) throw new IllegalArgumentException("更新対象の施設が見つかりません");
+    Map<String, AttributeValue> item = new HashMap<>(existing.item());
+    item.put("facilityName", AttributeValue.builder().s(name).build());
+    item.put("address", AttributeValue.builder().s(address).build());
+    item.put("url", AttributeValue.builder().s(url).build());
+    item.put("note", AttributeValue.builder().s(note).build());
+    item.put("enabled", AttributeValue.builder().bool(true).build());
+    dynamoDbClient.putItem(
+        PutItemRequest.builder().tableName(ApplicationConfig.facilityTable()).item(item).build());
+    context.getLogger().log("施設を更新しました: " + facilityId);
+    return response(200, mapper.writeValueAsString(Map.of("message", "施設を更新しました")));
+  }
+
+  /** 過去の予定との参照を保つため、施設を物理削除せず無効化します。 */
+  private Map<String, Object> disableFacility(Map<String, Object> input, Context context)
+      throws Exception {
+    var body = mapper.readTree(String.valueOf(input.get("body")));
+    String facilityId = body.path("facilityId").asText("").trim();
+    if (facilityId.isBlank()) throw new IllegalArgumentException("施設IDがありません");
+    Map<String, AttributeValue> key =
+        Map.of("facilityId", AttributeValue.builder().s(facilityId).build());
+    var existing =
+        dynamoDbClient.getItem(
+            GetItemRequest.builder().tableName(ApplicationConfig.facilityTable()).key(key).build());
+    if (!existing.hasItem()) throw new IllegalArgumentException("削除対象の施設が見つかりません");
+    Map<String, AttributeValue> item = new HashMap<>(existing.item());
+    item.put("enabled", AttributeValue.builder().bool(false).build());
+    dynamoDbClient.putItem(
+        PutItemRequest.builder().tableName(ApplicationConfig.facilityTable()).item(item).build());
+    context.getLogger().log("施設を無効化しました: " + facilityId);
+    return response(200, mapper.writeValueAsString(Map.of("message", "施設を削除しました")));
+  }
+
+  private void validateUrlAndNote(String url, String note) {
+    if (note.length() > 1000) throw new IllegalArgumentException("備考は1000文字以内で入力してください");
+    if (url.isBlank()) return;
+    try {
+      var parsed = java.net.URI.create(url);
+      if (!("https".equalsIgnoreCase(parsed.getScheme())
+              || "http".equalsIgnoreCase(parsed.getScheme()))
+          || parsed.getHost() == null) throw new IllegalArgumentException();
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("施設URLの形式を確認してください");
+    }
   }
 
   private String httpMethod(Map<String, Object> input) {

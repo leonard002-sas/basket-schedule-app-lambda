@@ -7,18 +7,23 @@ The common navigation is present on the calendar, schedule registration, facilit
 ```mermaid
 flowchart TD
     Login[Sign in or sign up with Cognito]
-    Calendar[Calendar and team home]
+    Home[Team dashboard]
+    Calendar[Monthly calendar]
     Announcements[Announcements]
     Videos[Practice video archive]
     Schedule[Schedule registration]
     Facility[Facility registration]
     Teams[Team and roster management]
-    Games[Game list and score entry]
+    Games[Game management]
+    Score[Live score entry]
     Rankings[Player rankings]
     Account[Account menu]
     UserAdmin[Root-only user management]
 
-    Login --> Calendar
+    Join[Join request]
+    Login --> Home
+    Login --> Join
+    Home <--> Calendar
     Calendar <--> Announcements
     Calendar <--> Videos
     Calendar <--> Schedule
@@ -28,6 +33,7 @@ flowchart TD
     Calendar <--> Rankings
     Schedule <--> Facility
     Teams <--> Games
+    Games <--> Score
     Games <--> Rankings
     Calendar --> Account
     Schedule --> Account
@@ -40,15 +46,13 @@ flowchart TD
 
 ## Navigation behavior
 
-- `/app/#/calendar` is the authenticated home and monthly schedule view.
+- `/app/#/` is the authenticated dashboard. It summarizes today, the next seven days, announcements, and common actions.
+- `/app/#/calendar` is the monthly schedule view. A schedule opens its detail dialog, and an empty date can prefill registration.
+- `/app/#/join` handles native Cognito registration, email-code confirmation, Google registration, and the approval-pending state.
 - `/app/#/schedules/new`, `/facilities`, and `/announcements` are shown to administrators.
 - `/app/#/videos`, `/teams`, `/games`, and `/rankings` are shared team destinations.
-- `/app/#/users` is protected by the administrator route guard; the Java API remains the final authorization boundary.
-- Advanced image import, live scorekeeping, roster editing, and account workflows link to the existing screens while SPA parity is completed.
-- `index.html` anchors the navigation to the calendar, announcements, and video sections. Scrolling the page updates the highlighted section.
-- `register.html?screen=schedule` shows manual and image-based schedule registration.
-- `register.html?screen=facility` shows only the facility form.
-- `basketball.html?view=teams`, `?view=games`, and `?view=rankings` select the corresponding scorebook area.
+- `/app/#/games/:gameId` is the live scorebook. It controls the lineup, clock, play actions, undo, box score, and game completion.
+- `/app/#/users` lets administrators approve participation requests. Root-only account changes remain protected by the Java API.
 - Every top-level screen links to the other destinations through the same navigation bar.
 - The account menu is available on every authenticated screen and contains the role label, account identifier, sign-out action, and guarded self-service account deletion.
 - Root administrators also see the user-management destination, where they can promote, demote, disable, enable, or delete other accounts.

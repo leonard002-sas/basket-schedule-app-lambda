@@ -26,7 +26,22 @@ export const useScheduleStore = defineStore("schedules", () => {
                 fetchSchedules(),
                 fetchFacilities().catch(() => []),
             ]);
-            schedules.value = schedulePayload.items ?? [];
+            schedules.value = (schedulePayload.items ?? []).map((schedule) => {
+                const facility = facilityPayload.find(
+                    (item) => item.facilityId === schedule.facilityId,
+                );
+                return {
+                    ...schedule,
+                    facilityName: schedule.facilityName || facility?.facilityName || "",
+                    address: schedule.address || facility?.address || "",
+                    url: schedule.url || facility?.url || "",
+                    note: schedule.note || facility?.note || "",
+                    attendanceTotal: Number(schedule.attendanceTotal || 0),
+                    attendanceMaybe: Number(schedule.attendanceMaybe || 0),
+                    attendanceAbsent: Number(schedule.attendanceAbsent || 0),
+                    attendanceGuests: Number(schedule.attendanceGuests || 0),
+                };
+            });
             announcements.value = schedulePayload.announcements ?? [];
             facilities.value = facilityPayload;
             loadedAt.value = Date.now();

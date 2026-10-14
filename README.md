@@ -4,7 +4,7 @@ An AWS-hosted official team site for Flight Penguins. It includes schedules, fac
 
 ## Vue SPA
 
-The modern frontend lives in `frontend/` and is built with Vue 3, TypeScript, Vite, Vue Router, Pinia, and VueUse. It is deployed under `/app/` so the existing production screens can remain available while feature parity is completed.
+The primary application frontend lives in `frontend/` and is built with Vue 3, TypeScript, Vite, Vue Router, Pinia, and VueUse. It is deployed under `/app/` and covers the dashboard, schedule calendar, registration, facilities, announcements, videos, team roster, games, live scorekeeping, rankings, account settings, join requests, and user administration.
 
 The SPA separates responsibilities into typed API clients, authentication and domain stores, route-level views, and reusable UI components. Routes are lazy-loaded, and hash history allows direct reloads from CloudFront/S3 without adding a rewrite function.
 
@@ -49,10 +49,14 @@ Use JDK 25 and the checked-in Gradle wrapper:
 ./gradlew clean build
 ```
 
-The build runs JUnit 5 and packages the Lambda artifact. Browser scripts can be syntax-checked with Node.js. Install pinned npm dependencies with `npm ci`, then run `npm run format:check` and `npm test`.
+The build runs JUnit 5 and packages the Lambda artifact. Build the frontend with its pinned dependencies before the Java build:
 
 Build the Vue SPA independently with:
 
 ```powershell
-npm run spa:build
+cd frontend
+npm ci
+npm run build
+cd ..
+./gradlew clean build
 ```

@@ -83,7 +83,11 @@ public final class ApplicationConfig {
     return value("COGNITO_CLIENT_ID", DEFAULT_COGNITO_CLIENT_ID);
   }
 
-  /** 承認メールの送信元アドレスを返します。 */
+  /**
+   * 承認メールの送信元アドレスを返します。
+   *
+   * @return SES で検証済みの送信元メールアドレス。未設定の場合は空文字
+   */
   public static String notificationFromEmail() {
     return value("SES_FROM_EMAIL", DEFAULT_NOTIFICATION_FROM_EMAIL);
   }

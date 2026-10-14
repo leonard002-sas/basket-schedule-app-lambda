@@ -1,16 +1,39 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useAuthStore } from "./stores/auth";
+import { useUploadStore } from "./stores/uploads";
+import { useScheduleStore } from "./stores/schedules";
 
 const auth = useAuthStore();
+const uploads = useUploadStore();
+const schedules = useScheduleStore();
 const route = useRoute();
 const menuOpen = ref(false);
 const theme = ref(localStorage.getItem("spa_theme") || "dark");
+watch(
+    () => uploads.jobs.map((job) => `${job.jobId}:${job.status}`).join("|"),
+    (_current, previous = "") => {
+        const previouslyCompleted = new Set(
+            previous
+                .split("|")
+                .filter((entry) => entry.endsWith(":COMPLETED"))
+                .map((entry) => entry.slice(0, -":COMPLETED".length)),
+        );
+        if (
+            uploads.jobs.some(
+                (job) => job.status === "COMPLETED" && !previouslyCompleted.has(job.jobId),
+            )
+        )
+            void schedules.load(true);
+    },
+);
 
 const navigation = computed(() => [
+    { to: "/", label: "ホーム", icon: "HOME", show: true },
     { to: "/calendar", label: "予定", icon: "CAL", show: true },
     { to: "/schedules/new", label: "予定登録", icon: "+", show: auth.isAdmin },
+    { to: "/facilities", label: "施設", icon: "GYM", show: auth.isAdmin },
     { to: "/announcements", label: "周知", icon: "NEWS", show: auth.isAdmin },
     { to: "/videos", label: "動画", icon: "VID", show: true },
     { to: "/teams", label: "チーム", icon: "TEAM", show: true },
@@ -28,11 +51,35 @@ function toggleTheme(): void {
 onMounted(async () => {
     document.documentElement.dataset.theme = theme.value;
     await auth.handleCallback();
+    uploads.initialize();
 });
 </script>
 
 <template>
     <div class="app-frame">
+        <aside v-if="uploads.jobs.length" class="global-job-tray" aria-live="polite">
+            <article v-for="job in uploads.jobs" :key="job.jobId" :class="job.status.toLowerCase()">
+                <span>{{
+                    job.status === "COMPLETED" ? "✓" : job.status === "FAILED" ? "!" : "◌"
+                }}</span>
+                <div>
+                    <strong>{{ job.fileName }}</strong
+                    ><small>{{ job.message || job.stage || job.status }}</small
+                    ><progress
+                        :value="job.completed || (job.status === 'COMPLETED' ? 100 : 25)"
+                        :max="job.total || 100"
+                    />
+                </div>
+                <button
+                    v-if="['COMPLETED', 'FAILED', 'UNAVAILABLE'].includes(job.status)"
+                    type="button"
+                    aria-label="閉じる"
+                    @click="uploads.dismiss(job.jobId)"
+                >
+                    ×
+                </button>
+            </article>
+        </aside>
         <header class="app-header">
             <RouterLink class="brand" to="/">
                 <span class="brand-mark">B</span>
@@ -73,6 +120,12 @@ onMounted(async () => {
                         v-for="item in navigation.filter((row) => row.show)"
                         :key="item.to"
                         :to="item.to"
+                        :class="{
+                            'nav-current':
+                                item.to === '/'
+                                    ? route.path === '/'
+                                    : route.path.startsWith(item.to),
+                        }"
                         @click="menuOpen = false"
                     >
                         <span>{{ item.icon }}</span

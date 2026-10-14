@@ -27,6 +27,7 @@ function readCurrentClaims(): TokenClaims | null {
 
 const routes: RouteRecordRaw[] = [
     { path: "/", name: "home", component: () => import("./views/HomeView.vue") },
+    { path: "/join", name: "join", component: () => import("./views/JoinView.vue") },
     { path: "/calendar", name: "calendar", component: () => import("./views/CalendarView.vue") },
     {
         path: "/schedules/new",
@@ -49,6 +50,11 @@ const routes: RouteRecordRaw[] = [
     { path: "/videos", name: "videos", component: () => import("./views/VideosView.vue") },
     { path: "/teams", name: "teams", component: () => import("./views/TeamsView.vue") },
     { path: "/games", name: "games", component: () => import("./views/GamesView.vue") },
+    {
+        path: "/games/:gameId",
+        name: "game-score",
+        component: () => import("./views/GameScoreView.vue"),
+    },
     { path: "/rankings", name: "rankings", component: () => import("./views/RankingsView.vue") },
     {
         path: "/users",
@@ -69,7 +75,7 @@ const router = createRouter({
 
 router.beforeEach((to) => {
     const claims = readCurrentClaims();
-    if (!claims && to.name !== "home") {
+    if (!claims && !["home", "join"].includes(String(to.name))) {
         return { name: "home", query: { login: "required" } };
     }
     if (to.meta.admin && claims) {

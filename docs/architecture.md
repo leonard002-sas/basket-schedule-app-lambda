@@ -6,7 +6,7 @@ This document describes the current implementation. It records behavior visible 
 
 ```mermaid
 flowchart LR
-    Browser[Browser: Vue 3 SPA / legacy HTML]
+    Browser[Browser: Vue 3 SPA]
     CDN[CloudFront]
     Web[S3 static website bucket]
     Cognito[Amazon Cognito user pool]
@@ -58,20 +58,20 @@ flowchart LR
     Guard[Role and expiry guard] --> Router
 ```
 
-The SPA uses hash-based routes because the static files are delivered directly from S3 through CloudFront. This keeps deep links reloadable without a CloudFront Function or custom error-page rewrite. The previous pages remain during the transition for advanced workflows that have not yet reached feature parity, including image-assisted bulk registration and live scorekeeping.
+The SPA uses hash-based routes because the static files are delivered directly from S3 through CloudFront. This keeps deep links reloadable without a CloudFront Function or custom error-page rewrite. Image-assisted registration and live scorekeeping are implemented as route views, while upload progress is retained across route changes in a persistent Pinia store.
 
 ## Request paths
 
-| User action                                        | Browser entry point                       | AWS handler                                                                         | Data store                               |
-| -------------------------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------- |
-| Read schedules and schedule details                | `app.js`                                  | `ScheduleApi` (`basket-schedule-get`)                                               | `BasketSchedule`, `BasketFacility`       |
-| Render and manage announcements                    | `announcement-controller.js` and `app.js` | `ScheduleApi` → `AnnouncementService`                                               | `BasketSchedule`                         |
-| Create or update schedules                         | `register.js` and `app.js`                | `ScheduleRegisterApi` / `ScheduleApi`                                               | `BasketSchedule`                         |
-| Read or create facilities                          | `app.js` and `register.js`                | `FacilityApi`                                                                       | `BasketFacility`                         |
-| Request image upload URL and poll processing state | `register.js`, `image-jobs.js`            | `UploadApi`                                                                         | S3 object tags for processing state      |
-| Extract events from an uploaded image              | S3 object-created event                   | `ImageProcessor`                                                                    | `BasketSchedule` after Gemini extraction |
-| Manage rosters, games, score actions, and rankings | `basketball.js`                           | `BasketballApi`, routed by `ScheduleApi`; records go through `BasketballRepository` | `BasketballData`                         |
-| Manage Cognito users and roles                     | `members.js` / `account-menu.js`          | `BasketballApi` → `CognitoUserAdminService`                                         | Cognito user pool                        |
+| User action                                        | Browser entry point                      | AWS handler                                                                         | Data store                               |
+| -------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------- |
+| Read schedules and schedule details                | `CalendarView`, schedule store           | `ScheduleApi` (`basket-schedule-get`)                                               | `BasketSchedule`, `BasketFacility`       |
+| Render and manage announcements                    | `HomeView`, `AnnouncementsView`          | `ScheduleApi` → `AnnouncementService`                                               | `BasketSchedule`                         |
+| Create or update schedules                         | `ScheduleFormView`, `CalendarView`       | `ScheduleRegisterApi` / `ScheduleApi`                                               | `BasketSchedule`                         |
+| Read or manage facilities                          | `FacilitiesView`, typed API client       | `FacilityApi`                                                                       | `BasketFacility`                         |
+| Request image upload URL and poll processing state | `ScheduleFormView`, upload store         | `UploadApi`                                                                         | S3 object tags for processing state      |
+| Extract events from an uploaded image              | S3 object-created event                  | `ImageProcessor`                                                                    | `BasketSchedule` after Gemini extraction |
+| Manage rosters, games, score actions, and rankings | Vue team, game, score, and ranking views | `BasketballApi`, routed by `ScheduleApi`; records go through `BasketballRepository` | `BasketballData`                         |
+| Manage Cognito users and roles                     | `UsersView`, `AccountView`, auth store   | `BasketballApi` → `CognitoUserAdminService`                                         | Cognito user pool                        |
 
 `buildspec.yml` builds the Java artifact, updates the configured Lambda functions, synchronizes static files to S3, and invalidates CloudFront. A push to a connected pipeline branch can therefore deploy application changes.
 

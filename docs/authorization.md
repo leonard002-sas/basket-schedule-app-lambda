@@ -13,6 +13,7 @@ Amazon Cognito hosts sign-in and returns an authorization code to the CloudFront
 | Calendar, event details, facilities, announcements, videos          | Read  | Read                                          | Read                               | `requireUser`                                                  |
 | Team, roster, game, scorebook and ranking data                      | Read  | Read/write                                    | Read/write                         | `requireUser` for reads; `requireAdmin` for writes             |
 | Schedule, facility, announcement and upload management              | No    | Yes                                           | Yes                                | `requireAdmin` in each Lambda handler                          |
+| Participation requests and approval                                 | No    | Read/approve                                  | Read/approve                       | `requireAdmin` on join-request and approve-user resources      |
 | Cognito user directory, role changes, account status, user deletion | No    | No                                            | Yes                                | `requireRootAdmin` on the users resource                       |
 | Delete own Cognito account                                          | Yes   | Yes, if another enabled administrator remains | No                                 | Authenticated account-delete route plus server-side safeguards |
 

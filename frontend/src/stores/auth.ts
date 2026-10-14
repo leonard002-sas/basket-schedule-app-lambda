@@ -1,6 +1,7 @@
 import { computed, ref } from "vue";
 import { defineStore } from "pinia";
 import { config } from "../config";
+import { linkGoogleAccount } from "../services/api";
 
 interface Claims {
     sub: string;
@@ -49,8 +50,63 @@ export const useAuthStore = defineStore("auth", () => {
         window.location.assign(url.toString());
     }
 
+    function linkGoogle(): void {
+        const token = localStorage.getItem("id_token");
+        if (!token) return;
+        const state = crypto.randomUUID();
+        sessionStorage.setItem("google_link_state", state);
+        const url = new URL(`${config.cognitoDomain}/oauth2/authorize`);
+        url.searchParams.set("client_id", config.cognitoClientId);
+        url.searchParams.set("response_type", "code");
+        url.searchParams.set("scope", "openid email phone");
+        url.searchParams.set("redirect_uri", config.redirectUri);
+        url.searchParams.set("identity_provider", "Google");
+        url.searchParams.set("state", state);
+        url.searchParams.set("lang", "ja");
+        window.location.assign(url.toString());
+    }
+
+    function signupWithGoogle(): void {
+        const state = crypto.randomUUID();
+        sessionStorage.setItem("google_signup_state", state);
+        const url = new URL(`${config.cognitoDomain}/oauth2/authorize`);
+        url.searchParams.set("client_id", config.cognitoClientId);
+        url.searchParams.set("response_type", "code");
+        url.searchParams.set("scope", "openid email phone");
+        url.searchParams.set("redirect_uri", config.redirectUri);
+        url.searchParams.set("identity_provider", "Google");
+        url.searchParams.set("state", state);
+        url.searchParams.set("lang", "ja");
+        window.location.assign(url.toString());
+    }
+
+    function clearSession(): void {
+        clearTokens();
+        claims.value = null;
+    }
+
     async function handleCallback(): Promise<boolean> {
-        const code = new URLSearchParams(window.location.search).get("code");
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get("code");
+        const expectedLinkState = sessionStorage.getItem("google_link_state");
+        const isLinkFlow = Boolean(expectedLinkState && params.get("state") === expectedLinkState);
+        const expectedSignupState = sessionStorage.getItem("google_signup_state");
+        const isSignupFlow = Boolean(
+            expectedSignupState && params.get("state") === expectedSignupState,
+        );
+        if (params.get("error") && isLinkFlow) {
+            sessionStorage.removeItem("google_link_state");
+            callbackError.value = params.get("error_description") || "Google連携を中止しました";
+            window.history.replaceState({}, document.title, window.location.pathname);
+            return false;
+        }
+        if (params.get("error") && isSignupFlow) {
+            sessionStorage.removeItem("google_signup_state");
+            callbackError.value =
+                params.get("error_description") || "Googleでの参加申請を中止しました";
+            window.history.replaceState({}, document.title, window.location.pathname);
+            return false;
+        }
         if (!code) return false;
         callbackPending.value = true;
         callbackError.value = "";
@@ -67,16 +123,33 @@ export const useAuthStore = defineStore("auth", () => {
             });
             const tokens = await response.json();
             if (!response.ok) throw new Error(tokens.error_description || "ログインに失敗しました");
+            if (isLinkFlow) {
+                await linkGoogleAccount(tokens.id_token);
+                sessionStorage.removeItem("google_link_state");
+                window.history.replaceState({}, document.title, window.location.pathname);
+                window.alert(
+                    "Googleアカウントを連携しました。次回からGoogleでもログインできます。",
+                );
+                return true;
+            }
             localStorage.setItem("id_token", tokens.id_token);
             localStorage.setItem("access_token", tokens.access_token);
             if (tokens.refresh_token) localStorage.setItem("refresh_token", tokens.refresh_token);
             claims.value = decodeClaims(tokens.id_token);
             window.history.replaceState({}, document.title, window.location.pathname);
+            if (isSignupFlow) {
+                sessionStorage.removeItem("google_signup_state");
+                window.location.hash = "#/join?google=1";
+            }
             return true;
         } catch (error) {
             callbackError.value = error instanceof Error ? error.message : "ログインに失敗しました";
-            clearTokens();
-            claims.value = null;
+            if (!isLinkFlow) {
+                clearTokens();
+                claims.value = null;
+            }
+            sessionStorage.removeItem("google_link_state");
+            sessionStorage.removeItem("google_signup_state");
             return false;
         } finally {
             callbackPending.value = false;
@@ -101,6 +174,9 @@ export const useAuthStore = defineStore("auth", () => {
         callbackPending,
         callbackError,
         login,
+        linkGoogle,
+        signupWithGoogle,
+        clearSession,
         logout,
         handleCallback,
     };

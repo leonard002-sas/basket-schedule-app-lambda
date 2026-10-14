@@ -167,7 +167,12 @@ public final class CognitoUserAdminService {
     throw new UserAdminException(400, "INVALID_ACTION", "指定された権限変更を実行できません");
   }
 
-  /** 登録待ちユーザーを管理者が承認します。 */
+  /**
+   * 登録待ちユーザーを管理者が承認し、対応する参加申請を削除します。
+   *
+   * @param username 承認する Cognito ユーザー名
+   * @return 承認後のユーザー名と状態
+   */
   public Map<String, Object> approveUser(String username) {
     TargetUser target = requireTarget(username);
     try {
