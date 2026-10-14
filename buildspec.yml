@@ -7,6 +7,16 @@ phases:
     commands:
 
       # ========================================
+      # Vue SPA Build
+      # ========================================
+
+      - echo "=== Vue SPA build start ==="
+
+      - cd frontend && npm ci && npm run build && cd ..
+
+      - echo "=== Vue SPA build complete ==="
+
+      # ========================================
       # Gradle Build
       # ========================================
 

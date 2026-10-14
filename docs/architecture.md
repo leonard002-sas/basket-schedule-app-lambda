@@ -6,7 +6,7 @@ This document describes the current implementation. It records behavior visible 
 
 ```mermaid
 flowchart LR
-    Browser[Browser: HTML, CSS, JavaScript]
+    Browser[Browser: Vue 3 SPA / legacy HTML]
     CDN[CloudFront]
     Web[S3 static website bucket]
     Cognito[Amazon Cognito user pool]
@@ -42,6 +42,23 @@ flowchart LR
     Processor --> Gemini
     Processor --> ScheduleTable
 ```
+
+## Frontend architecture
+
+The Vue application is located in `frontend/` and is published at `/app/`. Vue Router owns screen transitions, Pinia owns authentication and schedule state, and the API service translates HTTP responses into typed domain models. Route-level dynamic imports keep the first JavaScript payload small.
+
+```mermaid
+flowchart LR
+    View[Vue route view] --> Store[Pinia store]
+    View --> Client[Typed API client]
+    Store --> Client
+    Client --> Auth[Bearer ID token]
+    Client --> Lambda[Lambda Function URLs]
+    Router[Vue Router] --> View
+    Guard[Role and expiry guard] --> Router
+```
+
+The SPA uses hash-based routes because the static files are delivered directly from S3 through CloudFront. This keeps deep links reloadable without a CloudFront Function or custom error-page rewrite. The previous pages remain during the transition for advanced workflows that have not yet reached feature parity, including image-assisted bulk registration and live scorekeeping.
 
 ## Request paths
 

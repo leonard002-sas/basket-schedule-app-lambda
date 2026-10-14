@@ -4,8 +4,10 @@
     "private": true,
     "scripts": {
         "test": "node --test src/test/js/*.test.cjs",
-        "format": "prettier --write \"src/main/resources/static/**/*.{js,css,html}\" \"*.md\" \"docs/**/*.md\"",
-        "format:check": "prettier --check \"src/main/resources/static/**/*.{js,css,html}\" \"*.md\" \"docs/**/*.md\""
+        "spa:dev": "npm --prefix frontend run dev",
+        "spa:build": "npm --prefix frontend run build",
+        "format": "prettier --write \"frontend/src/**/*.{ts,vue,css}\" \"frontend/*.{json,ts,html}\" \"src/main/resources/static/**/*.{js,css,html}\" \"*.md\" \"docs/**/*.md\"",
+        "format:check": "prettier --check \"frontend/src/**/*.{ts,vue,css}\" \"frontend/*.{json,ts,html}\" \"src/main/resources/static/**/*.{js,css,html}\" \"*.md\" \"docs/**/*.md\""
     },
     "devDependencies": {
         "prettier": "3.9.9"

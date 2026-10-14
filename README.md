@@ -2,6 +2,26 @@
 
 An AWS-hosted official team site for Flight Penguins. It includes schedules, facilities, notices, practice videos, team and member management, basketball scorekeeping, and player rankings. CloudFront serves the static frontend; Java Lambda functions and DynamoDB provide the APIs and data storage. Schedule images are processed from S3 with Gemini.
 
+## Vue SPA
+
+The modern frontend lives in `frontend/` and is built with Vue 3, TypeScript, Vite, Vue Router, Pinia, and VueUse. It is deployed under `/app/` so the existing production screens can remain available while feature parity is completed.
+
+The SPA separates responsibilities into typed API clients, authentication and domain stores, route-level views, and reusable UI components. Routes are lazy-loaded, and hash history allows direct reloads from CloudFront/S3 without adding a rewrite function.
+
+```powershell
+cd frontend
+npm ci
+npm run dev
+```
+
+The production build is written to `src/main/resources/static/app/` and is created automatically by CodeBuild. That generated directory is intentionally excluded from Git.
+
+Before publishing the SPA, add the following values to the Cognito app client's allowed callback and sign-out URLs:
+
+```text
+https://d13o4oynf3jxlu.cloudfront.net/app/
+```
+
 ## Start here
 
 - [System architecture](docs/architecture.md)
@@ -30,3 +50,9 @@ Use JDK 25 and the checked-in Gradle wrapper:
 ```
 
 The build runs JUnit 5 and packages the Lambda artifact. Browser scripts can be syntax-checked with Node.js. Install pinned npm dependencies with `npm ci`, then run `npm run format:check` and `npm test`.
+
+Build the Vue SPA independently with:
+
+```powershell
+npm run spa:build
+```

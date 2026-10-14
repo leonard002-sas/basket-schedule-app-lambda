@@ -3,101 +3,421 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#091713" />
+        <meta name="theme-color" content="#0a0c12" />
         <meta
             name="description"
-            content="TATEISHI AKIHITOの個人開発プロジェクトと、生活を豊かにするアプリの紹介"
+            content="TATEISHI AKIHITOの個人開発ポートフォリオ。実生活の課題から設計・開発・運用しているWebアプリを紹介します。"
         />
-        <title>Portfolio · TATEISHI AKIHITO</title>
+        <meta property="og:title" content="TATEISHI AKIHITO · Personal Projects" />
+        <meta
+            property="og:description"
+            content="生活の課題を、使い続けるプロダクトへ。企画からAWS運用まで行う個人開発の記録。"
+        />
+        <meta property="og:type" content="website" />
+        <title>TATEISHI AKIHITO · Personal Projects</title>
         <link rel="icon" type="image/svg+xml" href="favicon.svg" />
         <link rel="stylesheet" href="portfolio.css" />
     </head>
     <body>
+        <a class="skip-link" href="#main">本文へ移動</a>
         <div class="portfolio-shell">
             <header class="portfolio-header">
                 <a class="portfolio-brand" href="portfolio.html" aria-label="ポートフォリオトップ">
                     <span class="portfolio-brand-mark">TA</span>
-                    <span>
-                        <strong>TATEISHI AKIHITO</strong>
-                        <small>Personal projects / 2026</small>
-                    </span>
+                    <span
+                        ><strong>TATEISHI AKIHITO</strong
+                        ><small>Personal product developer</small></span
+                    >
                 </a>
                 <nav class="portfolio-header-nav" aria-label="ポートフォリオメニュー">
-                    <a href="#projects">Projects</a>
-                    <a href="#about">About</a>
-                    <a class="portfolio-header-link" href="index.html">アプリを見る&nbsp;↗</a>
+                    <a href="#work">Work</a><a href="#case-study">Case study</a
+                    ><a href="#engineering">Engineering</a><a href="#about">About</a>
+                    <a class="portfolio-header-link" href="app/">Live app <span>↗</span></a>
                 </nav>
             </header>
 
-            <main>
+            <main id="main">
                 <section class="portfolio-hero" aria-labelledby="portfolioTitle">
-                    <span class="portfolio-eyebrow">TATEISHI AKIHITO / PERSONAL PROJECTS</span>
-                    <h1 id="portfolioTitle">自分の毎日を、<br /><em>少し豊かに。</em></h1>
-                    <p>
-                        バスケサークルの運営や、婚約中の生活をより良くするために、
-                        自分自身が使いたいアプリを考え、作っています。
-                    </p>
-                    <div class="portfolio-hero-actions">
-                        <a class="portfolio-button" href="#projects">制作物を見る&nbsp;↓</a>
-                        <a class="portfolio-button is-secondary" href="#about">About me&nbsp;↘</a>
+                    <div class="portfolio-hero-copy">
+                        <div class="availability"><span></span> Personal projects · 2026</div>
+                        <p class="portfolio-eyebrow">DESIGN / ENGINEERING / CLOUD</p>
+                        <h1 id="portfolioTitle">
+                            生活の課題を、<br /><em>使い続けるプロダクトへ。</em>
+                        </h1>
+                        <p class="portfolio-hero-lead">
+                            バスケサークルの運営や、婚約中の暮らしで見つけた不便を起点に、企画・設計・実装・AWS運用まで一貫して取り組んでいます。
+                        </p>
+                        <div class="portfolio-hero-actions">
+                            <a class="portfolio-button" href="#case-study">Case studyを見る</a>
+                            <a
+                                class="portfolio-button is-secondary"
+                                href="https://github.com/leonard002-sas/basket-schedule-app-lambda"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                >GitHub <span>↗</span></a
+                            >
+                        </div>
                     </div>
-                    <span class="portfolio-hero-index"
-                        >SELECTED WORKS<br /><strong>01—03</strong></span
+
+                    <div
+                        class="product-preview"
+                        aria-label="バスケットボールチーム管理アプリの画面イメージ"
                     >
+                        <div class="preview-window">
+                            <div class="preview-browser-bar">
+                                <span></span><span></span><span></span><small>team workspace</small>
+                            </div>
+                            <div class="preview-app-bar">
+                                <div class="preview-logo">B</div>
+                                <div>
+                                    <strong>Basketball Team</strong><small>Member workspace</small>
+                                </div>
+                                <span class="preview-user">AK</span>
+                            </div>
+                            <div class="preview-content">
+                                <section class="preview-next-event">
+                                    <span>NEXT EVENT</span><strong>10.08 <small>THU</small></strong>
+                                    <p>18:30–21:00 · Practice</p>
+                                    <div class="preview-attendance">
+                                        <span>参加 12</span><span>未定 3</span
+                                        ><span>回答待ち 8</span>
+                                    </div>
+                                </section>
+                                <div class="preview-side">
+                                    <article>
+                                        <span>ANNOUNCEMENT</span><strong>今週の連絡</strong>
+                                        <p>体育館入口の変更について</p>
+                                    </article>
+                                    <article>
+                                        <span>TEAM DATA</span><strong>24 members</strong>
+                                        <div class="preview-chart">
+                                            <i></i><i></i><i></i><i></i><i></i>
+                                        </div>
+                                    </article>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="preview-note note-one">01 · Schedule</span
+                        ><span class="preview-note note-two">02 · Scorebook</span>
+                    </div>
                 </section>
 
-                <section id="projects" class="portfolio-section" aria-labelledby="projectsTitle">
+                <dl class="portfolio-facts" aria-label="プロジェクト概要">
+                    <div>
+                        <dt>01</dt>
+                        <dd>
+                            <strong>Production project</strong><span>実際の運営で継続利用</span>
+                        </dd>
+                    </div>
+                    <div>
+                        <dt>10+</dt>
+                        <dd>
+                            <strong>AWS / Web technologies</strong><span>設計から運用まで担当</span>
+                        </dd>
+                    </div>
+                    <div>
+                        <dt>30</dt>
+                        <dd><strong>Expected members</strong><span>チーム利用を想定</span></dd>
+                    </div>
+                    <div>
+                        <dt>PC / SP</dt>
+                        <dd><strong>Responsive UI</strong><span>場所を選ばず利用</span></dd>
+                    </div>
+                </dl>
+
+                <section id="work" class="portfolio-section" aria-labelledby="workTitle">
                     <div class="portfolio-section-heading">
                         <div>
-                            <span class="portfolio-eyebrow">SELECTED PROJECTS</span>
-                            <h2 id="projectsTitle">つくっているもの</h2>
+                            <span class="section-number">01</span>
+                            <p class="portfolio-eyebrow">SELECTED WORK</p>
+                            <h2 id="workTitle">つくっているもの</h2>
                         </div>
                         <p>
-                            ジャンルにとらわれず、日々の行動を少しだけ軽くするプロダクトを考えています。
+                            誰かに与えられた課題ではなく、自分の暮らしの中で本当に必要になったものを、実際に使いながら育てています。
                         </p>
                     </div>
-                    <div class="portfolio-grid">
-                        <a class="portfolio-card" href="index.html">
-                            <span class="card-number">01</span>
-                            <span class="card-kicker">Live project / Web app</span>
-                            <h3>Basketball<br />Circle OS</h3>
+                    <article class="featured-project">
+                        <div class="featured-project-copy">
+                            <div class="project-status">
+                                <span></span> LIVE / CONTINUOUS DEVELOPMENT
+                            </div>
+                            <h3>Basketball<br />Team Management</h3>
                             <p>
-                                自分が運営するバスケサークルの予定、メンバー、試合記録をひとつにつなぐアプリ。
+                                予定共有、施設、周知、出欠、練習動画、試合記録、選手スタッツをひとつにつなぐ、バスケットボールチームのためのWebアプリです。
                             </p>
-                            <span class="card-link">ログイン前トップを見る&nbsp;↗</span>
-                        </a>
-                        <article class="portfolio-card">
-                            <span class="card-number">02</span>
-                            <span class="card-kicker">Concept / Coming soon</span>
-                            <h3>Wedding<br />Day Planner</h3>
-                            <p>ふたりの準備と当日の段取りを、やさしく整理するアプリ構想。</p>
-                            <span class="card-link">Concept study</span>
+                            <div class="project-actions">
+                                <a class="portfolio-button" href="app/">ログイン前トップを見る</a
+                                ><a
+                                    class="text-link"
+                                    href="https://github.com/leonard002-sas/basket-schedule-app-lambda"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    >View repository ↗</a
+                                >
+                            </div>
+                        </div>
+                        <dl class="project-meta">
+                            <div>
+                                <dt>Role</dt>
+                                <dd>企画 / UI設計 / 開発 / AWS運用</dd>
+                            </div>
+                            <div>
+                                <dt>Audience</dt>
+                                <dd>チーム管理者 / 参加メンバー</dd>
+                            </div>
+                            <div>
+                                <dt>Frontend</dt>
+                                <dd>Vue 3 / TypeScript / Vite / Pinia</dd>
+                            </div>
+                            <div>
+                                <dt>Backend</dt>
+                                <dd>Java / AWS Lambda / DynamoDB</dd>
+                            </div>
+                            <div>
+                                <dt>Delivery</dt>
+                                <dd>GitHub / CodePipeline / CloudFront</dd>
+                            </div>
+                            <div>
+                                <dt>Status</dt>
+                                <dd>個人開発・運用中</dd>
+                            </div>
+                        </dl>
+                    </article>
+                    <div class="future-projects" aria-label="今後の制作予定">
+                        <article>
+                            <span>02 · CONCEPT</span>
+                            <h3>Wedding Day Planner</h3>
+                            <p>ふたりの準備、タスク、費用、当日の段取りを整理するアプリ構想。</p>
                         </article>
-                        <article class="portfolio-card">
-                            <span class="card-number">03</span>
-                            <span class="card-kicker">Next idea / Research</span>
-                            <h3>Next project<br />in progress</h3>
-                            <p>生活や仕事の中にある、まだ名前のない不便をリサーチしています。</p>
-                            <span class="card-link">Coming next</span>
+                        <article>
+                            <span>03 · RESEARCH</span>
+                            <h3>Next personal tool</h3>
+                            <p>
+                                生活や仕事の中にある、まだ名前のない不便から次の題材を探しています。
+                            </p>
                         </article>
                     </div>
                 </section>
 
-                <section id="about" class="portfolio-section" aria-labelledby="technologyTitle">
-                    <div class="portfolio-tech-panel">
+                <section
+                    id="case-study"
+                    class="portfolio-section case-study"
+                    aria-labelledby="caseStudyTitle"
+                >
+                    <div class="portfolio-section-heading">
                         <div>
-                            <span class="portfolio-eyebrow">ABOUT THE WORK</span>
-                            <h3 id="technologyTitle">自分の暮らしから、アプリを考える</h3>
+                            <span class="section-number">02</span>
+                            <p class="portfolio-eyebrow">CASE STUDY</p>
+                            <h2 id="caseStudyTitle">バスケチームの情報を、ひとつに。</h2>
+                        </div>
+                        <p>
+                            日程確認から試合後のスタッツまで、別々の場所に散らばっていた情報を、管理者とメンバーが同じ場所で扱えるようにしました。
+                        </p>
+                    </div>
+                    <div class="story-grid">
+                        <article class="story-card is-problem">
+                            <span>01 / PROBLEM</span>
+                            <h3>連絡と記録が分散する</h3>
                             <p>
-                                バスケサークルを運営する中で感じた不便や、婚約後の生活で必要になったことを出発点にしています。
-                                自分で使いながら改善し、毎日の予定や準備が少し楽しく、豊かになることを目指しています。
-                                個人開発だからこそ、AWSの利用量や処理方法も見直し、必要な機能をできるだけ低コストで運用することも大切にしています。
+                                予定、施設、周知、出欠、動画、試合結果が別々に管理され、確認と更新に手間がかかっていました。
+                            </p>
+                        </article>
+                        <article class="story-card is-approach">
+                            <span>02 / APPROACH</span>
+                            <h3>利用の流れでつなぐ</h3>
+                            <p>
+                                予定を中心に、出欠・施設・動画・試合記録へ移動できる情報設計と、権限別の操作を設計しました。
+                            </p>
+                        </article>
+                        <article class="story-card is-result">
+                            <span>03 / CURRENT STATE</span>
+                            <h3>ひとつのチームサイトへ</h3>
+                            <p>
+                                運営者が登録し、メンバーが確認・回答できる場所として、実際の利用を通じて継続改善しています。
+                            </p>
+                        </article>
+                    </div>
+                    <div class="capability-grid">
+                        <article>
+                            <span class="capability-icon">CAL</span>
+                            <h3>予定・施設</h3>
+                            <p>
+                                練習、試合、会議をカレンダーで共有。繰り返し登録やGoogleカレンダー出力にも対応。
+                            </p>
+                        </article>
+                        <article>
+                            <span class="capability-icon">RSVP</span>
+                            <h3>出欠・周知</h3>
+                            <p>
+                                参加・未定・不参加をまとめて回答。緊急度と期限を持つ周知事項も掲載。
+                            </p>
+                        </article>
+                        <article>
+                            <span class="capability-icon">AI</span>
+                            <h3>画像から予定登録</h3>
+                            <p>
+                                S3へ直接アップロードし、Geminiで解析。処理状況を見ながら別の作業を継続可能。
+                            </p>
+                        </article>
+                        <article>
+                            <span class="capability-icon">PTS</span>
+                            <h3>試合・スタッツ</h3>
+                            <p>
+                                試合中に選手を切り替えて記録。DNPを考慮した出場試合数・平均・ランキングを集計。
+                            </p>
+                        </article>
+                        <article>
+                            <span class="capability-icon">VID</span>
+                            <h3>練習動画</h3>
+                            <p>
+                                YouTube限定公開URLを予定に紐づけ、タグで整理して後から振り返れる構成。
+                            </p>
+                        </article>
+                        <article>
+                            <span class="capability-icon">IAM</span>
+                            <h3>ユーザー・権限</h3>
+                            <p>
+                                Cognito認証、参加承認、管理者・メンバー権限、Googleログイン連携を実装。
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section
+                    id="engineering"
+                    class="portfolio-section"
+                    aria-labelledby="engineeringTitle"
+                >
+                    <div class="portfolio-section-heading">
+                        <div>
+                            <span class="section-number">03</span>
+                            <p class="portfolio-eyebrow">ENGINEERING</p>
+                            <h2 id="engineeringTitle">設計と運用の判断</h2>
+                        </div>
+                        <p>
+                            画面を完成させるだけでなく、使い続けるための安全性、速度、費用、変更しやすさまで扱っています。
+                        </p>
+                    </div>
+                    <div class="architecture-panel">
+                        <div class="architecture-copy">
+                            <span>SERVERLESS ARCHITECTURE</span>
+                            <h3>必要なときだけ動く、<br />小さなAWS構成。</h3>
+                            <p>
+                                静的画面はS3とCloudFront、APIはJava
+                                Lambda、データはDynamoDBに分離。個人開発でも維持しやすく、アクセス量に応じた費用になる構成を選びました。
                             </p>
                         </div>
+                        <div class="architecture-map" aria-label="AWSシステム構成図">
+                            <div class="architecture-node is-browser">
+                                <small>USER</small><strong>Browser</strong>
+                            </div>
+                            <span class="architecture-arrow">→</span>
+                            <div class="architecture-cluster">
+                                <div class="architecture-node">
+                                    <small>DELIVERY</small><strong>CloudFront + S3</strong>
+                                </div>
+                                <div class="architecture-node">
+                                    <small>AUTH</small><strong>Cognito</strong>
+                                </div>
+                            </div>
+                            <span class="architecture-arrow">→</span>
+                            <div class="architecture-cluster">
+                                <div class="architecture-node is-accent">
+                                    <small>API</small><strong>Java Lambda</strong>
+                                </div>
+                                <div class="architecture-node">
+                                    <small>DATA</small><strong>DynamoDB</strong>
+                                </div>
+                                <div class="architecture-node">
+                                    <small>AI</small><strong>S3 + Gemini</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="decision-grid">
+                        <article>
+                            <span>AUTHORIZATION</span>
+                            <h3>画面とAPIの二重チェック</h3>
+                            <p>
+                                管理者向けUIを隠すだけでなく、Lambda側でもトークンとCognitoグループを検証します。
+                            </p>
+                        </article>
+                        <article>
+                            <span>ASYNC PROCESSING</span>
+                            <h3>重い処理を画面から分離</h3>
+                            <p>
+                                画像解析はS3イベントで非同期実行し、画面はジョブ状態を確認する構成にしています。
+                            </p>
+                        </article>
+                        <article>
+                            <span>COST CONTROL</span>
+                            <h3>固定費を持ちにくい選択</h3>
+                            <p>
+                                サーバーレス構成と直接S3アップロードで、Lambdaの処理時間とデータ転送を抑えます。
+                            </p>
+                        </article>
+                        <article>
+                            <span>DELIVERY</span>
+                            <h3>プッシュから自動反映</h3>
+                            <p>
+                                Gradleビルド、Lambda更新、S3同期、CloudFrontキャッシュ削除までCodePipelineで実行します。
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="portfolio-section quality-section" aria-labelledby="qualityTitle">
+                    <div class="quality-heading">
+                        <span class="section-number">04</span>
+                        <p class="portfolio-eyebrow">QUALITY &amp; DOCUMENTATION</p>
+                        <h2 id="qualityTitle">つくった後も、説明できる状態に。</h2>
+                    </div>
+                    <div class="quality-list">
+                        <div>
+                            <span>01</span><strong>レスポンシブUI</strong>
+                            <p>PCとスマートフォンの双方で、同じ情報へ迷わずアクセスできる設計。</p>
+                        </div>
+                        <div>
+                            <span>02</span><strong>状態のフィードバック</strong>
+                            <p>
+                                読み込み中、空データ、失敗、非同期処理中を明示し、操作結果を見失わないように設計。
+                            </p>
+                        </div>
+                        <div>
+                            <span>03</span><strong>テストと整形</strong>
+                            <p>
+                                Gradle、JUnit、Node.js、Prettierを利用し、デプロイ前にコードを検証。
+                            </p>
+                        </div>
+                        <div>
+                            <span>04</span><strong>設計ドキュメント</strong>
+                            <p>構成、画面遷移、権限、外部設計、開発手順をリポジトリ内に記録。</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section
+                    id="about"
+                    class="portfolio-section about-section"
+                    aria-labelledby="aboutTitle"
+                >
+                    <div>
+                        <span class="section-number">05</span>
+                        <p class="portfolio-eyebrow">ABOUT THE WORK</p>
+                        <h2 id="aboutTitle">自分の暮らしから、<br />プロダクトを考える。</h2>
+                    </div>
+                    <div class="about-copy">
+                        <p>
+                            バスケサークルを運営する中で感じた不便や、婚約後の生活で必要になったことを出発点にしています。自分が利用者でもあるからこそ、実際の操作で感じた違和感を次の改善につなげています。
+                        </p>
+                        <p>
+                            機能の多さだけでなく、初めて触る人が迷わないこと、権限を安全に扱うこと、個人でも無理なく維持できる費用に収めることまで含めて、ひとつのプロダクトとして考えています。
+                        </p>
                         <ul class="tech-list" aria-label="使用技術">
                             <li>Java</li>
-                            <li>JavaScript</li>
-                            <li>HTML / CSS</li>
+                            <li>Vue 3</li>
+                            <li>TypeScript</li>
+                            <li>Vite / Pinia</li>
                             <li>AWS Lambda</li>
                             <li>DynamoDB</li>
                             <li>S3</li>
@@ -109,72 +429,26 @@
                     </div>
                 </section>
 
-                <section class="portfolio-section" aria-labelledby="architectureTitle">
-                    <div class="portfolio-section-heading">
-                        <div>
-                            <span class="portfolio-eyebrow">SITE STRUCTURE</span>
-                            <h2 id="architectureTitle">サイトの構成</h2>
-                        </div>
-                        <p>画面、API、データ、認証を役割ごとに分けて運用しています。</p>
-                    </div>
-                    <div class="portfolio-grid">
-                        <article class="portfolio-card">
-                            <span class="card-kicker">Frontend</span>
-                            <h3>ブラウザ画面</h3>
-                            <p>
-                                HTML・CSS・JavaScriptで、スマートフォンとPCの両方から操作できる画面を構成しています。
-                            </p>
-                        </article>
-                        <article class="portfolio-card">
-                            <span class="card-kicker">Backend</span>
-                            <h3>API・非同期処理</h3>
-                            <p>
-                                JavaのLambdaで予定、施設、チーム、試合、スタッツのAPIと画像解析処理を提供します。
-                            </p>
-                        </article>
-                        <article class="portfolio-card">
-                            <span class="card-kicker">Cloud</span>
-                            <h3>AWS・認証・データ</h3>
-                            <p>
-                                CloudFront、S3、DynamoDB、Cognitoを組み合わせ、認証されたメンバーだけがチーム情報を扱えます。
-                            </p>
-                        </article>
-                    </div>
-                </section>
-
-                <section class="portfolio-section" aria-labelledby="routeTitle">
-                    <div class="portfolio-section-heading">
-                        <div>
-                            <span class="portfolio-eyebrow">CASE STUDY</span>
-                            <h2 id="routeTitle">バスケットボールアプリの構成</h2>
-                        </div>
-                        <p>画面、API、データ、認証を役割ごとに分けて運用しています。</p>
-                    </div>
-                    <div class="portfolio-routes">
-                        <div class="portfolio-route-card">
-                            <strong>予定登録</strong><span>練習・試合・会議を登録</span>
-                        </div>
-                        <div class="portfolio-route-card">
-                            <strong>施設登録</strong><span>会場名・住所・URLを管理</span>
-                        </div>
-                        <div class="portfolio-route-card">
-                            <strong>周知事項</strong><span>チームへの連絡を掲載</span>
-                        </div>
-                        <div class="portfolio-route-card">
-                            <strong>練習動画</strong><span>限定公開動画を整理</span>
-                        </div>
+                <section class="portfolio-cta" aria-labelledby="ctaTitle">
+                    <p class="portfolio-eyebrow">EXPLORE THE PROJECT</p>
+                    <h2 id="ctaTitle">実際のプロダクトと、<br />コードを見る。</h2>
+                    <div>
+                        <a class="portfolio-button" href="app/">Live appを見る</a
+                        ><a
+                            class="portfolio-button is-secondary"
+                            href="https://github.com/leonard002-sas/basket-schedule-app-lambda"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >GitHub repository ↗</a
+                        >
                     </div>
                 </section>
             </main>
 
             <footer class="portfolio-footer">
-                <span>TATEISHI AKIHITO · Personal projects</span>
-                <a
-                    href="https://github.com/leonard002-sas/basket-schedule-app-lambda"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    >GitHubリポジトリ&nbsp;↗</a
-                >
+                <span>© 2026 TATEISHI AKIHITO</span
+                ><span>Designed and engineered as a personal project.</span
+                ><a href="#main">Back to top ↑</a>
             </footer>
         </div>
     </body>

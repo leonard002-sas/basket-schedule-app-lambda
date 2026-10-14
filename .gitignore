@@ -7,6 +7,12 @@ bin/
 # Gradle
 .gradle/
 node_modules/
+frontend/node_modules/
+src/main/resources/static/app/
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+frontend/src/**/*.js
 .gradle-home-*/
 gradle-home-*/
 build/

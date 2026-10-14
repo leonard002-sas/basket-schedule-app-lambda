@@ -5,6 +5,7 @@
 - JDK 25, matching the Gradle toolchain in `build.gradle`
 - The checked-in Gradle wrapper
 - Node.js and npm for browser checks and the pinned Prettier formatter
+- Node.js 22 or later for the Vue/Vite build
 
 ## Build and test
 
@@ -18,11 +19,16 @@ node --test src/test/js/*.test.cjs
 npm ci
 npm run format:check
 npm test
+cd frontend
+npm ci
+npm run build
 ```
 
 `build` includes the JUnit 5 suite and Spotless Java format check. Java compilation uses UTF-8 and `-Xlint:all`. API tests use unauthenticated Lambda events and do not call DynamoDB. A live Cognito, DynamoDB, S3, and Gemini integration test requires a separately configured AWS test environment and must not write to production resources.
 
 The browser utility tests use Node's built-in test runner and do not need AWS credentials or production API calls. The formatter version is pinned in `package-lock.json`; installing it requires npm access. The manual Gemini smoke check is in `src/test/java`; it requires an explicit `--confirm-paid-api-call` flag because the request may incur Gemini usage charges. Do not run it during ordinary verification.
+
+The Vue production build performs strict TypeScript checking before Vite bundles the application. Generated assets are written to `src/main/resources/static/app/`; CodeBuild creates them before the S3 sync, so they are excluded from Git.
 
 To generate Javadoc locally:
 
@@ -50,6 +56,8 @@ The browser uses `frontend-config.js` for public endpoints and the Cognito clien
 
 ### Browser code
 
+- New screens belong in `frontend/src/views`; shared state belongs in Pinia stores and HTTP concerns belong in the typed API service.
+- Use Vue's declarative templates and computed state instead of manually querying or rewriting the DOM.
 - Keep UI state, DOM updates, and network calls in clearly named functions.
 - Escape values before inserting user-controlled text into HTML.
 - Treat decoded JWT claims as presentation hints only; all access decisions must be repeated by the Java API.

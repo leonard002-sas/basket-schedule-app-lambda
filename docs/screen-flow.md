@@ -1,5 +1,7 @@
 # Screen flow and navigation
 
+The Vue SPA is served from `/app/`. Its persistent application shell contains the brand, theme control, account entry, and role-aware navigation. Route views are replaced inside the shell without a full page reload.
+
 The common navigation is present on the calendar, schedule registration, facility registration, and scorebook screens. On narrow displays the navigation scrolls horizontally. The active destination uses `aria-current="page"` and a visible highlight.
 
 ```mermaid
@@ -38,6 +40,11 @@ flowchart TD
 
 ## Navigation behavior
 
+- `/app/#/calendar` is the authenticated home and monthly schedule view.
+- `/app/#/schedules/new`, `/facilities`, and `/announcements` are shown to administrators.
+- `/app/#/videos`, `/teams`, `/games`, and `/rankings` are shared team destinations.
+- `/app/#/users` is protected by the administrator route guard; the Java API remains the final authorization boundary.
+- Advanced image import, live scorekeeping, roster editing, and account workflows link to the existing screens while SPA parity is completed.
 - `index.html` anchors the navigation to the calendar, announcements, and video sections. Scrolling the page updates the highlighted section.
 - `register.html?screen=schedule` shows manual and image-based schedule registration.
 - `register.html?screen=facility` shows only the facility form.
@@ -48,4 +55,4 @@ flowchart TD
 
 ## Roles
 
-Guests can read the calendar, visible announcements, facilities, team roster, completed game results, and rankings. Administrators can additionally create and edit schedules, facilities, announcements, teams, roster entries, and games, and record score actions. Root administrators inherit those rights and can manage accounts. The server checks the role on every protected request; hiding a form in the browser is not an authorization control.
+Signed-in members can read the calendar, visible announcements, facilities, team roster, completed game results, and rankings. Administrators can additionally create and edit schedules, facilities, announcements, teams, roster entries, and games, and record score actions. Root administrators inherit those rights and can manage accounts. The server checks the role on every protected request; hiding a form in the browser is not an authorization control.
