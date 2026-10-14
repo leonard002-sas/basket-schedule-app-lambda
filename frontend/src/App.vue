@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
+import NavIcon from "./components/NavIcon.vue";
 import { useAuthStore } from "./stores/auth";
 import { useUploadStore } from "./stores/uploads";
 import { useScheduleStore } from "./stores/schedules";
@@ -30,16 +31,16 @@ watch(
 );
 
 const navigation = computed(() => [
-    { to: "/", label: "ホーム", icon: "HOME", show: true },
-    { to: "/calendar", label: "予定", icon: "CAL", show: true },
-    { to: "/schedules/new", label: "予定登録", icon: "+", show: auth.isAdmin },
-    { to: "/facilities", label: "施設", icon: "GYM", show: auth.isAdmin },
-    { to: "/announcements", label: "周知", icon: "NEWS", show: auth.isAdmin },
-    { to: "/videos", label: "動画", icon: "VID", show: true },
-    { to: "/teams", label: "チーム", icon: "TEAM", show: true },
-    { to: "/games", label: "試合", icon: "GAME", show: true },
-    { to: "/rankings", label: "ランキング", icon: "RANK", show: true },
-    { to: "/users", label: "ユーザー", icon: "USER", show: auth.isAdmin },
+    { to: "/", label: "ホーム", icon: "home", show: true },
+    { to: "/calendar", label: "予定", icon: "calendar", show: true },
+    { to: "/schedules/new", label: "予定登録", icon: "add", show: auth.isAdmin },
+    { to: "/facilities", label: "施設", icon: "facility", show: auth.isAdmin },
+    { to: "/announcements", label: "周知", icon: "notice", show: auth.isAdmin },
+    { to: "/videos", label: "動画", icon: "video", show: true },
+    { to: "/teams", label: "チーム", icon: "team", show: true },
+    { to: "/games", label: "試合", icon: "game", show: true },
+    { to: "/rankings", label: "ランキング", icon: "ranking", show: true },
+    { to: "/users", label: "ユーザー", icon: "user", show: auth.isAdmin },
 ]);
 
 function toggleTheme(): void {
@@ -82,8 +83,15 @@ onMounted(async () => {
         </aside>
         <header class="app-header">
             <RouterLink class="brand" to="/">
-                <span class="brand-mark">B</span>
-                <span><strong>Basketball Team</strong><small>MEMBER WORKSPACE</small></span>
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 48 48" role="img">
+                        <circle cx="24" cy="24" r="17" />
+                        <path
+                            d="M24 7c-5 5-7 10-7 17s2 12 7 17M24 7c5 5 7 10 7 17s-2 12-7 17M8 20c8 4 24 4 32 0M8 28c8-4 24-4 32 0"
+                        />
+                    </svg>
+                </span>
+                <span><strong>BASKETBALL TEAM</strong><small>TEAM OPERATIONS HUB</small></span>
             </RouterLink>
             <div class="header-actions">
                 <button
@@ -128,8 +136,7 @@ onMounted(async () => {
                         }"
                         @click="menuOpen = false"
                     >
-                        <span>{{ item.icon }}</span
-                        >{{ item.label }}
+                        <span><NavIcon :name="item.icon" /></span>{{ item.label }}
                     </RouterLink>
                 </nav>
                 <div class="sidebar-foot">

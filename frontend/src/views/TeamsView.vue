@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from "vue";
+import { onMounted, reactive, ref } from "vue";
 import PageState from "../components/PageState.vue";
 import {
     deletePlayer,
@@ -32,6 +32,7 @@ async function load() {
         selected.value = teams.value.some((t) => t.teamId === selected.value)
             ? selected.value
             : teams.value[0]?.teamId || "";
+        await loadPlayers(selected.value);
     } catch (e) {
         error.value = e instanceof Error ? e.message : "チームを取得できません";
     } finally {
@@ -41,7 +42,6 @@ async function load() {
 async function loadPlayers(id: string) {
     players.value = id ? await fetchPlayers(id) : [];
 }
-watch(selected, loadPlayers);
 onMounted(load);
 function editPlayer(row?: Player) {
     player.playerId = row?.playerId;
@@ -66,9 +66,14 @@ async function submitTeam() {
 async function removeTeam() {
     if (!selected.value || !confirm("チームと紐づく選手・試合を削除します。よろしいですか？"))
         return;
-    await deleteTeam(selected.value);
-    selected.value = "";
-    await load();
+    try {
+        await deleteTeam(selected.value);
+        selected.value = "";
+        message.value = "チームを削除しました";
+        await load();
+    } catch (e) {
+        message.value = e instanceof Error ? e.message : "チームを削除できません";
+    }
 }
 async function submitPlayer() {
     if (!selected.value || !player.name.trim()) return;
@@ -86,8 +91,13 @@ async function submitPlayer() {
 }
 async function removePlayer(row: Player) {
     if (!confirm(`${row.name}を登録外にしますか？`)) return;
-    await deletePlayer(selected.value, row.playerId);
-    await loadPlayers(selected.value);
+    try {
+        await deletePlayer(selected.value, row.playerId);
+        message.value = `${row.name}を登録外にしました`;
+        await loadPlayers(selected.value);
+    } catch (e) {
+        message.value = e instanceof Error ? e.message : "メンバーを削除できません";
+    }
 }
 </script>
 <template>
@@ -98,7 +108,7 @@ async function removePlayer(row: Player) {
                 <h1>チーム管理</h1>
                 <p>チームと所属メンバーをまとめて登録・編集します。</p>
             </div>
-            <select v-model="selected" class="hero-select">
+            <select v-model="selected" class="hero-select" @change="loadPlayers(selected)">
                 <option value="">チームを選択</option>
                 <option v-for="team in teams" :key="team.teamId" :value="team.teamId">
                     {{ team.name }}

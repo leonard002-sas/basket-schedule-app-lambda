@@ -144,7 +144,7 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
         "team",
         plain(item(teamPk(teamId), "PROFILE")),
         "players",
-        plainList(rows(teamPk(teamId), "PLAYER#")));
+        plainRows(rows(teamPk(teamId), "PLAYER#")));
   }
 
   private Map<String, Object> playerTrend(String teamId, String playerId, String year) {
@@ -874,8 +874,8 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
     Map<String, AttributeValue> meta = item("GAME#" + id, "META");
     if (meta.isEmpty()) throw new ApiException(404, "GAME_NOT_FOUND", "試合が見つかりません");
     Map<String, Object> out = plain(meta);
-    out.put("players", plainList(rows("GAME#" + id, "PLAYER#")));
-    out.put("events", plainList(rows("GAME#" + id, "EVENT#")));
+    out.put("players", plainRows(rows("GAME#" + id, "PLAYER#")));
+    out.put("events", plainRows(rows("GAME#" + id, "EVENT#")));
     return out;
   }
 
@@ -1087,9 +1087,13 @@ public class BasketballApi implements RequestHandler<Map<String, Object>, Map<St
   }
 
   private Map<String, Object> plainList(List<Map<String, AttributeValue>> rows) {
+    return Map.of("items", plainRows(rows));
+  }
+
+  private List<Map<String, Object>> plainRows(List<Map<String, AttributeValue>> rows) {
     List<Map<String, Object>> out = new ArrayList<>();
     for (var row : rows) out.add(plain(row));
-    return Map.of("items", out);
+    return out;
   }
 
   private Map<String, Object> plain(Map<String, AttributeValue> row) {

@@ -122,6 +122,7 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
       if ("DELETE".equalsIgnoreCase(method)) {
 
         if ("announcement".equals(resource)) return deleteAnnouncement(routeQuery.get("id"));
+        if ("attendance".equals(resource)) return deleteAttendance(routeQuery, user);
 
         return deleteSchedule(input, context);
       }
@@ -327,6 +328,25 @@ public class ScheduleApi implements RequestHandler<Map<String, Object>, Map<Stri
     item.put("updatedAt", AttributeValue.builder().s(java.time.Instant.now().toString()).build());
     dynamoDbClient.putItem(PutItemRequest.builder().tableName(SCHEDULE_TABLE).item(item).build());
     return Map.of("message", "参加状況を保存しました", "status", status);
+  }
+
+  /** ログインユーザー自身の出欠回答を取り消します。 */
+  private Map<String, Object> deleteAttendance(Map<String, String> query, CognitoAuth.User user) {
+    String scheduleMonth = requiredQuery(query, "scheduleMonth");
+    String scheduleStart = requiredQuery(query, "startDateTime");
+    dynamoDbClient.deleteItem(
+        DeleteItemRequest.builder()
+            .tableName(SCHEDULE_TABLE)
+            .key(
+                Map.of(
+                    "scheduleMonth",
+                    AttributeValue.builder()
+                        .s(attendancePartition(scheduleMonth, scheduleStart))
+                        .build(),
+                    "startDateTime",
+                    AttributeValue.builder().s(user.subject()).build()))
+            .build());
+    return Map.of("message", "参加状況を取り消しました");
   }
 
   private String attendancePartition(String scheduleMonth, String startDateTime) {

@@ -205,9 +205,9 @@ async function uploadCsv() {
                 <h2>{{ form.gameId ? "試合情報を編集" : "試合を作成" }}</h2>
                 <div class="form-grid">
                     <label class="wide"
-                        ><span>予定表の試合（任意）</span
+                        ><span>予定表の試合と連携（任意）</span
                         ><select v-model="form.scheduleKey">
-                            <option value="">紐づけない</option>
+                            <option value="">連携する予定を選択（任意）</option>
                             <option
                                 v-for="s in gameSchedules"
                                 :key="scheduleKey(s)"

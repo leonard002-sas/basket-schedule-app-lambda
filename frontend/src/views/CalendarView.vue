@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import PageState from "../components/PageState.vue";
 import {
+    deleteAttendance,
     deleteSchedule,
     fetchAttendance,
     fetchScheduleDetail,
@@ -12,6 +13,7 @@ import {
 import { useAuthStore } from "../stores/auth";
 import { useScheduleStore } from "../stores/schedules";
 import type { AttendancePayload, AttendanceStatus, Schedule } from "../types/domain";
+import { formatScheduleDateTimeRange } from "../utils/date";
 import { downloadCalendar, lineTemplate } from "../utils/exports";
 const auth = useAuthStore(),
     store = useScheduleStore(),
@@ -98,9 +100,19 @@ async function answer(status: AttendanceStatus) {
     if (!selected.value) return;
     attendanceBusy.value = true;
     try {
-        await saveAttendance(selected.value, status, guestCount.value, comment.value);
+        if (attendance.value?.currentStatus === status) {
+            await deleteAttendance(selected.value);
+            guestCount.value = 0;
+            comment.value = "";
+            message.value = "出欠回答を取り消しました";
+        } else {
+            await saveAttendance(selected.value, status, guestCount.value, comment.value);
+            message.value = "出欠回答を保存しました";
+        }
         attendance.value = await fetchAttendance(selected.value);
         await store.load(true);
+    } catch (e) {
+        message.value = e instanceof Error ? e.message : "出欠を更新できません";
     } finally {
         attendanceBusy.value = false;
     }
@@ -321,8 +333,11 @@ onMounted(() => {
                                 <dt>日時</dt>
                                 <dd>
                                     {{
-                                        new Date(selected.startDateTime).toLocaleString("ja-JP")
-                                    }}〜{{ selected.endDateTime.slice(11, 16) }}
+                                        formatScheduleDateTimeRange(
+                                            selected.startDateTime,
+                                            selected.endDateTime,
+                                        )
+                                    }}
                                 </dd>
                             </div>
                             <div>
@@ -432,9 +447,11 @@ onMounted(() => {
                                         {{ f.facilityName }}
                                     </option>
                                 </select></label
-                            ><label
+                            ><label v-if="edit.eventType === 'GAME'"
                                 ><span>大会名</span><input v-model="edit.competitionName" /></label
-                            ><label><span>ラウンド</span><input v-model="edit.round" /></label
+                            ><label v-if="edit.eventType === 'GAME'"
+                                ><span>ラウンド</span><input v-model="edit.round"
+                            /></label>
                             ><label class="wide"
                                 ><span>動画URL</span
                                 ><input v-model="edit.videoUrl" type="url" /></label

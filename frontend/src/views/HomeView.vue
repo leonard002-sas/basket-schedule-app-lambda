@@ -53,13 +53,18 @@ watch(
             <p v-if="auth.callbackError" class="form-error">{{ auth.callbackError }}</p>
         </div>
         <div class="login-visual">
+            <div class="visual-kicker">TEAM / GAME / SCHEDULE</div>
             <div class="court-orbit orbit-one"></div>
             <div class="court-orbit orbit-two"></div>
             <div class="score-display">
-                <small>NEXT GAME</small><strong>HOME <b>86</b></strong
-                ><span>FINAL</span><strong>AWAY <b>79</b></strong>
+                <small>TEAM SCOREBOARD</small>
+                <div class="score-row"><strong>HOME</strong><b>86</b></div>
+                <span>FINAL · Q4</span>
+                <div class="score-row"><strong>AWAY</strong><b>79</b></div>
+                <footer><i>GAME 12</i><i>HOME COURT</i></footer>
             </div>
-            <div class="ball-mark">●</div>
+            <div class="ball-mark" aria-hidden="true"><span></span></div>
+            <div class="visual-caption"><b>ONE TEAM.</b><span>EVERY MOMENT.</span></div>
         </div>
     </section>
     <section v-else class="page-shell dashboard-home">

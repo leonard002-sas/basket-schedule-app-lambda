@@ -12,7 +12,7 @@ phases:
 
       - echo "=== Vue SPA build start ==="
 
-      - cd frontend && npm ci && npm run build && cd ..
+      - cd frontend && npm ci && npm run test:unit && npm run build && cd ..
 
       - echo "=== Vue SPA build complete ==="
 
